@@ -4,6 +4,7 @@ import 'package:arl_app/core/repositories/activity_repository.dart';
 import 'package:arl_app/core/repositories/app_config_repository.dart';
 import 'package:arl_app/core/repositories/consultation_requests_repository.dart';
 import 'package:arl_app/core/repositories/documents_repository.dart';
+import 'package:arl_app/core/repositories/exit_requests_repository.dart';
 import 'package:arl_app/core/repositories/financials_repository.dart';
 import 'package:arl_app/core/repositories/gallery_repository.dart';
 import 'package:arl_app/core/repositories/investor_repository.dart';
@@ -47,8 +48,11 @@ final loginEventsRepositoryProvider = Provider<LoginEventsRepository>(
 );
 final consultationRequestsRepositoryProvider =
     Provider<ConsultationRequestsRepository>(
-      (_) => ConsultationRequestsRepository(),
-    );
+  (_) => ConsultationRequestsRepository(),
+);
+final exitRequestsRepositoryProvider = Provider<ExitRequestsRepository>(
+  (_) => ExitRequestsRepository(),
+);
 
 /// Current user's settings row (toggles + PIN metadata). Rebuilds on auth
 /// change so signing-in/out re-fetches. Resolves null when no row exists yet.

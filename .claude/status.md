@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-12
 **Current phase:** Implement
-**Progress:** Flutter Feature Audit fixes — Priority 1–4 of 5 complete (SecurityScreen, BiometricScreen, InitialSetupScreen, ExploreScreen).
+**Progress:** Flutter Feature Audit fixes — all 5 priorities complete. Audit rows updated for SecurityScreen, BiometricScreen, InitialSetupScreen, ExploreScreen, ExitScreen. Ops doc append pending user direction.
 
 ## Summary
 Flutter port of `Growize App Design.html` (17 pages). Core screens scaffolded across 12 features. Active work: HTML-parity fixes — global header/logo, font bundling, back-nav stack behavior.
@@ -18,6 +18,7 @@ Flutter port of `Growize App Design.html` (17 pages). Core screens scaffolded ac
 - BiometricScreen registered as `/biometric`; used as enrollment gate from SecurityScreen Biometric Login toggle (see decisions/2026-05-12_biometric-screen-wiring.md).
 - InitialSetupScreen now validates + persists KYC to `investors` (RLS scoped to own row); migration 027 applied (see decisions/2026-05-12_initial-setup-persistence.md).
 - ExploreScreen "Request Consultation" persists to `consultation_requests` with 24h client-side dedup; migration 028 applied (see decisions/2026-05-12_explore-consultation-persistence.md).
+- ExitScreen "Request Exit" persists to `exit_requests`, DB-level partial unique index guards duplicates, screen flips to submitted-state card; migration 029 applied (see decisions/2026-05-12_exit-requests-persistence.md).
 - Ops doc inventory done — recommend appending SecurityScreen/BiometricScreen behaviour notes to `docs/ops_admin_guide.md` (canonical 1070-line ops doc); pending user decision.
 
 ## Blockers
