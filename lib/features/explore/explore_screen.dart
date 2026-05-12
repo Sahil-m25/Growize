@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:arl_app/core/providers/repositories.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/features/projects/models/marketplace_project.dart';
 import 'package:arl_app/features/projects/projects_provider.dart';
@@ -23,6 +24,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   double _customUnits = 1;
   bool _useCustomUnits = false;
   String _statusFilter = 'all'; // all | open | not_started
+  final Set<String> _submittingProjectIds = <String>{};
 
   @override
   Widget build(BuildContext context) {
@@ -78,10 +80,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 const SizedBox(height: 8),
                 const Text(
                   'Browse upcoming offerings — request a consultation and our team will reach out.',
-                  style: TextStyle(
-                    color: ArlColors.muted,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: ArlColors.muted, fontSize: 12),
                 ),
                 const SizedBox(height: 16),
 
@@ -284,25 +283,27 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         underline: Container(),
         isExpanded: true,
         items: listings
-            .map((project) => DropdownMenuItem(
-                  value: project,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          project.name,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: ArlColors.charcoal,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
+            .map(
+              (project) => DropdownMenuItem(
+                value: project,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        project.name,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: ArlColors.charcoal,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      _statusBadge(project),
-                    ],
-                  ),
-                ))
+                    ),
+                    _statusBadge(project),
+                  ],
+                ),
+              ),
+            )
             .toList(),
       ),
     );
@@ -327,8 +328,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration:
-          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Text(
         label,
         style: TextStyle(color: fg, fontSize: 9, fontWeight: FontWeight.w600),
@@ -481,8 +484,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             TextField(
               decoration: InputDecoration(
                 hintText: 'Units (1-${p.unitsAvailable})',
-                hintStyle:
-                    TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                hintStyle: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.1),
                 border: OutlineInputBorder(
@@ -495,8 +499,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               onChanged: (value) {
                 final v = double.tryParse(value);
                 if (v != null) {
-                  setState(() => _customUnits = v.clamp(
-                      1.0, p.unitsAvailable.toDouble().clamp(1.0, 50.0)));
+                  setState(
+                    () => _customUnits = v.clamp(
+                      1.0,
+                      p.unitsAvailable.toDouble().clamp(1.0, 50.0),
+                    ),
+                  );
                 }
               },
             ),
@@ -520,8 +528,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                _summaryRow('Total Investment',
-                    '₹${formatter.format(totalInvestment / 100000)}L'),
+                _summaryRow(
+                  'Total Investment',
+                  '₹${formatter.format(totalInvestment / 100000)}L',
+                ),
                 const SizedBox(height: 8),
                 _summaryRow(
                   'Est. Annual Return',
@@ -541,7 +551,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: p.unitsAvailable > 0 && !p.isClosed
+              onPressed:
+                  (p.unitsAvailable > 0 &&
+                      !p.isClosed &&
+                      !_submittingProjectIds.contains(p.id))
                   ? () => _onConsultationRequested(p, unitCount)
                   : null,
               style: ElevatedButton.styleFrom(
@@ -552,17 +565,26 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   borderRadius: BorderRadius.circular(15),
                 ),
               ),
-              child: Text(
-                p.isClosed
-                    ? 'Subscription Closed'
-                    : p.unitsAvailable == 0
-                        ? 'Fully Subscribed'
-                        : 'Request Consultation',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
+              child: _submittingProjectIds.contains(p.id)
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(
+                        color: ArlColors.primary,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      p.isClosed
+                          ? 'Subscription Closed'
+                          : p.unitsAvailable == 0
+                          ? 'Fully Subscribed'
+                          : 'Request Consultation',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -615,8 +637,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             final barFraction = maxMultiplier > 1
                 ? (multiplier - 1) / (maxMultiplier - 1)
                 : (idx + 1) / 5;
-            final barColor =
-                Color.lerp(ArlColors.primary, ArlColors.gold, idx / 4)!;
+            final barColor = Color.lerp(
+              ArlColors.primary,
+              ArlColors.gold,
+              idx / 4,
+            )!;
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Column(
@@ -681,16 +706,37 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     );
   }
 
-  void _onConsultationRequested(MarketplaceProject p, int units) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Got it — our team will reach out about $units unit${units == 1 ? '' : 's'} of ${p.name}.',
+  Future<void> _onConsultationRequested(MarketplaceProject p, int units) async {
+    if (_submittingProjectIds.contains(p.id)) return;
+    setState(() => _submittingProjectIds.add(p.id));
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final result = await ref
+          .read(consultationRequestsRepositoryProvider)
+          .createConsultation(projectId: p.id, unitsRequested: units);
+      if (!mounted) return;
+      final unitLabel = '$units unit${units == 1 ? '' : 's'}';
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            result.created
+                ? 'Got it — our team will reach out about $unitLabel of ${p.name}.'
+                : 'You already requested a consultation for ${p.name} recently. We\'ll be in touch.',
+          ),
+          backgroundColor: ArlColors.primary,
         ),
-        backgroundColor: ArlColors.primary,
-      ),
-    );
-    // TODO: wire to support_repository.createConsultationRequest(...)
+      );
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not submit request: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _submittingProjectIds.remove(p.id));
+      }
+    }
   }
 
   /// Simple integer power for compound growth — avoids importing dart:math
@@ -733,10 +779,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white, fontSize: 12),
-        ),
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
         Text(
           value,
           style: TextStyle(
