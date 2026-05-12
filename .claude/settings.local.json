@@ -1,0 +1,56 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dart *)",
+      "Bash(flutter *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(scoop install *)",
+      "Bash(python *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(mv *)",
+      "PowerShell(& C:\\\\flutter\\\\bin\\\\flutter.bat *)",
+      "PowerShell(& C:\\\\flutter\\\\bin\\\\dart.bat *)",
+      "mcp__plugin_context-mode_context-mode__ctx_execute_file",
+      "mcp__plugin_context-mode_context-mode__ctx_execute",
+      "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
+      "mcp__plugin_context-mode_context-mode__ctx_search",
+      "mcp__plugin_context-mode_context-mode__ctx_fetch_and_index",
+      "PowerShell(& C:\\\\flutter\\\\bin\\\\dart.bat format C:\\\\Users\\\\Sahil\\\\Downloads\\\\ARL\\\\arl_app\\\\lib\\\\hook_test.dart)",
+      "Bash(/c/flutter/bin/dart.bat analyze *)",
+      "mcp__55be8091-13df-4067-aa96-7d2cb54d2be9__list_projects",
+      "mcp__ece08827-5f6b-474f-9254-3ca59aba7a2f__getModules",
+      "mcp__ece08827-5f6b-474f-9254-3ca59aba7a2f__createRecords",
+      "mcp__55be8091-13df-4067-aa96-7d2cb54d2be9__execute_sql",
+      "mcp__ece08827-5f6b-474f-9254-3ca59aba7a2f__updateRecord",
+      "Bash(/c/flutter/bin/flutter.bat run *)",
+      "Bash(/c/flutter/bin/flutter.bat --version)",
+      "Bash(/c/flutter/bin/flutter.bat doctor *)",
+      "Bash(/c/flutter/bin/flutter.bat devices *)",
+      "Bash(/c/flutter/bin/flutter.bat clean *)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(/c/flutter/bin/flutter.bat pub *)",
+      "Bash(/c/flutter/bin/flutter.bat analyze *)",
+      "Read(//tmp/**)",
+      "Bash(/c/flutter/bin/flutter.bat build *)",
+      "PowerShell(& \"C:\\\\flutter\\\\bin\\\\flutter.bat\" pub get 2>&1)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:\\\\Users\\\\Sahil\\\\Downloads\\\\ARL\\\\arl_app\\\\.claude\\\\hooks\\\\format-dart.js\""
+          }
+        ]
+      }
+    ]
+  }
+}

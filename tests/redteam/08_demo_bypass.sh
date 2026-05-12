@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# G.T9: Demo-mode bypass
+# Test that the release build hard-fails if .env is missing (does not fall into demo mode).
+# This is a MANUAL test because it requires building and installing the APK.
+# Following Stream B.T1, the release build should not have dotenv fallback behavior.
+
+echo "Demo-mode bypass test — MANUAL VERIFICATION REQUIRED"
+echo ""
+echo "Steps:"
+echo "1. Backup your .env file:"
+echo "   cp .env .env.backup"
+echo ""
+echo "2. Create an empty .env:"
+echo "   echo '' > .env"
+echo ""
+echo "3. Build release APK with empty .env:"
+echo "   flutter build apk --release"
+echo ""
+echo "4. Install on a test device:"
+echo "   adb install -r build/app/outputs/apk/release/app-release.apk"
+echo ""
+echo "5. Launch the app on the device."
+echo ""
+echo "6. EXPECTED RESULT:"
+echo "   - App should NOT start in demo mode"
+echo "   - App should show an error screen (because SUPABASE_URL is undefined)"
+echo "   - App should NOT navigate to /home or show demo data"
+echo ""
+echo "7. If the app opens and shows demo data (or enters demo mode), the bypass succeeded (BAD)."
+echo ""
+echo "8. Restore .env:"
+echo "   cp .env.backup .env"
+echo ""
+echo "9. Rebuild and verify normal operation."
+echo ""
+echo "If Step 6 result is correct (error screen shown), test PASSES."

@@ -1,0 +1,2811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Growize UI Map - Developer Reference</title>
+    <style>
+        :root {
+            --primary: #3C5152;
+            --accent: #2E7D6E;
+            --gold: #D4AF37;
+            --gold-light: #F2DC6B;
+            --cream: #FAFAF7;
+            --sand: #E1DFC6;
+            --earth: #C05640;
+            --charcoal: #0F1A15;
+            --muted: #6B7280;
+            --border: #E5E7EB;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--cream);
+            color: var(--charcoal);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--charcoal) 100%);
+            color: white;
+            padding: 30px 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 0.95em;
+            opacity: 0.9;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+
+        .legend-badge {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            font-size: 0.75em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .badge-table { background: #3B82F6; }
+        .badge-view { background: #8B5CF6; }
+        .badge-calc { background: #EC4899; }
+        .badge-edge { background: #F59E0B; }
+        .badge-storage { background: #14B8A6; }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            padding: 5px;
+            border: 1px solid var(--border);
+        }
+
+        .tab-button {
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: var(--muted);
+            border-radius: 4px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab-button:hover {
+            background: var(--sand);
+            color: var(--charcoal);
+        }
+
+        .tab-button.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .screen-panel {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .screen-title {
+            font-size: 1.8em;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .screen-meta {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--sand);
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .meta-label {
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .meta-value {
+            font-size: 0.95em;
+            color: var(--charcoal);
+            font-family: 'Monaco', 'Courier New', monospace;
+            background: var(--cream);
+            padding: 4px 8px;
+            border-radius: 3px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            color: var(--accent);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 20px;
+            background: var(--gold);
+            border-radius: 2px;
+        }
+
+        .item-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .item-card {
+            background: var(--cream);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 15px;
+            transition: all 0.2s;
+        }
+
+        .item-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 2px 8px rgba(46, 125, 110, 0.1);
+        }
+
+        .item-label {
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .item-source {
+            font-size: 0.85em;
+            color: var(--muted);
+            font-family: 'Monaco', 'Courier New', monospace;
+            margin-bottom: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-right: 5px;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+        }
+
+        .button-item {
+            background: var(--cream);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .button-name {
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-bottom: 4px;
+        }
+
+        .button-action {
+            font-size: 0.85em;
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        .formula-box {
+            background: #F3F4F6;
+            border-left: 4px solid var(--gold);
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.9em;
+        }
+
+        .data-table thead {
+            background: var(--primary);
+            color: white;
+        }
+
+        .data-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table tbody tr:hover {
+            background: var(--sand);
+        }
+
+        .data-type {
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.85em;
+            background: var(--cream);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .notes {
+            background: #FEF3C7;
+            border-left: 4px solid var(--gold);
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+
+        .notes-title {
+            font-weight: 600;
+            color: var(--earth);
+            margin-bottom: 6px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--muted);
+            font-size: 0.9em;
+            margin-top: 40px;
+            border-top: 1px solid var(--border);
+        }
+
+        .related-views {
+            background: var(--cream);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
+        .related-views strong {
+            color: var(--accent);
+        }
+
+        .code-block {
+            background: #1F2937;
+            color: #E5E7EB;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.85em;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Growize UI Map</h1>
+            <p>Complete developer reference for ARL Investor Portal - 17 Screens, Data Sources, Formulas & Actions</p>
+        </header>
+
+        <div class="legend">
+            <div class="legend-item">
+                <span class="legend-badge badge-table">T</span>
+                <span>TABLE - Supabase table</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-badge badge-view">V</span>
+                <span>VIEW - Database view</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-badge badge-calc">C</span>
+                <span>CALC - Client-side calculation</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-badge badge-edge">E</span>
+                <span>EDGE FN - Edge function</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-badge badge-storage">S</span>
+                <span>STORAGE - File storage</span>
+            </div>
+        </div>
+
+        <div class="tabs" id="tabs">
+            <!-- Generated by JavaScript -->
+        </div>
+
+        <!-- SCREEN 1: HOME -->
+        <div id="screen-1" class="tab-content active">
+            <div class="screen-panel">
+                <h2 class="screen-title">Home / Dashboard</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/home</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">Portfolio overview & quick access</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Data Fields</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Formula/Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Portfolio Card - Project Count</td>
+                                <td><span class="badge badge-view">V</span> portfolio_summary</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>COUNT(DISTINCT project_id)</td>
+                            </tr>
+                            <tr>
+                                <td>Portfolio Card - Total Units</td>
+                                <td><span class="badge badge-view">V</span> portfolio_summary</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>SUM(issued_units)</td>
+                            </tr>
+                            <tr>
+                                <td>Portfolio Card - Total Invested</td>
+                                <td><span class="badge badge-view">V</span> portfolio_summary</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>SUM(capital_invested)</td>
+                            </tr>
+                            <tr>
+                                <td>Portfolio Card - Total Received</td>
+                                <td><span class="badge badge-view">V</span> portfolio_summary</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>SUM(total_amount_received)</td>
+                            </tr>
+                            <tr>
+                                <td>Portfolio Card - ROI %</td>
+                                <td><span class="badge badge-view">V</span> portfolio_summary</td>
+                                <td><span class="data-type">PERCENT</span></td>
+                                <td>(total_payouts_received / total_invested) * 100</td>
+                            </tr>
+                            <tr>
+                                <td>Project Progress Card - Project Name</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.name</td>
+                            </tr>
+                            <tr>
+                                <td>Project Progress Card - Current Month</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>months_since(launch_year), capped at 60</td>
+                            </tr>
+                            <tr>
+                                <td>Project Progress Card - Total Months</td>
+                                <td><span class="badge badge-calc">C</span> Constant</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>60 (5-year contract assumed)</td>
+                            </tr>
+                            <tr>
+                                <td>Project Progress Card - Progress %</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">PERCENT</span></td>
+                                <td>COUNT(phases WHERE status=done) / COUNT(all phases) * 100</td>
+                            </tr>
+                            <tr>
+                                <td>Project Progress Card - Cover Image</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.cover_image_path (STORAGE ref)</td>
+                            </tr>
+                            <tr>
+                                <td>Quick Stats - This FY Earnings</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>SUM(payouts.amount) WHERE payout_date >= FY_start AND status=processed</td>
+                            </tr>
+                            <tr>
+                                <td>Quick Stats - Next Payout Date</td>
+                                <td><span class="badge badge-view">V</span> portfolio_summary</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>MIN(payouts.payout_date WHERE status=pending)</td>
+                            </tr>
+                            <tr>
+                                <td>Quick Stats - Next Payout Amount</td>
+                                <td><span class="badge badge-view">V</span> portfolio_summary</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>First pending payout amount</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">View All Projects</div>
+                            <div class="button-action">Navigate to /projects</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">View Financials</div>
+                            <div class="button-action">Navigate to /financials</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Explore New Projects</div>
+                            <div class="button-action">Navigate to /explore</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Portfolio Card (Tap)</div>
+                            <div class="button-action">Navigate to /profile</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Project Card (Tap)</div>
+                            <div class="button-action">Navigate to /projects/{project_id}</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">View Notifications</div>
+                            <div class="button-action">Navigate to /activity</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 2: PROJECTS LIST -->
+        <div id="screen-2" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">Projects List</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/projects</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">Portfolio holdings - all invested projects</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Data Fields</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Project Card - Name</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.name</td>
+                            </tr>
+                            <tr>
+                                <td>Project Card - Tier</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.tier (badge display)</td>
+                            </tr>
+                            <tr>
+                                <td>Project Card - Total Units Allocated</td>
+                                <td><span class="badge badge-table">T</span> investor_units</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>SUM(issued_units) WHERE project_id & investor_id</td>
+                            </tr>
+                            <tr>
+                                <td>Project Card - Capital Invested</td>
+                                <td><span class="badge badge-table">T</span> investor_units</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>SUM(capital_invested) WHERE project_id & investor_id</td>
+                            </tr>
+                            <tr>
+                                <td>Project Card - Capital Returns</td>
+                                <td><span class="badge badge-table">T</span> investor_units</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>SUM(total_amount_received) WHERE project_id & investor_id</td>
+                            </tr>
+                            <tr>
+                                <td>Project Card - Annual Yield %</td>
+                                <td><span class="badge badge-table">T</span> investor_units</td>
+                                <td><span class="data-type">PERCENT</span></td>
+                                <td>investor_units.annual_yield_pct</td>
+                            </tr>
+                            <tr>
+                                <td>Project Card - Color Theme</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">HEX</span></td>
+                                <td>projects.color_hex & accent_hex</td>
+                            </tr>
+                            <tr>
+                                <td>Project Card - Cover Image</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.cover_image_path (STORAGE ref)</td>
+                            </tr>
+                            <tr>
+                                <td>Project List - Filter (Tier)</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>Optional - filter by tier</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Project Card (Tap)</div>
+                            <div class="button-action">Navigate to /projects/{project_id}</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate to /home</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 3: PROJECT DETAIL -->
+        <div id="screen-3" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">Project Detail</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/projects/:id</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">Single project overview with phases, crops, payouts</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Header Section</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Project Name</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.name</td>
+                            </tr>
+                            <tr>
+                                <td>Tagline</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.tagline</td>
+                            </tr>
+                            <tr>
+                                <td>Cover Image</td>
+                                <td><span class="badge badge-storage">S</span> Storage</td>
+                                <td><span class="data-type">IMAGE</span></td>
+                                <td>projects.cover_image_path</td>
+                            </tr>
+                            <tr>
+                                <td>Tier Badge</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.tier</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Investment Summary</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Units Allocated</td>
+                                <td><span class="badge badge-table">T</span> investor_units</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>investor_units.issued_units</td>
+                            </tr>
+                            <tr>
+                                <td>Unit Price</td>
+                                <td><span class="badge badge-table">T</span> investor_units</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>investor_units.unit_price</td>
+                            </tr>
+                            <tr>
+                                <td>Capital Invested</td>
+                                <td><span class="badge badge-table">T</span> investor_units</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>investor_units.capital_invested</td>
+                            </tr>
+                            <tr>
+                                <td>Capital Outstanding</td>
+                                <td><span class="badge badge-table">T</span> investor_units</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>investor_units.capital_outstanding</td>
+                            </tr>
+                            <tr>
+                                <td>Capital Returns</td>
+                                <td><span class="badge badge-table">T</span> investor_units</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>investor_units.capital_returns</td>
+                            </tr>
+                            <tr>
+                                <td>Total Amount Received</td>
+                                <td><span class="badge badge-table">T</span> investor_units</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>investor_units.total_amount_received</td>
+                            </tr>
+                            <tr>
+                                <td>Annual Yield %</td>
+                                <td><span class="badge badge-table">T</span> investor_units</td>
+                                <td><span class="data-type">PERCENT</span></td>
+                                <td>investor_units.annual_yield_pct</td>
+                            </tr>
+                            <tr>
+                                <td>Investment Date</td>
+                                <td><span class="badge badge-table">T</span> investor_units</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>investor_units.investment_date</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Contract Timeline</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Formula</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Current Month</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>months_since(projects.launch_year), capped at 60</td>
+                            </tr>
+                            <tr>
+                                <td>Total Months</td>
+                                <td><span class="badge badge-calc">C</span> Constant</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>60 (5-year contract)</td>
+                            </tr>
+                            <tr>
+                                <td>End Date</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>launch_year + 5 years</td>
+                            </tr>
+                            <tr>
+                                <td>Time Remaining</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">DURATION</span></td>
+                                <td>endDate - now()</td>
+                            </tr>
+                            <tr>
+                                <td>Progress %</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">PERCENT</span></td>
+                                <td>current_month / total_months * 100</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Lock-in Period (Financial)</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Lock-in End Date</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>investment_date + 5 years</td>
+                            </tr>
+                            <tr>
+                                <td>Is Locked</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">BOOL</span></td>
+                                <td>now() < lock_in_end_date</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Project Phases (Tab)</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Phase Name</td>
+                                <td><span class="badge badge-table">T</span> project_phases</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>project_phases.phase_name</td>
+                            </tr>
+                            <tr>
+                                <td>Phase Status</td>
+                                <td><span class="badge badge-table">T</span> project_phases</td>
+                                <td><span class="data-type">ENUM</span></td>
+                                <td>done | current | pending</td>
+                            </tr>
+                            <tr>
+                                <td>Phase Date</td>
+                                <td><span class="badge badge-table">T</span> project_phases</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>project_phases.phase_date</td>
+                            </tr>
+                            <tr>
+                                <td>Phase Sub-items</td>
+                                <td><span class="badge badge-table">T</span> project_phases</td>
+                                <td><span class="data-type">JSONB</span></td>
+                                <td>project_phases.sub_items (nested milestones)</td>
+                            </tr>
+                            <tr>
+                                <td>Sort Order</td>
+                                <td><span class="badge badge-table">T</span> project_phases</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>project_phases.sort_order</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Crops (Tab)</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Crop Name</td>
+                                <td><span class="badge badge-table">T</span> crops</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>crops.name</td>
+                            </tr>
+                            <tr>
+                                <td>Crop Emoji</td>
+                                <td><span class="badge badge-table">T</span> crops</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>crops.emoji</td>
+                            </tr>
+                            <tr>
+                                <td>Start Date</td>
+                                <td><span class="badge badge-table">T</span> crops</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>crops.start_date</td>
+                            </tr>
+                            <tr>
+                                <td>Harvest Date</td>
+                                <td><span class="badge badge-table">T</span> crops</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>crops.harvest_date</td>
+                            </tr>
+                            <tr>
+                                <td>Progress %</td>
+                                <td><span class="badge badge-table">T</span> crops</td>
+                                <td><span class="data-type">PERCENT</span></td>
+                                <td>crops.progress_pct (0-100)</td>
+                            </tr>
+                            <tr>
+                                <td>Is Current</td>
+                                <td><span class="badge badge-table">T</span> crops</td>
+                                <td><span class="data-type">BOOL</span></td>
+                                <td>crops.is_current</td>
+                            </tr>
+                            <tr>
+                                <td>Revenue</td>
+                                <td><span class="badge badge-table">T</span> crops</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>crops.revenue (when harvested)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Payouts (Tab)</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Payout Date</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>payouts.payout_date</td>
+                            </tr>
+                            <tr>
+                                <td>Amount</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>payouts.amount</td>
+                            </tr>
+                            <tr>
+                                <td>Status</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">ENUM</span></td>
+                                <td>pending | processed | on_hold</td>
+                            </tr>
+                            <tr>
+                                <td>Crop Name</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>payouts.crop_name</td>
+                            </tr>
+                            <tr>
+                                <td>UTR</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>payouts.utr (when processed)</td>
+                            </tr>
+                            <tr>
+                                <td>Notes</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>payouts.notes</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Project Info</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>LLP Status</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.llp_status</td>
+                            </tr>
+                            <tr>
+                                <td>GST</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.gst</td>
+                            </tr>
+                            <tr>
+                                <td>Acreage</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>projects.acreage_acres</td>
+                            </tr>
+                            <tr>
+                                <td>Unit Size</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>acreage_acres / total_units</td>
+                            </tr>
+                            <tr>
+                                <td>Insurance Provider</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.insurance_provider</td>
+                            </tr>
+                            <tr>
+                                <td>SPOC 1 Name</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.spoc1_name</td>
+                            </tr>
+                            <tr>
+                                <td>SPOC 1 Phone</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.spoc1_phone (linked)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">View Gallery</div>
+                            <div class="button-action">Navigate to /gallery/:projectId</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">View Location</div>
+                            <div class="button-action">Navigate to /location/:projectId</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Contact SPOC</div>
+                            <div class="button-action">Initiate phone call</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate back to /projects</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 4: FINANCIALS -->
+        <div id="screen-4" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">Financials</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/financials</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">Two tabs - Payouts ledger & Financials charts</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Tab 1: Payouts Ledger</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Payout Date</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>payouts.payout_date</td>
+                            </tr>
+                            <tr>
+                                <td>Project Name</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>Via payouts.project_id FK</td>
+                            </tr>
+                            <tr>
+                                <td>Crop Name</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>payouts.crop_name</td>
+                            </tr>
+                            <tr>
+                                <td>Amount</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>payouts.amount</td>
+                            </tr>
+                            <tr>
+                                <td>Status</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">ENUM</span></td>
+                                <td>pending | processed | on_hold</td>
+                            </tr>
+                            <tr>
+                                <td>UTR</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>payouts.utr (when status=processed)</td>
+                            </tr>
+                            <tr>
+                                <td>Filter - By Project</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">DROPDOWN</span></td>
+                                <td>Optional filtering</td>
+                            </tr>
+                            <tr>
+                                <td>Filter - By Status</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">DROPDOWN</span></td>
+                                <td>pending | processed | on_hold</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Tab 2: Financials Charts</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Chart</th>
+                                <th>Data Source</th>
+                                <th>Type</th>
+                                <th>Formula</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Portfolio Value (Line Chart)</td>
+                                <td><span class="badge badge-view">V</span> portfolio_summary</td>
+                                <td><span class="data-type">TIMESERIES</span></td>
+                                <td>Total invested tracked over time</td>
+                            </tr>
+                            <tr>
+                                <td>Payouts Received (Bar Chart)</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">MONTHLY</span></td>
+                                <td>SUM(amount) WHERE status=processed GROUP BY month</td>
+                            </tr>
+                            <tr>
+                                <td>ROI Breakdown (Pie Chart)</td>
+                                <td><span class="badge badge-view">V</span> portfolio_summary</td>
+                                <td><span class="data-type">BREAKDOWN</span></td>
+                                <td>By project: (payouts/invested) per project</td>
+                            </tr>
+                            <tr>
+                                <td>Earnings Outlook Y1-Y5</td>
+                                <td><span class="badge badge-calc">C</span> Projection</td>
+                                <td><span class="data-type">FORECAST</span></td>
+                                <td>Y(n) = invested * (1 + avg_yield/100)^n</td>
+                            </tr>
+                            <tr>
+                                <td>This FY Earnings</td>
+                                <td><span class="badge badge-table">T</span> payouts</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>SUM(amount) WHERE payout_date >= FY_start AND status=processed</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Summary Cards</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Card</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Total Invested</td>
+                                <td><span class="badge badge-view">V</span> portfolio_summary</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>SUM(capital_invested)</td>
+                            </tr>
+                            <tr>
+                                <td>Total Received</td>
+                                <td><span class="badge badge-view">V</span> portfolio_summary</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>SUM(total_amount_received)</td>
+                            </tr>
+                            <tr>
+                                <td>Portfolio ROI %</td>
+                                <td><span class="badge badge-view">V</span> portfolio_summary</td>
+                                <td><span class="data-type">PERCENT</span></td>
+                                <td>(total_received / total_invested) * 100</td>
+                            </tr>
+                            <tr>
+                                <td>Average Annual Yield %</td>
+                                <td><span class="badge badge-view">V</span> portfolio_summary</td>
+                                <td><span class="data-type">PERCENT</span></td>
+                                <td>AVG(annual_yield_pct)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Payouts Tab</div>
+                            <div class="button-action">Switch to payouts ledger view</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Charts Tab</div>
+                            <div class="button-action">Switch to financial charts</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate to /home</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 5: EXPLORE -->
+        <div id="screen-5" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">Explore / Marketplace</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/explore</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">Marketplace with project simulator</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Marketplace Cards</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Project Name</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.name</td>
+                            </tr>
+                            <tr>
+                                <td>Tagline</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.tagline</td>
+                            </tr>
+                            <tr>
+                                <td>Marketplace Image</td>
+                                <td><span class="badge badge-storage">S</span> Storage</td>
+                                <td><span class="data-type">IMAGE</span></td>
+                                <td>projects.marketplace_image</td>
+                            </tr>
+                            <tr>
+                                <td>Tier Badge</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.tier</td>
+                            </tr>
+                            <tr>
+                                <td>Expected Annual Return %</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">PERCENT</span></td>
+                                <td>projects.expected_annual_return_pct</td>
+                            </tr>
+                            <tr>
+                                <td>Price Per Unit</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>projects.price_per_unit</td>
+                            </tr>
+                            <tr>
+                                <td>Units Available</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>projects.units_available</td>
+                            </tr>
+                            <tr>
+                                <td>Subscription Deadline</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>projects.subscription_deadline</td>
+                            </tr>
+                            <tr>
+                                <td>Is Closed</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">BOOL</span></td>
+                                <td>subscription_deadline < now()</td>
+                            </tr>
+                            <tr>
+                                <td>Sort Order</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>projects.marketplace_sort_order</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Investment Simulator</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Formula</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Units Selector (Input)</td>
+                                <td><span class="badge badge-calc">C</span> User Input</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>Range: 1 to units_available</td>
+                            </tr>
+                            <tr>
+                                <td>Total Investment</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>units_selected * price_per_unit</td>
+                            </tr>
+                            <tr>
+                                <td>Est Annual Return</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>total_investment * (expected_annual_return_pct / 100)</td>
+                            </tr>
+                            <tr>
+                                <td>5-Year Projection (Y1-Y5)</td>
+                                <td><span class="badge badge-calc">C</span> Forecast</td>
+                                <td><span class="data-type">ARRAY</span></td>
+                                <td>Y(n) = investment * (1 + return_pct/100)^n for n=1..5</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Project Card (Tap)</div>
+                            <div class="button-action">Expand/collapse simulator for project</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Invest Now</div>
+                            <div class="button-action">Initiate investment purchase flow (future)</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">View Details</div>
+                            <div class="button-action">Navigate to project detail view</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate to /home</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 6: ACTIVITY -->
+        <div id="screen-6" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">Activity / Notifications</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/activity</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">Notifications + timeline view</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Notification Items</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Type</td>
+                                <td><span class="badge badge-table">T</span> notifications</td>
+                                <td><span class="data-type">ENUM</span></td>
+                                <td>payout | photo | ticket | reminder | milestone</td>
+                            </tr>
+                            <tr>
+                                <td>Title</td>
+                                <td><span class="badge badge-table">T</span> notifications</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>notifications.title</td>
+                            </tr>
+                            <tr>
+                                <td>Body</td>
+                                <td><span class="badge badge-table">T</span> notifications</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>notifications.body</td>
+                            </tr>
+                            <tr>
+                                <td>Metadata</td>
+                                <td><span class="badge badge-table">T</span> notifications</td>
+                                <td><span class="data-type">JSONB</span></td>
+                                <td>notifications.metadata (contextual info)</td>
+                            </tr>
+                            <tr>
+                                <td>Created At</td>
+                                <td><span class="badge badge-table">T</span> notifications</td>
+                                <td><span class="data-type">TIMESTAMP</span></td>
+                                <td>notifications.created_at</td>
+                            </tr>
+                            <tr>
+                                <td>Is Read</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">BOOL</span></td>
+                                <td>notifications.read_at IS NOT NULL</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Summary Badge</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Formula</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Unread Count</td>
+                                <td><span class="badge badge-table">T</span> notifications</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>COUNT(notifications WHERE read_at IS NULL)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Mark as Read</div>
+                            <div class="button-action">Update notifications.read_at = NOW()</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Mark All as Read</div>
+                            <div class="button-action">Bulk update all unread notifications</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Notification (Tap)</div>
+                            <div class="button-action">Navigate based on type (payout → /projects/:id, ticket → /ticket/:id, etc.)</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate to /home</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 7: PROFILE -->
+        <div id="screen-7" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">Profile Hub</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/profile</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">Hub to KYC, bank, docs, support, exit, security</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Profile Card</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Name</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.name</td>
+                            </tr>
+                            <tr>
+                                <td>Email</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">EMAIL</span></td>
+                                <td>investors.email</td>
+                            </tr>
+                            <tr>
+                                <td>Avatar Initials</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>First letter of first + last word in name</td>
+                            </tr>
+                            <tr>
+                                <td>KYC Status Badge</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">ENUM</span></td>
+                                <td>investors.kyc_status (pending | approved | rejected)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Navigation Menu Items</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">KYC Details</div>
+                            <div class="button-action">Navigate to /kyc</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Bank Details</div>
+                            <div class="button-action">Navigate to /bank-details</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Documents</div>
+                            <div class="button-action">Navigate to /documents</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Support</div>
+                            <div class="button-action">Navigate to /support</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Exit Request</div>
+                            <div class="button-action">Navigate to /exit</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Security & Settings</div>
+                            <div class="button-action">Navigate to /security</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Logout</div>
+                            <div class="button-action">Trigger auth.signOut()</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate to /home</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 8: KYC DETAILS -->
+        <div id="screen-8" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">KYC Details</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/kyc</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">Read-only personal & KYC information</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Personal Information</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Name</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.name (read-only)</td>
+                            </tr>
+                            <tr>
+                                <td>Salutation</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.salutation</td>
+                            </tr>
+                            <tr>
+                                <td>Email</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">EMAIL</span></td>
+                                <td>investors.email (read-only)</td>
+                            </tr>
+                            <tr>
+                                <td>Phone</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">PHONE</span></td>
+                                <td>investors.phone (read-only)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Address Information</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Address Line 1</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.address_line1 (read-only)</td>
+                            </tr>
+                            <tr>
+                                <td>Address Line 2</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.address_line2 (read-only)</td>
+                            </tr>
+                            <tr>
+                                <td>City</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.city (read-only)</td>
+                            </tr>
+                            <tr>
+                                <td>State</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.state (read-only)</td>
+                            </tr>
+                            <tr>
+                                <td>Pincode</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.pincode (read-only)</td>
+                            </tr>
+                            <tr>
+                                <td>Country</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.country (read-only)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">KYC Status & Compliance</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>KYC Status</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">ENUM</span></td>
+                                <td>pending | approved | rejected (read-only)</td>
+                            </tr>
+                            <tr>
+                                <td>PAN (Masked)</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.pan_masked (e.g., XXXXX1234X)</td>
+                            </tr>
+                            <tr>
+                                <td>FEMA Applicable</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">BOOL</span></td>
+                                <td>investors.fema_applicable (read-only)</td>
+                            </tr>
+                            <tr>
+                                <td>Profile Verified</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">BOOL</span></td>
+                                <td>investors.profile_verified (read-only)</td>
+                            </tr>
+                            <tr>
+                                <td>Agreement Signed</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">BOOL</span></td>
+                                <td>investors.agreement_signed (read-only)</td>
+                            </tr>
+                            <tr>
+                                <td>Onboarded At</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>investors.onboarded_at (read-only)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate to /profile</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 9: BANK DETAILS -->
+        <div id="screen-9" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">Bank Details</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/bank-details</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">View bank info + request bank change</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Current Bank Details (Read-only)</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Bank Name</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.bank_name</td>
+                            </tr>
+                            <tr>
+                                <td>Account Holder Name</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.bank_holder_name</td>
+                            </tr>
+                            <tr>
+                                <td>Account Number (Masked)</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.bank_account_masked (e.g., XXXX1234)</td>
+                            </tr>
+                            <tr>
+                                <td>IFSC Code</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.bank_ifsc</td>
+                            </tr>
+                            <tr>
+                                <td>Branch</td>
+                                <td><span class="badge badge-table">T</span> investors</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>investors.bank_branch</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Bank Change Request Form</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>New Bank Name (Input)</td>
+                                <td><span class="badge badge-edge">E</span> bank-change-request</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>User input field</td>
+                            </tr>
+                            <tr>
+                                <td>New Account Number (Input)</td>
+                                <td><span class="badge badge-edge">E</span> bank-change-request</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>Validated & masked on save</td>
+                            </tr>
+                            <tr>
+                                <td>New IFSC (Input)</td>
+                                <td><span class="badge badge-edge">E</span> bank-change-request</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>User input field</td>
+                            </tr>
+                            <tr>
+                                <td>New Holder Name (Input)</td>
+                                <td><span class="badge badge-edge">E</span> bank-change-request</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>User input field</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Bank Change Request Status</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Request Status</td>
+                                <td><span class="badge badge-table">T</span> bank_change_requests</td>
+                                <td><span class="data-type">ENUM</span></td>
+                                <td>pending | approved | rejected</td>
+                            </tr>
+                            <tr>
+                                <td>Requested At</td>
+                                <td><span class="badge badge-table">T</span> bank_change_requests</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>bank_change_requests.requested_at</td>
+                            </tr>
+                            <tr>
+                                <td>Resolved At</td>
+                                <td><span class="badge badge-table">T</span> bank_change_requests</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>bank_change_requests.resolved_at (if approved/rejected)</td>
+                            </tr>
+                            <tr>
+                                <td>Notes</td>
+                                <td><span class="badge badge-table">T</span> bank_change_requests</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>bank_change_requests.notes (rejection reason)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="notes">
+                    <div class="notes-title">Validation & Business Rules</div>
+                    <ul style="margin-left: 20px; font-size: 0.9em;">
+                        <li>7-day cooldown between change requests</li>
+                        <li>Account number must be masked on storage (only show last 4 digits)</li>
+                        <li>IFSC code validation required</li>
+                        <li>Edge function: bank-change-request creates record & checks cooldown</li>
+                    </ul>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Request Bank Change</div>
+                            <div class="button-action">Call <span class="badge badge-edge">E</span> bank-change-request edge function</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate to /profile</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 10: DOCUMENTS -->
+        <div id="screen-10" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">Documents</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/documents</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">6-category accordion document vault</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Document Categories & Items</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Doc Type</th>
+                                <th>Source</th>
+                                <th>Fields</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Contracts & Agreements</td>
+                                <td><span class="data-type">contract | agreement</span></td>
+                                <td><span class="badge badge-table">T</span> documents</td>
+                                <td>name, uploaded_at, file_size_kb, download link</td>
+                            </tr>
+                            <tr>
+                                <td>KYC Documents</td>
+                                <td><span class="data-type">kyc</span></td>
+                                <td><span class="badge badge-table">T</span> documents</td>
+                                <td>name, uploaded_at, file_size_kb, download link</td>
+                            </tr>
+                            <tr>
+                                <td>Payouts & Ledgers</td>
+                                <td><span class="data-type">other</span></td>
+                                <td><span class="badge badge-table">T</span> documents</td>
+                                <td>name, uploaded_at, file_size_kb, download link</td>
+                            </tr>
+                            <tr>
+                                <td>Project Updates</td>
+                                <td><span class="data-type">other</span></td>
+                                <td><span class="badge badge-table">T</span> documents</td>
+                                <td>name, uploaded_at, file_size_kb, download link</td>
+                            </tr>
+                            <tr>
+                                <td>Tax Documents</td>
+                                <td><span class="data-type">other</span></td>
+                                <td><span class="badge badge-table">T</span> documents</td>
+                                <td>name, uploaded_at, file_size_kb, download link</td>
+                            </tr>
+                            <tr>
+                                <td>Misc Documents</td>
+                                <td><span class="data-type">other</span></td>
+                                <td><span class="badge badge-table">T</span> documents</td>
+                                <td>name, uploaded_at, file_size_kb, download link</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Document Fields</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Document Name</td>
+                                <td><span class="badge badge-table">T</span> documents</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>documents.name</td>
+                            </tr>
+                            <tr>
+                                <td>Document Type</td>
+                                <td><span class="badge badge-table">T</span> documents</td>
+                                <td><span class="data-type">ENUM</span></td>
+                                <td>contract | agreement | kyc | other</td>
+                            </tr>
+                            <tr>
+                                <td>File Size</td>
+                                <td><span class="badge badge-table">T</span> documents</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>documents.file_size_kb (KB)</td>
+                            </tr>
+                            <tr>
+                                <td>Uploaded At</td>
+                                <td><span class="badge badge-table">T</span> documents</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>documents.uploaded_at</td>
+                            </tr>
+                            <tr>
+                                <td>Storage Path</td>
+                                <td><span class="badge badge-storage">S</span> Storage</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>documents.storage_path (Supabase ref)</td>
+                            </tr>
+                            <tr>
+                                <td>Project Relation</td>
+                                <td><span class="badge badge-table">T</span> documents</td>
+                                <td><span class="data-type">UUID FK</span></td>
+                                <td>documents.project_id (nullable)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Expand Category</div>
+                            <div class="button-action">Show/hide documents in category</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Download Document</div>
+                            <div class="button-action">Fetch from <span class="badge badge-storage">S</span> Storage via storage_path</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">View Document</div>
+                            <div class="button-action">Open in browser/PDF viewer</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate to /profile</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 11: SUPPORT TICKETS LIST -->
+        <div id="screen-11" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">Support Tickets</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/support</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">List of support tickets with status badges</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Ticket List Items</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Ticket ID</td>
+                                <td><span class="badge badge-table">T</span> support_tickets</td>
+                                <td><span class="data-type">UUID</span></td>
+                                <td>support_tickets.id</td>
+                            </tr>
+                            <tr>
+                                <td>Subject</td>
+                                <td><span class="badge badge-table">T</span> support_tickets</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>support_tickets.subject</td>
+                            </tr>
+                            <tr>
+                                <td>Category</td>
+                                <td><span class="badge badge-table">T</span> support_tickets</td>
+                                <td><span class="data-type">ENUM</span></td>
+                                <td>payout | documents | general | bank_change | exit_request</td>
+                            </tr>
+                            <tr>
+                                <td>Status</td>
+                                <td><span class="badge badge-table">T</span> support_tickets</td>
+                                <td><span class="data-type">ENUM</span></td>
+                                <td>open | in_progress | resolved</td>
+                            </tr>
+                            <tr>
+                                <td>Created At</td>
+                                <td><span class="badge badge-table">T</span> support_tickets</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>support_tickets.created_at</td>
+                            </tr>
+                            <tr>
+                                <td>Updated At</td>
+                                <td><span class="badge badge-table">T</span> support_tickets</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>support_tickets.updated_at</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Create New Ticket</div>
+                            <div class="button-action">Navigate to /new-ticket</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Ticket (Tap)</div>
+                            <div class="button-action">Navigate to /ticket/:ticketId</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate to /profile</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 12: TICKET DETAIL -->
+        <div id="screen-12" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">Ticket Detail / Thread</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/ticket/:ticketId</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">Conversation thread with staff</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Ticket Header</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Subject</td>
+                                <td><span class="badge badge-table">T</span> support_tickets</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>support_tickets.subject</td>
+                            </tr>
+                            <tr>
+                                <td>Category</td>
+                                <td><span class="badge badge-table">T</span> support_tickets</td>
+                                <td><span class="data-type">ENUM</span></td>
+                                <td>payout | documents | general | bank_change | exit_request</td>
+                            </tr>
+                            <tr>
+                                <td>Status</td>
+                                <td><span class="badge badge-table">T</span> support_tickets</td>
+                                <td><span class="data-type">ENUM</span></td>
+                                <td>open | in_progress | resolved</td>
+                            </tr>
+                            <tr>
+                                <td>Created At</td>
+                                <td><span class="badge badge-table">T</span> support_tickets</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>support_tickets.created_at</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Message Thread</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Message Body</td>
+                                <td><span class="badge badge-table">T</span> ticket_messages</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>ticket_messages.body</td>
+                            </tr>
+                            <tr>
+                                <td>Sender Type</td>
+                                <td><span class="badge badge-table">T</span> ticket_messages</td>
+                                <td><span class="data-type">ENUM</span></td>
+                                <td>investor | staff</td>
+                            </tr>
+                            <tr>
+                                <td>Created At</td>
+                                <td><span class="badge badge-table">T</span> ticket_messages</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>ticket_messages.created_at</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Reply Form (if ticket open)</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Reply Text Input</td>
+                                <td><span class="badge badge-edge">E</span> reply-ticket</td>
+                                <td><span class="data-type">TEXTAREA</span></td>
+                                <td>User composition field</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="notes">
+                    <div class="notes-title">Validation & Business Rules</div>
+                    <ul style="margin-left: 20px; font-size: 0.9em;">
+                        <li>Edge function: reply-ticket checks ownership (investor_id) + ticket status (open)</li>
+                        <li>Cannot reply to resolved tickets</li>
+                        <li>Replies create ticket_message records</li>
+                    </ul>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Send Reply</div>
+                            <div class="button-action">Call <span class="badge badge-edge">E</span> reply-ticket edge function</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate to /support</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 13: NEW TICKET -->
+        <div id="screen-13" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">New Ticket / Submission Form</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/new-ticket</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">Create new support ticket</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Form Fields</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Category (Dropdown)</td>
+                                <td><span class="badge badge-edge">E</span> create-ticket</td>
+                                <td><span class="data-type">ENUM</span></td>
+                                <td>payout | documents | general | bank_change | exit_request</td>
+                            </tr>
+                            <tr>
+                                <td>Project (Optional Dropdown)</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">FOREIGN KEY</span></td>
+                                <td>Related project_id (nullable)</td>
+                            </tr>
+                            <tr>
+                                <td>Subject (Text Input)</td>
+                                <td><span class="badge badge-edge">E</span> create-ticket</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>support_tickets.subject</td>
+                            </tr>
+                            <tr>
+                                <td>Message (Textarea)</td>
+                                <td><span class="badge badge-edge">E</span> create-ticket</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>First ticket_message.body</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="notes">
+                    <div class="notes-title">Validation & Business Rules</div>
+                    <ul style="margin-left: 20px; font-size: 0.9em;">
+                        <li>Edge function: create-ticket creates support_tickets record + first ticket_message in one transaction</li>
+                        <li>All fields required except project</li>
+                        <li>Initial status = open</li>
+                    </ul>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Submit</div>
+                            <div class="button-action">Call <span class="badge badge-edge">E</span> create-ticket edge function</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Cancel</div>
+                            <div class="button-action">Navigate back to /support</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 14: SECURITY & SETTINGS -->
+        <div id="screen-14" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">Security & Settings</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/security</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">Biometric, PIN, notification preferences</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Security Settings</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Biometric Authentication</div>
+                            <div class="button-action">Toggle fingerprint/face ID (platform-specific)</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Set/Update PIN</div>
+                            <div class="button-action">Configure 4-digit PIN for app unlock</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Change Password</div>
+                            <div class="button-action">Trigger auth password reset flow</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Notification Preferences</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Push Notifications</div>
+                            <div class="button-action">Toggle push notification opt-in</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Email Notifications</div>
+                            <div class="button-action">Toggle email notification opt-in</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Payout Alerts</div>
+                            <div class="button-action">Toggle payout notification type</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Project Updates</div>
+                            <div class="button-action">Toggle project update notification type</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate to /profile</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 15: EXIT REQUEST -->
+        <div id="screen-15" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">Exit Request</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/exit</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">Check lock-in status & request exit</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Lock-in Status Display</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Formula</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Lock-in End Date</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>investment_date + 5 years</td>
+                            </tr>
+                            <tr>
+                                <td>Days Until Lock-in Expires</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>(lock_in_end_date - now()).days</td>
+                            </tr>
+                            <tr>
+                                <td>Is Currently Locked</td>
+                                <td><span class="badge badge-calc">C</span> Computed</td>
+                                <td><span class="data-type">BOOL</span></td>
+                                <td>now() < lock_in_end_date</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Exit Request Form (if locked)</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Requested Units</td>
+                                <td><span class="badge badge-edge">E</span> Support Ticket</td>
+                                <td><span class="data-type">INT</span></td>
+                                <td>User specifies quantity (submits via support ticket)</td>
+                            </tr>
+                            <tr>
+                                <td>Reason (Optional)</td>
+                                <td><span class="badge badge-edge">E</span> Support Ticket</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>Exit request reason</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="notes">
+                    <div class="notes-title">Business Rules</div>
+                    <ul style="margin-left: 20px; font-size: 0.9em;">
+                        <li>Exit requests must be submitted as support tickets with category = exit_request</li>
+                        <li>During lock-in period: only available with support approval</li>
+                        <li>After lock-in: full exit allowed</li>
+                        <li>Partial exit possible (per-unit basis)</li>
+                    </ul>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Request Exit</div>
+                            <div class="button-action">Navigate to /new-ticket with category=exit_request</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">View Projects</div>
+                            <div class="button-action">Navigate to /projects to see all lock-in statuses</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate to /profile</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 16: GALLERY -->
+        <div id="screen-16" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">Gallery</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/gallery/:projectId</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">Photo grid of project images</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Photo Items</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Photo Image</td>
+                                <td><span class="badge badge-storage">S</span> Storage</td>
+                                <td><span class="data-type">IMAGE</span></td>
+                                <td>gallery_photos.storage_path</td>
+                            </tr>
+                            <tr>
+                                <td>Caption</td>
+                                <td><span class="badge badge-table">T</span> gallery_photos</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>gallery_photos.caption</td>
+                            </tr>
+                            <tr>
+                                <td>Unit Label</td>
+                                <td><span class="badge badge-table">T</span> gallery_photos</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>gallery_photos.unit_label (optional)</td>
+                            </tr>
+                            <tr>
+                                <td>Taken At</td>
+                                <td><span class="badge badge-table">T</span> gallery_photos</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>gallery_photos.taken_at</td>
+                            </tr>
+                            <tr>
+                                <td>Uploaded At</td>
+                                <td><span class="badge badge-table">T</span> gallery_photos</td>
+                                <td><span class="data-type">DATE</span></td>
+                                <td>gallery_photos.uploaded_at</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Photo (Tap)</div>
+                            <div class="button-action">Open full-screen lightbox view</div>
+                        </div>
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate to /projects/:projectId</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 17: LOCATION MAP -->
+        <div id="screen-17" class="tab-content">
+            <div class="screen-panel">
+                <h2 class="screen-title">Location / Map</h2>
+                <div class="screen-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Route</span>
+                        <span class="meta-value">/location/:projectId</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Purpose</span>
+                        <span class="meta-value">Map + regional details</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Map Component</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Project Location (Marker)</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">GEOLOCATION</span></td>
+                                <td>Address: address_line1, city, state, country</td>
+                            </tr>
+                            <tr>
+                                <td>Map Type</td>
+                                <td><span class="badge badge-calc">C</span> Config</td>
+                                <td><span class="data-type">STRING</span></td>
+                                <td>Google Maps / Mapbox integration</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Regional Details</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Project Name</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>projects.name</td>
+                            </tr>
+                            <tr>
+                                <td>Location Address (Full)</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>address_line1, address_line2, city, state, pincode, country</td>
+                            </tr>
+                            <tr>
+                                <td>Acreage</td>
+                                <td><span class="badge badge-table">T</span> projects</td>
+                                <td><span class="data-type">DECIMAL</span></td>
+                                <td>projects.acreage_acres</td>
+                            </tr>
+                            <tr>
+                                <td>Crop Information</td>
+                                <td><span class="badge badge-table">T</span> crops</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>Current crop name + details</td>
+                            </tr>
+                            <tr>
+                                <td>Climate/Soil Info</td>
+                                <td><span class="badge badge-calc">C</span> External API</td>
+                                <td><span class="data-type">TEXT</span></td>
+                                <td>Optional regional data (weather API)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Buttons & Actions</div>
+                    <div class="button-group">
+                        <div class="button-item">
+                            <div class="button-name">Back</div>
+                            <div class="button-action">Navigate to /projects/:projectId</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>Growize UI Map - Complete Developer Reference | 17 Screens | Updated 2026-04-29</p>
+        <p>For updates, refer to /projects/:id routes and edge function contracts in Supabase.</p>
+    </footer>
+
+    <script>
+        const screens = [
+            { id: 1, name: 'Home', emoji: '🏠' },
+            { id: 2, name: 'Projects List', emoji: '📋' },
+            { id: 3, name: 'Project Detail', emoji: '📊' },
+            { id: 4, name: 'Financials', emoji: '💰' },
+            { id: 5, name: 'Explore', emoji: '🔍' },
+            { id: 6, name: 'Activity', emoji: '🔔' },
+            { id: 7, name: 'Profile', emoji: '👤' },
+            { id: 8, name: 'KYC', emoji: '✓' },
+            { id: 9, name: 'Bank Details', emoji: '🏦' },
+            { id: 10, name: 'Documents', emoji: '📄' },
+            { id: 11, name: 'Support', emoji: '💬' },
+            { id: 12, name: 'Ticket Detail', emoji: '🎫' },
+            { id: 13, name: 'New Ticket', emoji: '✏️' },
+            { id: 14, name: 'Security', emoji: '🔐' },
+            { id: 15, name: 'Exit', emoji: '🚪' },
+            { id: 16, name: 'Gallery', emoji: '🖼️' },
+            { id: 17, name: 'Location', emoji: '🗺️' }
+        ];
+
+        const tabsContainer = document.getElementById('tabs');
+        screens.forEach(screen => {
+            const button = document.createElement('button');
+            button.className = 'tab-button' + (screen.id === 1 ? ' active' : '');
+            button.textContent = `${screen.emoji} ${screen.name}`;
+            button.onclick = () => {
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById(`screen-${screen.id}`).classList.add('active');
+                window.scrollTo(0, 0);
+            };
+            tabsContainer.appendChild(button);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ARL Investor Portal — network security config.
+
+  Production policy: HTTPS-only. Cleartext (http://) traffic is blocked.
+  All ARL backends (Supabase, Zoho) are HTTPS-only, so cleartext is
+  never needed in release builds.
+
+  Referenced from AndroidManifest.xml via:
+    android:networkSecurityConfig="@xml/network_security_config"
+    android:usesCleartextTraffic="false"
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

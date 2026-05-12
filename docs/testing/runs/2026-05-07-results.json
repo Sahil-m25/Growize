@@ -1,0 +1,71 @@
+{
+  "captured_at": "2026-05-07T10:09:10.607Z",
+  "investor": {
+    "id": "6d8b2dfa-9f3c-4065-88f4-6f1e627ee7ea",
+    "name": "Sahil Mohite",
+    "arl_id": "ARL-002",
+    "email": "sahil.mohite@agresearchlabs.com",
+    "zoho_contact_id": "1169101000001243004"
+  },
+  "target_for_crm_write": {
+    "llp_name": "Pineapple Enterprises",
+    "llp_id_supabase": "5b165432-7dab-4662-85d2-0dc5b2cac558",
+    "llp_zoho_id": "1169101000000755147",
+    "project_id_supabase": "5b165432-7dab-4662-85d2-0dc5b2cac558",
+    "reason": "Pineapple Enterprises has issued_units=19 of 80 (highest engagement); investor holds 3 units. Visible field candidates for CRM update: project name, status, tier, color_hex, accent_hex, expected_annual_return_pct, marketplace_image, tagline."
+  },
+  "results": {
+    "D-04": {
+      "pass": true,
+      "note": "Authenticated as Sahil Mohite (6d8b2dfa-9f3c-4065-88f4-6f1e627ee7ea); investor_units visible=3, of which match self=3. Expected only own units; isolation holds."
+    },
+    "D-05": {
+      "pass": true,
+      "note": "Cross-investor probe (investor_id != self): rows returned=0. Expected 0."
+    },
+    "D-06": {
+      "pass": true,
+      "note": "documents visible to self=0; documents visible filtered to other investor_id=0. Self has no docs (test fixture sparse)."
+    },
+    "D-07": {
+      "pass": null,
+      "note": "Test investor IS the demo persona for this fixture. Visible projects names: [Pineapple Enterprises; Samsung LLP; Xiaomi LLP]. None have explicit -demo suffix per SCENARIOS rule. Either suffix rule deviated from spec, or this account is not gated by demo filter. Flag for review."
+    },
+    "D-08": {
+      "pass": false,
+      "note": "units[0] for Pineapple Enterprises: issued=7, invested=17500000, outstanding=0, allocation_status=null, customer_status=Active. SCENARIOS expects payment_status=Paid; current schema uses allocation_status (NULL on all 3 rows). DEFECT: allocation_status backfill missing post-refactor."
+    },
+    "D-09": {
+      "pass": false,
+      "note": "Cannot verify D-09 fixture-state: all 3 visible investor_units have allocation_status=NULL. Fixture spec maps F-ALC-02..F-ALC-05 to specific payment states which are not represented in current data."
+    },
+    "D-10": {
+      "pass": false,
+      "note": "Cannot verify D-10 fixture-state: all 3 visible investor_units have allocation_status=NULL. Fixture spec maps F-ALC-02..F-ALC-05 to specific payment states which are not represented in current data."
+    },
+    "D-11": {
+      "pass": false,
+      "note": "Cannot verify D-11 fixture-state: all 3 visible investor_units have allocation_status=NULL. Fixture spec maps F-ALC-02..F-ALC-05 to specific payment states which are not represented in current data."
+    },
+    "D-12": {
+      "pass": false,
+      "note": "Cannot verify D-12 fixture-state: all 3 visible investor_units have allocation_status=NULL. Fixture spec maps F-ALC-02..F-ALC-05 to specific payment states which are not represented in current data."
+    },
+    "D-13": {
+      "pass": true,
+      "note": "For 3 visible projects: Pineapple Enterprises(allocated_to_self=3/total=80); Samsung LLP(allocated_to_self=5/total=44); Xiaomi LLP(allocated_to_self=7/total=120). Note: RLS limits visibility to own allocations only — invariant for full sum cannot be asserted from app-side; partial check only."
+    },
+    "D-14": {
+      "pass": true,
+      "note": "Per-unit invariant total_amount_received <= total_amount_receivable: violations=0. Self units: recv=0/recvable=0; recv=0/recvable=0; recv=0/recvable=0."
+    },
+    "D-15": {
+      "pass": true,
+      "note": "FK integrity for self units: orphans=0/3. All visible unit project_id values resolve in projects table; investor_id matches authenticated user."
+    },
+    "D-18": {
+      "pass": false,
+      "note": "No projects with status containing 'Exit' in this investor's portfolio (statuses: Open for Reservation, Active). Fixture F-PRJ-EXIT not allocated to this test investor; cannot verify."
+    }
+  }
+}

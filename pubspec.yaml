@@ -1,0 +1,80 @@
+name: arl_app
+description: ARL Investor Portal – Growize
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.10.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Navigation
+  go_router: ^14.2.7
+
+  # UI / Images
+  cached_network_image: ^3.3.1
+
+  # Backend
+  supabase_flutter: ^2.5.6
+  flutter_dotenv: ^5.1.0
+  sentry_flutter: ^9.0.0
+
+  # Offline cache
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.4
+
+  # Utils
+  intl: ^0.19.0
+  url_launcher: ^6.3.0
+  local_auth: ^2.3.0
+  connectivity_plus: ^6.0.3
+  package_info_plus: ^8.0.0
+  crypto: ^3.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: false
+  image_path: "assets/images/arl_logo.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#FAFAF7"
+  adaptive_icon_foreground: "assets/images/arl_logo.png"
+  # Android 13+ themed-icon: pure white silhouette of the logo on
+  # transparent background. Generated from arl_logo.png by alpha-keyed
+  # white-fill (see notes/icon_generation.md if it ever needs regen).
+  adaptive_icon_monochrome: "assets/images/arl_logo_monochrome.png"
+  web:
+    generate: true
+    image_path: "assets/images/arl_logo.png"
+    background_color: "#FAFAF7"
+    theme_color: "#3C5152"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/arl_logo.png
+    - assets/images/
+    - .env
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700

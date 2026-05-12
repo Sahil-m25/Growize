@@ -1,0 +1,55 @@
+# Supabase CLI project config.
+# Generated to enable `supabase functions deploy` without the interactive
+# init flow. Adjust the project-id only — the rest mirrors CLI defaults.
+
+project_id = "oynfhdqizebvgmaoiuax"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["com.arl.app://auth"]
+jwt_expiry = 3600
+enable_signup = false  # invite-only; staff onboards via onboard-investor
+
+[auth.email]
+enable_signup = false
+double_confirm_changes = true
+enable_confirmations = true
+
+# Functions that authenticate via their own shared-secret headers
+# (X-ARL-Webhook-Secret, x-arl-cron-secret). The Edge Functions Gateway
+# must NOT enforce a JWT — cron jobs send no JWT, Zoho carries only the
+# shared secret. Mirrors the --no-verify-jwt flag we pass on deploy.
+#
+# Other functions (create-ticket, reply-ticket, bank-change-request,
+# onboard-investor) keep CLI default verify_jwt=true (Investor JWT or
+# admin secret enforced at handler level).
+
+[functions.zoho-crm-webhook]
+verify_jwt = false
+
+[functions.zoho-reconcile-daily]
+verify_jwt = false
+
+[functions.sync-stale-alert]
+verify_jwt = false

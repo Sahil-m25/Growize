@@ -1,0 +1,170 @@
+{
+  "TC-LLP-001-02": {
+    "s": "Pass",
+    "n": "Authenticated session: llps table accessible. Visible LLPs: Pineapple Enterprises(Open for Reservation), Samsung LLP(Open for Reservation), Xiaomi LLP(Active). Schema: llp_status (not status). FK zoho_llp_id present."
+  },
+  "TC-LLP-002-01": {
+    "s": "Skipped",
+    "n": "Empty LLP fixture (F-LLP-C) not visible to test investor. Need investor mapped to empty LLP, or service-role read."
+  },
+  "TC-LLP-002-02": {
+    "s": "Skipped",
+    "n": "Same as TC-LLP-002-01."
+  },
+  "TC-PRJ-001-01": {
+    "s": "Pass",
+    "n": "Projects FK to LLPs: 3/3 resolve. Sample: Pineapple Enterprises->Pineapple Enterprises; Samsung LLP->Samsung LLP; Xiaomi LLP->Xiaomi LLP."
+  },
+  "TC-PRJ-001-02": {
+    "s": "Skipped",
+    "n": "App-layer (UI) — needs Chrome MCP."
+  },
+  "TC-PRJ-001-03": {
+    "s": "Skipped",
+    "n": "App-layer (UI) — needs Chrome MCP."
+  },
+  "TC-PRJ-002-01": {
+    "s": "Pass",
+    "n": "Project statuses observed: Open for Reservation, Active. Schema column: projects.status (string)."
+  },
+  "TC-PRJ-002-02": {
+    "s": "Skipped",
+    "n": "App-layer (UI) — needs Chrome MCP."
+  },
+  "TC-PRJ-002-03": {
+    "s": "Skipped",
+    "n": "App-layer (UI) — needs Chrome MCP."
+  },
+  "TC-INV-001-01": {
+    "s": "Pass",
+    "n": "investors row: name=Sahil Mohite, arl_id=ARL-002, email=sahil.mohite@agresearchlabs.com, zoho=1169101000001243004, kyc_status=verified, profile_verified=true."
+  },
+  "TC-ALC-001-01": {
+    "s": "Fail",
+    "n": "Row exists for Xiaomi LLP: issued=7, invested=17500000, outstanding=0, customer_status=Active. EXPECTATION FAIL: allocation_status=NULL (SCENARIOS expects Paid/Pending/Partial). DEFECT logged."
+  },
+  "TC-ALC-002-01": {
+    "s": "Fail",
+    "n": "Row exists for Samsung LLP: issued=5, invested=12500000, outstanding=0, customer_status=Active. EXPECTATION FAIL: allocation_status=NULL (SCENARIOS expects Paid/Pending/Partial). DEFECT logged."
+  },
+  "TC-ALC-003-01": {
+    "s": "Fail",
+    "n": "Row exists for Pineapple Enterprises: issued=3, invested=7500000, outstanding=0, customer_status=Active. EXPECTATION FAIL: allocation_status=NULL (SCENARIOS expects Paid/Pending/Partial). DEFECT logged."
+  },
+  "TC-ALC-004-01": {
+    "s": "Skipped",
+    "n": "Partial-payment fixture (F-ALC-04) not present in this investor's allocations."
+  },
+  "TC-ALC-005-01": {
+    "s": "Skipped",
+    "n": "Multi-LLP fixture F-ALC-05+06 — this investor has 3 units across 3 different LLPs, partial match."
+  },
+  "TC-ALC-001-02": {
+    "s": "Skipped",
+    "n": "App-layer (UI) verification — needs Chrome MCP / real browser."
+  },
+  "TC-ALC-001-03": {
+    "s": "Skipped",
+    "n": "App-layer (UI) verification — needs Chrome MCP / real browser."
+  },
+  "TC-ALC-001-04": {
+    "s": "Skipped",
+    "n": "App-layer (UI) verification — needs Chrome MCP / real browser."
+  },
+  "TC-ALC-001-05": {
+    "s": "Skipped",
+    "n": "App-layer (UI) verification — needs Chrome MCP / real browser."
+  },
+  "TC-ALC-002-02": {
+    "s": "Skipped",
+    "n": "App-layer (UI) verification — needs Chrome MCP / real browser."
+  },
+  "TC-ALC-002-03": {
+    "s": "Skipped",
+    "n": "App-layer (UI) verification — needs Chrome MCP / real browser."
+  },
+  "TC-ALC-003-02": {
+    "s": "Skipped",
+    "n": "App-layer (UI) verification — needs Chrome MCP / real browser."
+  },
+  "TC-ALC-003-03": {
+    "s": "Skipped",
+    "n": "App-layer (UI) verification — needs Chrome MCP / real browser."
+  },
+  "TC-ALC-004-02": {
+    "s": "Skipped",
+    "n": "App-layer (UI) verification — needs Chrome MCP / real browser."
+  },
+  "TC-ALC-005-02": {
+    "s": "Skipped",
+    "n": "App-layer (UI) verification — needs Chrome MCP / real browser."
+  },
+  "TC-ALC-005-03": {
+    "s": "Skipped",
+    "n": "App-layer (UI) verification — needs Chrome MCP / real browser."
+  },
+  "TC-ALC-005-04": {
+    "s": "Skipped",
+    "n": "App-layer (UI) verification — needs Chrome MCP / real browser."
+  },
+  "TC-RLS-001-01": {
+    "s": "Pass",
+    "n": "Logged in as Sahil Mohite; investor_units returns 3 rows, all match own investor_id. No leakage."
+  },
+  "TC-RLS-001-02": {
+    "s": "Pass",
+    "n": "Cross-investor probe (investor_id neq self) returned 0 rows (expected 0). RLS enforces row-level isolation."
+  },
+  "TC-RLS-001-03": {
+    "s": "Pass",
+    "n": "Documents probe with investor_id neq self returned 0 rows. RLS active on documents table."
+  },
+  "TC-RLS-001-04": {
+    "s": "Skipped",
+    "n": "Negative scenario (no fixture details available in tracker)."
+  },
+  "TC-RLS-001-05": {
+    "s": "Skipped",
+    "n": "Production-like demo-filter test: this account IS the test persona; cannot test prod-investor exclusion of -demo without separate prod-style account. Also: visible projects (Pineapple/Samsung/Xiaomi) lack -demo name suffix; SCENARIOS demo-suffix rule may not be enforced in current test fixtures."
+  },
+  "TC-DOC-001-01": {
+    "s": "Fail",
+    "n": "No documents visible for this investor (rows=0). Test fixture sparse — investor has 3 unit allocations but zero documents in vault. Expected per fixture: agreements / receipts."
+  },
+  "TC-DOC-001-02": {
+    "s": "Skipped",
+    "n": "App-layer."
+  },
+  "TC-DOC-001-03": {
+    "s": "Skipped",
+    "n": "App-layer."
+  },
+  "TC-EXIT-001-01": {
+    "s": "Fail",
+    "n": "No projects with Exit status in this investor portfolio. F-PRJ-EXIT fixture not allocated to test investor; cannot verify exit/payout flow."
+  },
+  "TC-EXIT-001-02": {
+    "s": "Skipped",
+    "n": "Dependent on EXIT-001-01."
+  },
+  "TC-EXIT-001-03": {
+    "s": "Skipped",
+    "n": "Dependent on EXIT-001-01."
+  },
+  "TC-INV-001-02": {
+    "s": "Skipped",
+    "n": "OTP magic-link delivery test: used password grant /auth/v1/token, not OTP path. Cannot verify magic-link delivery without inspecting email or Supabase auth logs."
+  },
+  "TC-INV-001-03": {
+    "s": "Skipped",
+    "n": "App-layer login render — needs Chrome MCP. Note: REST-level auth as F-INV (this user) succeeded; portfolio data fetchable."
+  },
+  "TC-INV-001-04": {
+    "s": "Skipped",
+    "n": "App-layer logout — needs Chrome MCP."
+  },
+  "TC-INV-001-05": {
+    "s": "Skipped",
+    "n": "Requires second test investor (F-INV-02) credentials; not provided."
+  }
+}
