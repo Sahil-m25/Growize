@@ -1062,6 +1062,201 @@ Future Zoho edits to the LLP will NOT clobber these values.
 
 ---
 
+## Part 6 — Recent Feature Additions (May 2026)
+
+Five investor-facing features moved from Fail/Partial to Pass on **2026-05-12**. They're documented here in ship order. New tables in this release: `user_settings`, `login_events`, `consultation_requests`, `exit_requests`. The `investors` table also gained client-side INSERT/UPDATE policies for self-onboarding. None of these are sourced from Zoho — they're Supabase-native, written from the Flutter app.
+
+> ⚠️ All four new tables have RLS enabled and policies that scope reads/writes to `auth.uid()`. ARL ops reads/updates via Supabase Studio (service_role bypasses RLS). There is no admin UI yet — triage is SQL today.
+
+### 6.1 Security & PIN (SecurityScreen)
+
+**User journey.** Investor opens app → Profile tab → **Security**. Sees three toggles in one card: **Biometric Login** (off by default — enabling it routes through §6.2), **App PIN** (tap to set/change/remove), **Notifications**. Below the toggles is a **Login History** card listing recent sign-ins with timestamp + device, and a **Last login** stamp under Session. All three rows now persist across sessions and devices.
+
+**App PIN handling.** The PIN itself is hashed **on the device** using a 16-byte random salt + 100 000 iterations of SHA-256. Only the salt + iteration count + digest reach the database. **Plaintext PINs never leave the phone** and are not present in any log, network capture, or table. Changing or removing a PIN requires the current PIN to be entered first.
+
+**Data model.** Migration `026_user_settings_and_login_events.sql` adds two tables:
+
+| Table | Key columns | RLS |
+|---|---|---|
+| `public.user_settings` | `user_id PK→auth.users`, `biometric_enabled`, `notifications_enabled`, `app_pin_hash`, `app_pin_salt`, `app_pin_iterations`, `updated_at` | SELECT / INSERT / UPDATE where `user_id = auth.uid()` |
+| `public.login_events` | `id`, `user_id→auth.users`, `occurred_at`, `device_label`, `platform`, `app_version`, `user_agent` | SELECT / INSERT where `user_id = auth.uid()`. No UPDATE/DELETE policy = append-only from the client. |
+
+`login_events` is written automatically on every `AuthChangeEvent.signedIn` (real sign-in, not a session refresh). Index: `(user_id, occurred_at DESC)`.
+
+**Ops actions.**
+- Audit an investor's recent sign-ins (Supabase Studio → SQL editor):
+  ```sql
+  SELECT occurred_at, device_label, platform, app_version
+  FROM public.login_events
+  WHERE user_id = (SELECT id FROM public.investors WHERE email = 'jane@example.com')
+  ORDER BY occurred_at DESC
+  LIMIT 30;
+  ```
+- Check whether an investor has set a PIN: `SELECT app_pin_hash IS NOT NULL AS pin_set FROM public.user_settings WHERE user_id = …`. Investors who haven't visited Security yet have no `user_settings` row — that's normal.
+- **DON'T** touch `app_pin_hash` / `app_pin_salt` / `app_pin_iterations` manually. If an investor forgets their PIN, deleting the three columns is the recovery (their next entry to the Security screen treats it as unset). There is no way to recover the original PIN — it's only stored as a hash.
+
+**Migration.** `026` — 2026-05-12. Rollback: `DROP TABLE public.user_settings; DROP TABLE public.login_events;`.
+
+---
+
+### 6.2 Biometric enrollment gate (BiometricScreen)
+
+**User journey.** From the SecurityScreen (§6.1), toggling **Biometric Login** to ON pushes a full-screen biometric prompt (route `/biometric`). The OS fingerprint / face-unlock sheet appears; if it passes, the screen pops with `true` and `user_settings.biometric_enabled` flips to true. If the user cancels or fails, the screen pops with `false` and the toggle snaps back off — **no row write happens**. Turning the toggle OFF persists directly without a re-prompt (downgrades don't need a fresh biometric check).
+
+**Important.** This is an **enrollment gate**, not a sign-in mechanism. Today, having `biometric_enabled = true` simply records the user's preference; the existing email/OTP login flow has not changed. Wiring biometric auth into actual sign-in is a separate piece of work.
+
+**Data model.** No new table. Reuses `user_settings.biometric_enabled` from §6.1.
+
+**Ops actions.**
+- Force-disable an investor's biometric flag (e.g. they lost the device):
+  ```sql
+  UPDATE public.user_settings SET biometric_enabled = false
+  WHERE user_id = (SELECT id FROM public.investors WHERE email = 'jane@example.com');
+  ```
+- This does not log the user out — it only affects what the Security screen shows on next entry.
+
+**Migration.** None of its own; piggybacks on `026`.
+
+---
+
+### 6.3 Investor self-onboarding (InitialSetupScreen)
+
+**User journey.** From the launch screen → **Get Started** → 3-step wizard at `/setup`:
+
+1. **Personal Details** — full name, email (pre-filled from auth user), date of birth (`DD-MM-YYYY`).
+2. **Identity Verification** — PAN (auto-uppercased, must match `^[A-Z]{5}[0-9]{4}[A-Z]$`) and Aadhaar (exactly 12 digits).
+3. **Bank Account** — bank name, IFSC (`^[A-Z]{4}0[A-Z0-9]{6}$`), account number (9–18 digits), holder name.
+
+Each field validates inline. **Submit for Verification** writes the row and routes to Home with a "KYC pending" toast.
+
+**Privacy.** Raw PAN, Aadhaar, and account numbers **never leave the device**. The app masks them client-side before writing — `pan_masked` becomes `ABCDE****F`, `aadhaar_masked` becomes `XXXX-XXXX-1234`, `bank_account_masked` becomes `XXXXX1234`. This matches the existing `bank_change_request` pattern. If ops needs the full numbers, they have to be collected out-of-band (existing Zoho-side flow).
+
+**Data model.** Migration `027_investors_self_onboard.sql` modifies `public.investors`:
+
+| Change | Why |
+|---|---|
+| `arl_id` is now nullable | Self-onboarded rows have no Zoho contact ID until staff assigns one. Existing Zoho-synced rows keep their `arl_id` unchanged. |
+| New policy `investors: insert own row` | `WITH CHECK (id = auth.uid())` — investor can create their own row. |
+| New policy `investors: update own row` | `USING/CHECK (id = auth.uid())` — investor can update their own row. |
+| `GRANT INSERT, UPDATE ON public.investors TO authenticated` | Previously was SELECT only. |
+
+The wizard does a single `upsert` keyed on `id = auth.uid()`. New rows get `kyc_status = 'pending'`.
+
+**Ops actions.**
+- Find investors waiting for KYC review:
+  ```sql
+  SELECT id, name, email, pan_masked, aadhaar_masked, bank_name, bank_ifsc, bank_account_masked
+  FROM public.investors
+  WHERE kyc_status = 'pending' AND arl_id IS NULL
+  ORDER BY updated_at DESC;
+  ```
+- After verifying KYC out-of-band, assign an `arl_id` and flip status:
+  ```sql
+  UPDATE public.investors
+  SET arl_id = 'ARL-2026-NNNN', kyc_status = 'verified'
+  WHERE id = '<uuid>';
+  ```
+- The masked values are app-display only. If you need the full PAN / Aadhaar / account, contact the investor — we don't store them.
+
+**Migration.** `027` — 2026-05-12. Rollback drops the two policies, revokes grants, and re-adds `NOT NULL` to `arl_id`.
+
+---
+
+### 6.4 Consultation requests (ExploreScreen)
+
+**User journey.** Investor opens **Explore** tab → browses marketplace listings → opens one → picks a unit count via slider or custom input → taps **Request Consultation**. The button shows an inline spinner while the request is being saved, then a toast confirms. Tapping again within 24 hours surfaces a "we already have your request" toast instead of creating a duplicate.
+
+**Dedup.** The 24-hour check is **client-side** — the repo runs a SELECT for the user's `new` requests on this project in the last 24h before inserting. The window is intentionally short so an investor *can* re-file a fresh consultation 24h later without admin intervention. There is no DB unique constraint.
+
+**Data model.** Migration `028_consultation_requests.sql`:
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid pk | |
+| `user_id` | uuid → `auth.users` | |
+| `project_id` | uuid → `public.projects` | |
+| `units_requested` | int nullable | |
+| `message` | text nullable | not currently surfaced in the app, but allowed in the schema |
+| `status` | text default `'new'` | check (`new` \| `contacted` \| `closed`) |
+| `created_at` | timestamptz | |
+
+Indexes: `(user_id, created_at DESC)`, `(project_id, status, created_at DESC)`. RLS: `select own` + `insert own` (both `user_id = auth.uid()`). `GRANT SELECT, INSERT TO authenticated`. Staff bypass via service_role.
+
+**Status lifecycle.** `new` (just submitted) → `contacted` (ops reached out) → `closed` (resolved one way or the other). Today ops moves rows by hand in Studio.
+
+**Ops actions.**
+- Daily triage — open requests sorted by oldest:
+  ```sql
+  SELECT cr.id, cr.created_at, cr.units_requested, p.name AS project,
+         i.name AS investor, i.email, i.phone
+  FROM public.consultation_requests cr
+  JOIN public.projects p ON p.id = cr.project_id
+  JOIN public.investors i ON i.id = cr.user_id
+  WHERE cr.status = 'new'
+  ORDER BY cr.created_at ASC;
+  ```
+- After calling the investor, mark contacted:
+  ```sql
+  UPDATE public.consultation_requests SET status = 'contacted' WHERE id = '<uuid>';
+  ```
+- Close once resolved (`status = 'closed'`). Closed rows are not re-surfaced by the in-app dedup check, so the investor can submit a fresh request later.
+
+**Migration.** `028` — 2026-05-12. Rollback: `DROP TABLE public.consultation_requests;`.
+
+---
+
+### 6.5 Exit requests (ExitScreen)
+
+**User journey.** From Profile → **Project Exit** → `/exit`. The screen shows investment date, lock-in end date (`investment_date + 5 years`), and an eligibility chip. If the lock-in has passed, **Request Exit** is enabled; tapping it opens a small reason dialog (optional text, up to 500 chars) before submit. After submit, the screen flips to a **"Exit request pending review"** card with the submission date — the CTA is no longer shown until ops moves the status off `pending`.
+
+**Race-safe dedup.** Unlike consultation requests, exits use a **DB-level** partial unique index: `uniq_exit_requests_pending_unit ON exit_requests (investor_unit_id) WHERE status = 'pending'`. Two simultaneous taps cannot both create pending rows for the same allocation. The client catches `PostgrestException` with SQLSTATE `23505` and surfaces the existing pending row — UX wise the second tap looks like "already submitted" rather than "error".
+
+**Why the FK is `investor_unit_id`, not `project_id`.** Investors hold allocations (`investor_units` rows), not projects. One project can have multiple allocations to the same investor; each can be exited independently in principle. Today the screen targets the **earliest** `investor_units` row for the user — sufficient for the current single-allocation case, easy to extend later.
+
+**Data model.** Migration `029_exit_requests.sql`:
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid pk | |
+| `investor_unit_id` | uuid → `public.investor_units` | the specific allocation under exit |
+| `user_id` | uuid → `auth.users` | |
+| `reason` | text nullable | free-form from the reason dialog |
+| `status` | text default `'pending'` | check (`pending` \| `approved` \| `rejected` \| `settled`) |
+| `created_at` | timestamptz | |
+| `resolved_at` | timestamptz nullable | ops sets when status leaves `pending` |
+
+Indexes: `(user_id, created_at DESC)`, **plus** the partial unique index above. RLS: `select own` + `insert own`. `GRANT SELECT, INSERT TO authenticated`. UPDATE is staff-only via service_role.
+
+**Status lifecycle.** `pending` → either `approved` (ops agrees to exit, valuation in progress) → `settled` (payout cleared), OR `rejected` (denied with reason in `resolved_at` context).
+
+**Ops actions.**
+- Pending queue, oldest first:
+  ```sql
+  SELECT er.id, er.created_at, er.reason,
+         i.name AS investor, i.email, i.phone,
+         p.name AS project, iu.investment_date, iu.issued_units, iu.capital_invested
+  FROM public.exit_requests er
+  JOIN public.investor_units iu ON iu.id = er.investor_unit_id
+  JOIN public.investors i ON i.id = er.user_id
+  JOIN public.projects p ON p.id = iu.project_id
+  WHERE er.status = 'pending'
+  ORDER BY er.created_at ASC;
+  ```
+- Approve (valuation step starts out-of-band):
+  ```sql
+  UPDATE public.exit_requests SET status = 'approved', resolved_at = now() WHERE id = '<uuid>';
+  ```
+- Reject (after a conversation that confirms the investor wants to hold):
+  ```sql
+  UPDATE public.exit_requests SET status = 'rejected', resolved_at = now() WHERE id = '<uuid>';
+  ```
+  A rejected row stops blocking the partial unique index, so the investor can file fresh if circumstances change.
+- Once settlement clears: `status = 'settled', resolved_at = now()`.
+
+**Migration.** `029` — 2026-05-12. Rollback: `DROP TABLE public.exit_requests;`.
+
+---
+
 **End of guide.** If you've followed something here and it didn't work, OR you have a use case not covered, file an issue + ping engineering. This document gets out of date — verify against the actual system if in doubt.
 
 Cross-references:
