@@ -66,4 +66,46 @@ class InvestorRepository {
   Map<String, dynamic>? _readCache() {
     return ResilientCache.getMap(_box, _kInvestor);
   }
+
+  /// Upsert the current user's own investor row from the initial-setup
+  /// wizard. Stores only masked PAN / Aadhaar / bank account numbers —
+  /// raw values never reach the DB. RLS scopes the write to id = auth.uid().
+  Future<void> upsertOnboarding({
+    required String name,
+    required String email,
+    DateTime? dateOfBirth,
+    String? panMasked,
+    String? aadhaarMasked,
+    String? bankName,
+    String? bankIfsc,
+    String? bankAccountMasked,
+    String? bankHolderName,
+  }) async {
+    final client = ArlSupabase.requireClient();
+    final user = client.auth.currentUser;
+    if (user == null) {
+      throw StateError('Not signed in — cannot save onboarding.');
+    }
+    final payload = <String, dynamic>{
+      'id': user.id,
+      'name': name,
+      'email': email,
+      'kyc_status': 'pending',
+      if (dateOfBirth != null)
+        'date_of_birth': '${dateOfBirth.year.toString().padLeft(4, '0')}-'
+            '${dateOfBirth.month.toString().padLeft(2, '0')}-'
+            '${dateOfBirth.day.toString().padLeft(2, '0')}',
+      if (panMasked != null) 'pan_masked': panMasked,
+      if (aadhaarMasked != null) 'aadhaar_masked': aadhaarMasked,
+      if (bankName != null) 'bank_name': bankName,
+      if (bankIfsc != null) 'bank_ifsc': bankIfsc,
+      if (bankAccountMasked != null) 'bank_account_masked': bankAccountMasked,
+      if (bankHolderName != null) 'bank_holder_name': bankHolderName,
+    };
+    await client.from('investors').upsert(payload, onConflict: 'id');
+    // Replace cached row so dependent providers pick up the new values
+    // immediately rather than waiting for the next live fetch.
+    await ResilientCache.putMap(
+        _box, _kInvestor, Map<String, dynamic>.from(payload));
+  }
 }

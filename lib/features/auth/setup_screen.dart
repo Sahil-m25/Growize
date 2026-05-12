@@ -1,19 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:arl_app/core/navigation/route_names.dart';
+import 'package:arl_app/core/providers/repositories.dart';
+import 'package:arl_app/core/supabase/supabase_client.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 
-/// Initial onboarding for new investor — 3-step wizard.
-class InitialSetupScreen extends StatefulWidget {
+final _panRegex = RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]$');
+final _aadhaarRegex = RegExp(r'^[0-9]{12}$');
+final _ifscRegex = RegExp(r'^[A-Z]{4}0[A-Z0-9]{6}$');
+final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+final _dobRegex = RegExp(r'^([0-3]\d)-([0-1]\d)-([0-9]{4})$');
+
+/// Initial onboarding for a new investor — 3-step wizard. Final submit
+/// upserts the current user's `investors` row (RLS scoped to auth.uid()).
+/// Raw PAN / Aadhaar / account numbers never reach the DB — only masked
+/// projections are persisted.
+class InitialSetupScreen extends ConsumerStatefulWidget {
   const InitialSetupScreen({super.key});
 
   @override
-  State<InitialSetupScreen> createState() => _InitialSetupScreenState();
+  ConsumerState<InitialSetupScreen> createState() => _InitialSetupScreenState();
 }
 
-class _InitialSetupScreenState extends State<InitialSetupScreen> {
+class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
   int _step = 0;
+  bool _submitting = false;
+
+  final _formKeys = List.generate(3, (_) => GlobalKey<FormState>());
 
   final _name = TextEditingController();
   final _email = TextEditingController();
@@ -23,39 +39,119 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   final _bankName = TextEditingController();
   final _ifsc = TextEditingController();
   final _account = TextEditingController();
+  final _holder = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill email from the signed-in auth user so it always matches
+    // the JWT-bound identity on insert.
+    final authEmail = ArlSupabase.client?.auth.currentUser?.email;
+    if (authEmail != null) {
+      _email.text = authEmail;
+    }
+  }
 
   @override
   void dispose() {
-    _name.dispose();
-    _email.dispose();
-    _dob.dispose();
-    _pan.dispose();
-    _aadhaar.dispose();
-    _bankName.dispose();
-    _ifsc.dispose();
-    _account.dispose();
+    for (final c in [
+      _name,
+      _email,
+      _dob,
+      _pan,
+      _aadhaar,
+      _bankName,
+      _ifsc,
+      _account,
+      _holder
+    ]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  void _next() {
+  Future<void> _next() async {
+    final form = _formKeys[_step].currentState;
+    if (form != null && !form.validate()) return;
+
     if (_step < 2) {
       setState(() => _step++);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Setup submitted — verification pending')),
+      return;
+    }
+    await _submit();
+  }
+
+  Future<void> _submit() async {
+    setState(() => _submitting = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+    try {
+      await ref.read(investorRepositoryProvider).upsertOnboarding(
+            name: _name.text.trim(),
+            email: _email.text.trim(),
+            dateOfBirth: _parseDob(_dob.text.trim()),
+            panMasked: _maskPan(_pan.text.trim()),
+            aadhaarMasked: _maskAadhaar(_aadhaar.text.trim()),
+            bankName: _bankName.text.trim(),
+            bankIfsc: _ifsc.text.trim(),
+            bankAccountMasked: _maskAccount(_account.text.trim()),
+            bankHolderName: _holder.text.trim().isEmpty
+                ? _name.text.trim()
+                : _holder.text.trim(),
+          );
+      ref.invalidate(currentInvestorProvider);
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Onboarding submitted — KYC pending')),
       );
-      Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted) context.go(RouteNames.home);
-      });
+      router.go(RouteNames.home);
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not save: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
   void _back() {
+    if (_submitting) return;
     if (_step > 0) {
       setState(() => _step--);
     } else {
       context.canPop() ? context.pop() : context.go(RouteNames.login);
     }
+  }
+
+  static DateTime? _parseDob(String input) {
+    final m = _dobRegex.firstMatch(input);
+    if (m == null) return null;
+    final day = int.parse(m.group(1)!);
+    final month = int.parse(m.group(2)!);
+    final year = int.parse(m.group(3)!);
+    try {
+      return DateTime(year, month, day);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static String _maskPan(String pan) {
+    // ABCDE1234F -> ABCDE****F
+    if (pan.length != 10) return pan;
+    return '${pan.substring(0, 5)}****${pan.substring(9)}';
+  }
+
+  static String _maskAadhaar(String a) {
+    // 12 digits -> XXXX-XXXX-1234
+    if (a.length != 12) return a;
+    return 'XXXX-XXXX-${a.substring(8)}';
+  }
+
+  static String _maskAccount(String acc) {
+    if (acc.length <= 4) return acc;
+    return 'X' * (acc.length - 4) + acc.substring(acc.length - 4);
   }
 
   @override
@@ -72,7 +168,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                   IconButton(
                     icon: const Icon(Icons.arrow_back,
                         color: ArlColors.charcoal, size: 20),
-                    onPressed: _back,
+                    onPressed: _submitting ? null : _back,
                   ),
                   const SizedBox(width: 4),
                   const Text(
@@ -107,7 +203,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _next,
+                  onPressed: _submitting ? null : _next,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ArlColors.primary,
                     foregroundColor: Colors.white,
@@ -117,13 +213,22 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: Text(
-                    _step == 2 ? 'Submit for Verification' : 'Continue',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          _step == 2 ? 'Submit for Verification' : 'Continue',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -136,11 +241,32 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   Widget _stepBody() {
     switch (_step) {
       case 0:
-        return _PersonalStep(name: _name, email: _email, dob: _dob);
+        return Form(
+          key: _formKeys[0],
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          child: _PersonalStep(
+            name: _name,
+            email: _email,
+            dob: _dob,
+          ),
+        );
       case 1:
-        return _IdStep(pan: _pan, aadhaar: _aadhaar);
+        return Form(
+          key: _formKeys[1],
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          child: _IdStep(pan: _pan, aadhaar: _aadhaar),
+        );
       default:
-        return _BankStep(bank: _bankName, ifsc: _ifsc, account: _account);
+        return Form(
+          key: _formKeys[2],
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          child: _BankStep(
+            bank: _bankName,
+            ifsc: _ifsc,
+            account: _account,
+            holder: _holder,
+          ),
+        );
     }
   }
 }
@@ -184,17 +310,45 @@ class _PersonalStep extends StatelessWidget {
           title: 'Personal Details',
           subtitle: 'Step 1 of 3 — Basic info',
         ),
-        _Field(label: 'Full Name', hint: 'As per PAN', controller: name),
         _Field(
-            label: 'Email',
-            hint: 'name@example.com',
-            controller: email,
-            keyboard: TextInputType.emailAddress),
+          label: 'Full Name',
+          hint: 'As per PAN',
+          controller: name,
+          validator: (v) => (v == null || v.trim().length < 2)
+              ? 'Enter your full name'
+              : null,
+        ),
         _Field(
-            label: 'Date of Birth',
-            hint: 'DD-MM-YYYY',
-            controller: dob,
-            keyboard: TextInputType.datetime),
+          label: 'Email',
+          hint: 'name@example.com',
+          controller: email,
+          keyboard: TextInputType.emailAddress,
+          validator: (v) {
+            final s = v?.trim() ?? '';
+            if (s.isEmpty) return 'Enter your email';
+            if (!_emailRegex.hasMatch(s)) return 'Invalid email format';
+            return null;
+          },
+        ),
+        _Field(
+          label: 'Date of Birth',
+          hint: 'DD-MM-YYYY',
+          controller: dob,
+          keyboard: TextInputType.datetime,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9\-]')),
+            LengthLimitingTextInputFormatter(10),
+          ],
+          validator: (v) {
+            final s = v?.trim() ?? '';
+            if (s.isEmpty) return 'Enter your date of birth';
+            if (!_dobRegex.hasMatch(s)) return 'Use DD-MM-YYYY';
+            final d = _InitialSetupScreenState._parseDob(s);
+            if (d == null) return 'Invalid date';
+            if (d.isAfter(DateTime.now())) return 'Date is in the future';
+            return null;
+          },
+        ),
       ],
     );
   }
@@ -221,6 +375,14 @@ class _IdStep extends StatelessWidget {
             UpperCaseFormatter(),
             LengthLimitingTextInputFormatter(10),
           ],
+          validator: (v) {
+            final s = v?.trim().toUpperCase() ?? '';
+            if (s.isEmpty) return 'Enter your PAN';
+            if (!_panRegex.hasMatch(s)) {
+              return 'Format: 5 letters, 4 digits, 1 letter';
+            }
+            return null;
+          },
         ),
         _Field(
           label: 'Aadhaar Number',
@@ -231,6 +393,12 @@ class _IdStep extends StatelessWidget {
             FilteringTextInputFormatter.digitsOnly,
             LengthLimitingTextInputFormatter(12),
           ],
+          validator: (v) {
+            final s = v?.trim() ?? '';
+            if (s.isEmpty) return 'Enter your Aadhaar';
+            if (!_aadhaarRegex.hasMatch(s)) return 'Aadhaar must be 12 digits';
+            return null;
+          },
         ),
         const SizedBox(height: 8),
         Container(
@@ -246,7 +414,8 @@ class _IdStep extends StatelessWidget {
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Documents are encrypted and used only for KYC verification.',
+                  'Only the masked tail of these IDs is stored. Full numbers '
+                  'are never sent to the server.',
                   style: TextStyle(color: ArlColors.charcoal, fontSize: 11),
                 ),
               ),
@@ -259,9 +428,13 @@ class _IdStep extends StatelessWidget {
 }
 
 class _BankStep extends StatelessWidget {
-  final TextEditingController bank, ifsc, account;
-  const _BankStep(
-      {required this.bank, required this.ifsc, required this.account});
+  final TextEditingController bank, ifsc, account, holder;
+  const _BankStep({
+    required this.bank,
+    required this.ifsc,
+    required this.account,
+    required this.holder,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -272,7 +445,13 @@ class _BankStep extends StatelessWidget {
           title: 'Bank Account',
           subtitle: 'Step 3 of 3 — For payouts',
         ),
-        _Field(label: 'Bank Name', hint: 'e.g. HDFC Bank', controller: bank),
+        _Field(
+          label: 'Bank Name',
+          hint: 'e.g. HDFC Bank',
+          controller: bank,
+          validator: (v) =>
+              (v == null || v.trim().isEmpty) ? 'Enter your bank' : null,
+        ),
         _Field(
           label: 'IFSC Code',
           hint: 'HDFC0001234',
@@ -281,6 +460,14 @@ class _BankStep extends StatelessWidget {
             UpperCaseFormatter(),
             LengthLimitingTextInputFormatter(11),
           ],
+          validator: (v) {
+            final s = v?.trim().toUpperCase() ?? '';
+            if (s.isEmpty) return 'Enter your IFSC code';
+            if (!_ifscRegex.hasMatch(s)) {
+              return 'Format: AAAA0XXXXXX (5th char is zero)';
+            }
+            return null;
+          },
         ),
         _Field(
           label: 'Account Number',
@@ -288,6 +475,19 @@ class _BankStep extends StatelessWidget {
           controller: account,
           keyboard: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (v) {
+            final s = v?.trim() ?? '';
+            if (s.isEmpty) return 'Enter your account number';
+            if (s.length < 9 || s.length > 18) {
+              return 'Account number must be 9–18 digits';
+            }
+            return null;
+          },
+        ),
+        _Field(
+          label: 'Account Holder Name',
+          hint: 'Leave blank to use your name above',
+          controller: holder,
         ),
       ],
     );
@@ -335,12 +535,14 @@ class _Field extends StatelessWidget {
   final TextEditingController controller;
   final TextInputType? keyboard;
   final List<TextInputFormatter>? inputFormatters;
+  final String? Function(String?)? validator;
   const _Field({
     required this.label,
     required this.hint,
     required this.controller,
     this.keyboard,
     this.inputFormatters,
+    this.validator,
   });
 
   @override
@@ -359,10 +561,11 @@ class _Field extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          TextField(
+          TextFormField(
             controller: controller,
             keyboardType: keyboard,
             inputFormatters: inputFormatters,
+            validator: validator,
             style: const TextStyle(fontSize: 14, color: ArlColors.charcoal),
             decoration: InputDecoration(
               hintText: hint,
@@ -380,8 +583,19 @@ class _Field extends StatelessWidget {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(15),
-                borderSide: const BorderSide(color: ArlColors.primary, width: 1.5),
+                borderSide:
+                    const BorderSide(color: ArlColors.primary, width: 1.5),
               ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: const BorderSide(color: ArlColors.earth),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide:
+                    const BorderSide(color: ArlColors.earth, width: 1.5),
+              ),
+              errorStyle: const TextStyle(color: ArlColors.earth, fontSize: 11),
             ),
           ),
         ],

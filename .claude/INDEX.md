@@ -7,3 +7,4 @@
 | 2026-04-24 | decision | HTML→Flutter parity gap analysis | open | decisions/2026-04-24_html-parity-gap.md |
 | 2026-05-12 | decision | SecurityScreen persistence + login audit trail | locked | decisions/2026-05-12_security-screen-persistence.md |
 | 2026-05-12 | decision | BiometricScreen wiring | locked | decisions/2026-05-12_biometric-screen-wiring.md |
+| 2026-05-12 | decision | InitialSetupScreen persist KYC on submit | locked | decisions/2026-05-12_initial-setup-persistence.md |
