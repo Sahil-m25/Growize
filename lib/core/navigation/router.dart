@@ -29,12 +29,15 @@ import 'package:arl_app/features/auth/auth_screen.dart';
 import 'package:arl_app/features/auth/biometric_screen.dart';
 import 'package:arl_app/features/auth/login_screen.dart';
 import 'package:arl_app/features/auth/setup_screen.dart';
+import 'package:arl_app/features/legal/legal_document_screen.dart';
 
 /// Routes that don't require auth — visible to anonymous users.
 const _publicRoutes = <String>{
   RouteNames.auth,
   RouteNames.login,
   RouteNames.setup,
+  RouteNames.privacy,
+  RouteNames.terms,
 };
 
 /// B.T3: GoRouterRefreshStream — listens to a Stream and notifies GoRouter
@@ -92,6 +95,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RouteNames.biometric,
         builder: (context, state) => const BiometricScreen(),
+      ),
+      // Legal documents — reachable from setup (pre-auth) and profile
+      // footer (post-auth). No bottom nav, no shell.
+      GoRoute(
+        path: RouteNames.privacy,
+        builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.terms,
+        builder: (context, state) => const TermsScreen(),
       ),
 
       // Main shell — all screens with bottom nav
