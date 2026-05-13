@@ -65,7 +65,11 @@ class ProjectsRepository {
         return const [];
       }
 
-      final rows = await client.from('projects').select().inFilter('id', ids);
+      final rows = await client
+          .from('projects')
+          .select()
+          .inFilter('id', ids)
+          .isFilter('deleted_at', null);
       final list = (rows as List).cast<Map<String, dynamic>>();
       await ResilientCache.putList(_box, _kMyProjects, list);
       return list.map<Project>((r) => Project.fromSupabase(r)).toList();
@@ -95,11 +99,13 @@ class ProjectsRepository {
             .from('projects')
             .select()
             .eq('is_listed_in_marketplace', true)
+            .isFilter('deleted_at', null)
             .order('marketplace_sort_order', ascending: true);
       } catch (_) {
         // Schema drift: marketplace columns missing. Fetch all + skip
         // sort so the user still sees listings.
-        rows = await client.from('projects').select();
+        rows =
+            await client.from('projects').select().isFilter('deleted_at', null);
       }
       final list = rows.cast<Map<String, dynamic>>();
       await ResilientCache.putList(_box, _kMarketplace, list);
@@ -124,8 +130,12 @@ class ProjectsRepository {
     if (client == null) return _readProjectByIdCache(id);
 
     try {
-      final row =
-          await client.from('projects').select().eq('id', id).maybeSingle();
+      final row = await client
+          .from('projects')
+          .select()
+          .eq('id', id)
+          .isFilter('deleted_at', null)
+          .maybeSingle();
       if (row == null) return _readProjectByIdCache(id);
       await ResilientCache.putMap(
           _box, '$_kProjectById$id', Map<String, dynamic>.from(row));

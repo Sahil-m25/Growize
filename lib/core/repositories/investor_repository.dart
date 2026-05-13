@@ -47,8 +47,15 @@ class InvestorRepository {
 
     try {
       // Rely on RLS to filter to the row whose id = auth.uid().
-      final row =
-          await client.from('investors').select().limit(1).maybeSingle();
+      // Defense in depth: also filter deleted_at IS NULL so a stale
+      // app build can't read a soft-deleted CRM row even if RLS
+      // somehow regresses (the policy ALSO enforces this).
+      final row = await client
+          .from('investors')
+          .select()
+          .isFilter('deleted_at', null)
+          .limit(1)
+          .maybeSingle();
       if (row == null) return null;
       final map = Map<String, dynamic>.from(row);
       await ResilientCache.putMap(_box, _kInvestor, map);

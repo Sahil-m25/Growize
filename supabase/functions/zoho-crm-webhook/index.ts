@@ -405,8 +405,19 @@ Deno.serve(async (req: Request) => {
   const logId = logRow.id;
 
   // ── Route by module ──────────────────────────────────────────────────
+  // Soft-delete fan-out: when Zoho fires the delete trigger on a
+  // Contact / LLP record, the workflow stamps the `operation` query
+  // param (or body field) with `delete`. We mark the corresponding
+  // Supabase row's `deleted_at = now()` rather than hard-deleting,
+  // so FK chains (investor_units → projects → payouts → documents)
+  // keep their parents around for audit + history.
+  const isDelete = (operation ?? "").toLowerCase() === "delete";
   try {
-    if (zohoModule === "Contacts") {
+    if (isDelete && zohoModule === "Contacts") {
+      await handleContactDelete(supabase, data);
+    } else if (isDelete && zohoModule === "LLP_Creation_Module") {
+      await handleLLPDelete(supabase, data);
+    } else if (zohoModule === "Contacts") {
       await handleContact(supabase, data, modifiedTime);
     } else if (zohoModule === "LLP_Creation_Module") {
       await handleProject(supabase, data);
@@ -715,5 +726,82 @@ async function handleAllocation(
       },
     });
     if (notifErr) console.error(`notifications insert failed: ${notifErr.message}`);
+  }
+}
+
+// ── Soft-delete handlers ───────────────────────────────────────────────
+// Zoho fires a workflow on Contact / LLP record deletion that POSTs
+// here with `operation=delete` and the original record id in the
+// payload. We mark `deleted_at = now()` so RLS hides the row from
+// the app, FK chains stay intact, and a future restore is trivial
+// (UPDATE ... SET deleted_at = NULL). Disabling the auth.users row
+// for a deleted contact prevents the now-orphaned investor from
+// signing back in.
+
+async function handleContactDelete(
+  supabase: ReturnType<typeof createClient>,
+  d: Record<string, unknown>,
+) {
+  const zohoId = (d.id ?? d.Id ?? d.record_id) as string | undefined;
+  if (!zohoId) {
+    throw new Error("missing Contact.id in delete payload");
+  }
+  const { data: rows, error } = await supabase
+    .from("investors")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("zoho_contact_id", zohoId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error) {
+    throw new Error(`investors soft-delete failed: ${error.message}`);
+  }
+  // Ban the auth.users row so any cached refresh token cannot
+  // exchange for a new access token. ban_duration is the GoTrue
+  // mechanism — Supabase Admin SDK has no `banned: true` flag.
+  // 100 years (876000h) is the conventional "indefinite" value.
+  for (const row of rows ?? []) {
+    const { error: banErr } = await supabase.auth.admin.updateUserById(
+      row.id as string,
+      { ban_duration: "876000h" } as { ban_duration: string },
+    );
+    if (banErr) {
+      console.error(`auth ban failed for ${row.id}: ${banErr.message}`);
+    }
+  }
+}
+
+async function handleLLPDelete(
+  supabase: ReturnType<typeof createClient>,
+  d: Record<string, unknown>,
+) {
+  const zohoId = (d.id ?? d.Id ?? d.record_id) as string | undefined;
+  if (!zohoId) {
+    throw new Error("missing LLP.id in delete payload");
+  }
+  const now = new Date().toISOString();
+
+  const { data: llpRows, error: llpErr } = await supabase
+    .from("llps")
+    .update({ deleted_at: now })
+    .eq("zoho_llp_id", zohoId)
+    .is("deleted_at", null)
+    .select("id");
+  if (llpErr) {
+    throw new Error(`llps soft-delete failed: ${llpErr.message}`);
+  }
+
+  // Cascade: every active project under this LLP gets the same
+  // deleted_at stamp. Projects are mirrored 1:1 with LLPs today,
+  // but the join keys it generically.
+  const llpIds = (llpRows ?? []).map((r) => r.id as string);
+  if (llpIds.length > 0) {
+    const { error: prjErr } = await supabase
+      .from("projects")
+      .update({ deleted_at: now })
+      .in("llp_id", llpIds)
+      .is("deleted_at", null);
+    if (prjErr) {
+      throw new Error(`projects cascade soft-delete failed: ${prjErr.message}`);
+    }
   }
 }
