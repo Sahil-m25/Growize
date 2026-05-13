@@ -15,3 +15,4 @@
 | 2026-05-13 | decision | Privacy + Terms + consent flow (migration 030) | locked | decisions/2026-05-13_legal-consent-flow.md |
 | 2026-05-13 | decision | Android release signing scaffold | locked | decisions/2026-05-13_android-release-signing.md |
 | 2026-05-13 | decision | iOS bundle metadata + permission strings | locked | decisions/2026-05-13_ios-bundle-metadata.md |
+| 2026-05-13 | decision | Web build polish (manifest, no-crawl) | locked | decisions/2026-05-13_web-build-polish.md |

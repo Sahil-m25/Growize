@@ -1,11 +1,11 @@
 {
-    "name": "arl_app",
-    "short_name": "arl_app",
+    "name": "Growize — ARL Investor Portal",
+    "short_name": "Growize",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FAFAF7",
     "theme_color": "#3C5152",
-    "description": "A new Flutter project.",
+    "description": "Private investor portal for Agri Research Labs agricultural projects.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
