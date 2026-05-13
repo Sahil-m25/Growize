@@ -1341,6 +1341,71 @@ ALTER TABLE public.documents ALTER COLUMN investor_id SET NOT NULL;
 
 ---
 
+## Part 8 — Soft-Delete Sync from Zoho CRM
+
+Investors, LLPs, and Projects now carry a `deleted_at TIMESTAMPTZ` column. When ops deletes the corresponding record in Zoho CRM, the workflow fires the `zoho-crm-webhook` with `operation=delete` and the row's `deleted_at` is stamped with `now()`. RLS hides soft-deleted rows from the app; FK chains (investor_units → projects → payouts → documents → exit_requests) keep their parents around for audit.
+
+**Behaviour**
+- Contact delete in Zoho → `investors.deleted_at = now()` + the `auth.users` row is banned for 100 years (effectively indefinite). The investor can't sign back in. Refresh tokens stop exchanging within minutes.
+- LLP delete in Zoho → `llps.deleted_at = now()` cascades to every active project under that LLP (`projects.deleted_at = now() WHERE llp_id IN (...)`). Project-tier documents are not deleted; they point at a soft-deleted project and silently disappear from app reads (RLS).
+- App layer also passes `.isFilter('deleted_at', null)` explicitly on investor + project queries — defense in depth against an accidental RLS regression.
+
+**Restoring a soft-deleted row** (rare — usually a Zoho operator mistake):
+```sql
+-- Restore an investor
+UPDATE public.investors SET deleted_at = NULL WHERE arl_id = 'ARL-00142';
+-- Unban their auth.users row
+SELECT auth.admin.update_user_by_id('<auth_user_id>', '{"ban_duration":"none"}'::jsonb);
+-- Restore an LLP and its projects
+UPDATE public.llps     SET deleted_at = NULL WHERE id = '<llp_id>';
+UPDATE public.projects SET deleted_at = NULL WHERE llp_id = '<llp_id>';
+```
+
+**Migration.** `030` + `031` — 2026-05-13. Rollback: `ALTER TABLE ... DROP COLUMN deleted_at` on each of investors/llps/projects (also drops indexes via cascade), and restore the prior policies from `009` / `018` / `021` / `027`.
+
+---
+
+## Part 9 — In-App Notification Triggers
+
+Four state transitions now produce a notification row automatically via DB triggers — no Edge Function or app-side post-write needed. Functions are `SECURITY DEFINER` with `SET search_path = public, pg_temp` so they fire regardless of who issued the UPDATE.
+
+| Source table              | Transition                                          | Notification type | Body                                                |
+|---------------------------|-----------------------------------------------------|-------------------|-----------------------------------------------------|
+| `investors`               | `kyc_status` pending → verified                     | `kyc`             | "Your KYC has been verified. Tap to view."          |
+| `investors`               | `kyc_status` pending → rejected                     | `kyc`             | "Your KYC has been rejected. Please re-submit."     |
+| `exit_requests`           | `status` pending → approved/rejected/settled        | `exit`            | Status-specific copy                                |
+| `ticket_messages`         | INSERT WHERE `sender_type='staff'`                  | `ticket`          | "New reply on ticket #<short_id>."                  |
+| `bank_change_requests`    | `status` pending → approved/rejected                | `bank_change`     | Status-specific copy + verifier notes if rejected   |
+
+**Notes**
+- `notifications.type` CHECK constraint was expanded to add `kyc`, `exit`, `bank_change`. Existing values (`payout`, `photo`, `ticket`, `reminder`, `milestone`) are preserved.
+- All triggers use `IS DISTINCT FROM OLD.<col>` so no-op writes do not produce ghost notifications.
+- The ticket-reply trigger silently no-ops when the parent ticket has been deleted between the message INSERT and trigger fire.
+
+**To check a fire** (after, say, you mark a KYC verified in Studio):
+```sql
+SELECT id, type, title, body, created_at
+FROM public.notifications
+WHERE investor_id = '<auth_user_id>'
+ORDER BY created_at DESC
+LIMIT 5;
+```
+
+**Migration.** `034` — 2026-05-13. Rollback:
+```sql
+DROP TRIGGER  IF EXISTS trg_notify_investor_kyc_status_change   ON public.investors;
+DROP TRIGGER  IF EXISTS trg_notify_exit_request_status_change   ON public.exit_requests;
+DROP TRIGGER  IF EXISTS trg_notify_ticket_reply                 ON public.ticket_messages;
+DROP TRIGGER  IF EXISTS trg_notify_bank_change_status_change    ON public.bank_change_requests;
+DROP FUNCTION IF EXISTS public.notify_investor_kyc_status_change();
+DROP FUNCTION IF EXISTS public.notify_exit_request_status_change();
+DROP FUNCTION IF EXISTS public.notify_ticket_reply();
+DROP FUNCTION IF EXISTS public.notify_bank_change_status_change();
+-- Optional: restore tighter notifications.type CHECK
+```
+
+---
+
 **End of guide.** If you've followed something here and it didn't work, OR you have a use case not covered, file an issue + ping engineering. This document gets out of date — verify against the actual system if in doubt.
 
 Cross-references:
