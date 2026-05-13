@@ -16,12 +16,17 @@
 // Deploy: supabase functions deploy zoho-crm-webhook --no-verify-jwt
 // Set secret: supabase secrets set WEBHOOK_SECRET=<long random hex>
 //
-// Self-contained on purpose. Helpers (CORS, masking, timing compare)
-// are duplicated across functions; consolidate into _shared/ post-launch.
+// CORS / preflight / jsonResponse are imported from `../_shared/cors.ts`
+// (audit S-005 remediation, docs/security_audit_2026-05-13.md). Zoho
+// posts server-to-server so the Origin header is absent — the helper
+// then omits Allow-Origin entirely, which is fine for non-browser
+// callers. Browser-driven preflights only succeed for origins in the
+// APP_ALLOWED_ORIGINS allow-list.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as Sentry from "https://deno.land/x/sentry@8.0.0-rc.3/index.mjs";
+import { jsonResponse, preflight } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -33,24 +38,6 @@ if (SENTRY_EDGE_DSN) {
   await Sentry.init({
     dsn: SENTRY_EDGE_DSN,
     tracesSampleRate: 0.1,
-  });
-}
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-arl-webhook-secret",
-};
-
-function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
-  return new Response(JSON.stringify(body), {
-    ...init,
-    headers: {
-      ...corsHeaders,
-      "content-type": "application/json",
-      ...(init.headers ?? {}),
-    },
   });
 }
 
@@ -303,17 +290,16 @@ function normaliseRequest(
 
 // ── Handler ────────────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  const pf = preflight(req);
+  if (pf) return pf;
   if (req.method !== "POST") {
-    return jsonResponse({ error: "method not allowed" }, { status: 405 });
+    return jsonResponse(req, { error: "method not allowed" }, { status: 405 });
   }
 
   // Shared-secret gate — constant-time compare.
   const got = req.headers.get("x-arl-webhook-secret") ?? "";
   if (!WEBHOOK_SECRET || !timingSafeEqual(got, WEBHOOK_SECRET)) {
-    return jsonResponse({ error: "unauthorized" }, { status: 401 });
+    return jsonResponse(req, { error: "unauthorized" }, { status: 401 });
   }
 
   // Body parsing is permissive because the query-only path (Zoho
@@ -343,12 +329,12 @@ Deno.serve(async (req: Request) => {
     normaliseRequest(url, rawBody);
 
   if (!zohoModule || typeof data !== "object") {
-    return jsonResponse({ error: "missing module or data" }, { status: 400 });
+    return jsonResponse(req, { error: "missing module or data" }, { status: 400 });
   }
   const recordId = (data["id"] ?? "") as string;
   const modifiedTime = (data["Modified_Time"] ?? "") as string;
   if (!recordId) {
-    return jsonResponse({ error: "missing record id" }, { status: 400 });
+    return jsonResponse(req, { error: "missing record id" }, { status: 400 });
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -366,7 +352,7 @@ Deno.serve(async (req: Request) => {
     .eq("idempotency_key", idempotencyKey)
     .maybeSingle();
   if (existing && existing.status === "processed") {
-    return jsonResponse({ status: "duplicate" });
+    return jsonResponse(req, { status: "duplicate" });
   }
 
   // ── Log received (with masked payload — Day 1.5 fix) ─────────────────
@@ -398,6 +384,7 @@ Deno.serve(async (req: Request) => {
     .single();
   if (logErr || !logRow) {
     return jsonResponse(
+      req,
       { error: "log insert failed", detail: logErr?.message },
       { status: 500 },
     );
@@ -422,7 +409,7 @@ Deno.serve(async (req: Request) => {
     }).eq("id", logId);
     if (logProcErr) console.error(`webhook_log status=processed update failed for ${logId}: ${logProcErr.message}`);
 
-    return jsonResponse({ status: "ok" });
+    return jsonResponse(req, { status: "ok" });
   } catch (err) {
     // E.T2: Capture exception in Sentry if configured.
     if (SENTRY_EDGE_DSN) {
@@ -435,7 +422,7 @@ Deno.serve(async (req: Request) => {
       processed_at: new Date().toISOString(),
     }).eq("id", logId);
     if (logFailErr) console.error(`webhook_log status=failed update failed for ${logId}: ${logFailErr.message}`);
-    return jsonResponse({ error: errMsg }, { status: 500 });
+    return jsonResponse(req, { error: errMsg }, { status: 500 });
   }
 });
 

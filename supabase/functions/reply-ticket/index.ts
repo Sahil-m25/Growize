@@ -14,6 +14,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as Sentry from "https://deno.land/x/sentry@8.0.0-rc.3/index.mjs";
+import { jsonResponse, preflight } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -26,24 +27,6 @@ if (SENTRY_EDGE_DSN) {
   await Sentry.init({
     dsn: SENTRY_EDGE_DSN,
     tracesSampleRate: 0.1,
-  });
-}
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
-  return new Response(JSON.stringify(body), {
-    ...init,
-    headers: {
-      ...corsHeaders,
-      "content-type": "application/json",
-      ...(init.headers ?? {}),
-    },
   });
 }
 
@@ -86,18 +69,17 @@ interface ReplyBody {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  const pf = preflight(req);
+  if (pf) return pf;
   if (req.method !== "POST") {
-    return jsonResponse({ error: "method not allowed" }, { status: 405 });
+    return jsonResponse(req, { error: "method not allowed" }, { status: 405 });
   }
 
   try {
     // ── Resolve caller from JWT ─────────────────────────────────────
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {
-      return jsonResponse({ error: "unauthorized" }, { status: 401 });
+      return jsonResponse(req, { error: "unauthorized" }, { status: 401 });
     }
     const token = authHeader.slice("Bearer ".length);
 
@@ -107,7 +89,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: userData, error: userErr } = await supabase.auth.getUser(token);
     if (userErr || !userData?.user) {
-      return jsonResponse({ error: "invalid token" }, { status: 401 });
+      return jsonResponse(req, { error: "invalid token" }, { status: 401 });
     }
     const investorId = userData.user.id;
 
@@ -116,17 +98,17 @@ Deno.serve(async (req: Request) => {
     try {
       body = await req.json();
     } catch {
-      return jsonResponse({ error: "invalid json" }, { status: 400 });
+      return jsonResponse(req, { error: "invalid json" }, { status: 400 });
     }
     const { ticket_id, body: messageBody } = body;
     if (!ticket_id || typeof ticket_id !== "string") {
-      return jsonResponse({ error: "ticket_id is required" }, { status: 400 });
+      return jsonResponse(req, { error: "ticket_id is required" }, { status: 400 });
     }
     if (!messageBody || typeof messageBody !== "string" || !messageBody.trim()) {
-      return jsonResponse({ error: "body is required" }, { status: 400 });
+      return jsonResponse(req, { error: "body is required" }, { status: 400 });
     }
     if (messageBody.length > 5000) {
-      return jsonResponse({ error: "body too long (max 5000)" }, { status: 400 });
+      return jsonResponse(req, { error: "body too long (max 5000)" }, { status: 400 });
     }
 
     // ── Verify ticket ownership and status ──────────────────────────
@@ -139,13 +121,14 @@ Deno.serve(async (req: Request) => {
     if (!ticket) {
       // Same response whether the ticket doesn't exist or belongs to
       // someone else — no info leak about which.
-      return jsonResponse({ error: "ticket not found" }, { status: 404 });
+      return jsonResponse(req, { error: "ticket not found" }, { status: 404 });
     }
     if (ticket.investor_id !== investorId) {
-      return jsonResponse({ error: "ticket not found" }, { status: 404 });
+      return jsonResponse(req, { error: "ticket not found" }, { status: 404 });
     }
     if (ticket.status === "resolved") {
       return jsonResponse(
+        req,
         { error: "ticket_resolved", message: "Cannot reply to a resolved ticket" },
         { status: 400 },
       );
@@ -163,6 +146,7 @@ Deno.serve(async (req: Request) => {
       .single();
     if (insErr || !msg) {
       return jsonResponse(
+        req,
         { error: "reply insert failed", detail: insErr?.message },
         { status: 500 },
       );
@@ -190,13 +174,13 @@ Deno.serve(async (req: Request) => {
        <pre style="background:#f5f5f0;padding:12px;border-radius:6px;white-space:pre-wrap;font-family:inherit">${escapeHtml(messageBody)}</pre>`,
     );
 
-    return jsonResponse({ message_id: msg.id });
+    return jsonResponse(req, { message_id: msg.id });
   } catch (err: unknown) {
     // E.T2: Capture exception in Sentry if configured.
     if (SENTRY_EDGE_DSN) {
       await Sentry.captureException(err);
     }
     const errMsg = err instanceof Error ? err.message : String(err);
-    return jsonResponse({ error: errMsg }, { status: 500 });
+    return jsonResponse(req, { error: errMsg }, { status: 500 });
   }
 });

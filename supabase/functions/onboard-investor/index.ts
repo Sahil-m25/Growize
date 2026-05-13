@@ -18,14 +18,17 @@
 // Deploy: supabase functions deploy onboard-investor --no-verify-jwt
 // Set secret: supabase secrets set ADMIN_SECRET=<long random hex>
 //
-// Self-contained on purpose — no `_shared/` imports — so the deployed
-// source matches this file 1:1. Helpers (CORS, timing compare) are
-// duplicated across functions; consolidate into _shared/ post-launch
-// once we've confirmed the platform supports relative-path uploads.
+// CORS helpers (corsHeaders / preflight / jsonResponse) are imported
+// from `../_shared/cors.ts` — origin-aware allow-list, replaces the
+// pre-launch `*` posture per audit S-005
+// (docs/security_audit_2026-05-13.md). Each jsonResponse call passes
+// `req` so the helper can echo the matched origin from
+// APP_ALLOWED_ORIGINS instead of a wildcard.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as Sentry from "https://deno.land/x/sentry@8.0.0-rc.3/index.mjs";
+import { jsonResponse, preflight } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -45,24 +48,6 @@ if (SENTRY_EDGE_DSN) {
 // additional_redirect_urls). Web build can be added later by extending
 // additional_redirect_urls and switching this URL on a build flag.
 const APP_DEEP_LINK = "com.arl.app://auth";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-arl-admin-secret",
-};
-
-function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
-  return new Response(JSON.stringify(body), {
-    ...init,
-    headers: {
-      ...corsHeaders,
-      "content-type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  });
-}
 
 /// Constant-time string compare. Avoids leaking timing info about the secret.
 function timingSafeEqual(a: string, b: string): boolean {
@@ -84,18 +69,17 @@ interface OnboardBody {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  const pf = preflight(req);
+  if (pf) return pf;
   if (req.method !== "POST") {
-    return jsonResponse({ error: "method not allowed" }, { status: 405 });
+    return jsonResponse(req, { error: "method not allowed" }, { status: 405 });
   }
 
   try {
     // ── Admin-secret gate ─────────────────────────────────────────────
     const got = req.headers.get("x-arl-admin-secret") ?? "";
     if (!ADMIN_SECRET || !timingSafeEqual(got, ADMIN_SECRET)) {
-      return jsonResponse({ error: "unauthorized" }, { status: 401 });
+      return jsonResponse(req, { error: "unauthorized" }, { status: 401 });
     }
 
     // ── Parse + validate body ─────────────────────────────────────────
@@ -103,11 +87,12 @@ Deno.serve(async (req: Request) => {
     try {
       body = await req.json();
     } catch {
-      return jsonResponse({ error: "invalid json" }, { status: 400 });
+      return jsonResponse(req, { error: "invalid json" }, { status: 400 });
     }
     const { email, name, arl_id, zoho_contact_id, phone, salutation } = body;
     if (!email || !name || !arl_id) {
       return jsonResponse(
+        req,
         { error: "email, name, arl_id are required" },
         { status: 400 },
       );
@@ -125,6 +110,7 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     if (existing) {
       return jsonResponse(
+        req,
         { error: "investor already exists", investor_id: existing.id },
         { status: 409 },
       );
@@ -140,6 +126,7 @@ Deno.serve(async (req: Request) => {
       });
     if (inviteErr || !invited?.user) {
       return jsonResponse(
+        req,
         { error: "invite failed", detail: inviteErr?.message },
         { status: 500 },
       );
@@ -162,12 +149,13 @@ Deno.serve(async (req: Request) => {
       // the next attempt with the same email isn't blocked.
       await supabase.auth.admin.deleteUser(invited.user.id).catch(() => {});
       return jsonResponse(
+        req,
         { error: "investor insert failed", detail: insertErr.message },
         { status: 500 },
       );
     }
 
-    return jsonResponse({
+    return jsonResponse(req, {
       investor_id: invited.user.id,
       arl_id,
       message: "Invite sent — investor will receive a password-setup email",
@@ -178,6 +166,6 @@ Deno.serve(async (req: Request) => {
       await Sentry.captureException(err);
     }
     const errMsg = err instanceof Error ? err.message : String(err);
-    return jsonResponse({ error: errMsg }, { status: 500 });
+    return jsonResponse(req, { error: errMsg }, { status: 500 });
   }
 });
