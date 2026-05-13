@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:arl_app/core/providers/repositories.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/features/projects/models/marketplace_project.dart';
@@ -551,8 +552,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed:
-                  (p.unitsAvailable > 0 &&
+              onPressed: (p.unitsAvailable > 0 &&
                       !p.isClosed &&
                       !_submittingProjectIds.contains(p.id))
                   ? () => _onConsultationRequested(p, unitCount)
@@ -578,8 +578,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       p.isClosed
                           ? 'Subscription Closed'
                           : p.unitsAvailable == 0
-                          ? 'Fully Subscribed'
-                          : 'Request Consultation',
+                              ? 'Fully Subscribed'
+                              : 'Request Consultation',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
@@ -727,7 +727,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           backgroundColor: ArlColors.primary,
         ),
       );
-    } catch (e) {
+    } catch (e, stack) {
+      await Sentry.captureException(e,
+          stackTrace: stack,
+          withScope: (s) => s.setTag('flow', 'consultation_request_submit'));
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(content: Text('Could not submit request: $e')),

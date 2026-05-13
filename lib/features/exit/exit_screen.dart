@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/providers/repositories.dart';
@@ -329,7 +330,10 @@ class _ExitScreenState extends ConsumerState<ExitScreen> {
           backgroundColor: ArlColors.primary,
         ),
       );
-    } catch (e) {
+    } catch (e, stack) {
+      await Sentry.captureException(e,
+          stackTrace: stack,
+          withScope: (s) => s.setTag('flow', 'exit_request_submit'));
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(content: Text('Could not submit exit request: $e')),

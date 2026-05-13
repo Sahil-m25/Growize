@@ -48,6 +48,9 @@ app.*.map.json
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
+.env.dev
 supabase/.env
 supabase/.env.local
 supabase/.branches/

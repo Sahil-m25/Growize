@@ -10,3 +10,4 @@
 | 2026-05-12 | decision | InitialSetupScreen persist KYC on submit | locked | decisions/2026-05-12_initial-setup-persistence.md |
 | 2026-05-12 | decision | ExploreScreen persist consultation requests | locked | decisions/2026-05-12_explore-consultation-persistence.md |
 | 2026-05-12 | decision | ExitScreen persist exit requests + dedup | locked | decisions/2026-05-12_exit-requests-persistence.md |
+| 2026-05-13 | decision | Sentry reintegration with privacy-safe config | locked | decisions/2026-05-13_sentry-reintegration.md |

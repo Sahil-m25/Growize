@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/observability/sentry_config.dart';
 import 'core/offline/hive_cache.dart';
 import 'core/supabase/supabase_client.dart';
 import 'core/supabase/storage_helper.dart';
@@ -57,8 +58,16 @@ void main() async {
   // Supabase — no-op when env not configured.
   await ArlSupabase.init();
 
-  // E.T1: Initialize Sentry if DSN is configured.
-  final sentryDsn = dotenv.maybeGet('SENTRY_DSN');
+  // Sentry crash reporting. Configuration is read at COMPILE TIME via
+  // `--dart-define-from-file=.env.production`. Empty DSN skips init,
+  // so dev builds without the flag boot cleanly. Privacy posture lives
+  // alongside the beforeSend scrubber in
+  // `core/observability/sentry_config.dart`.
+  const sentryDsn = String.fromEnvironment('SENTRY_DSN');
+  const sentryEnvironment =
+      String.fromEnvironment('SENTRY_ENVIRONMENT', defaultValue: 'unknown');
+  const sentryRelease =
+      String.fromEnvironment('SENTRY_RELEASE', defaultValue: 'unset');
 
   Future<void> appRunner() async {
     runApp(
@@ -69,12 +78,26 @@ void main() async {
     );
   }
 
-  if (sentryDsn != null && sentryDsn.isNotEmpty) {
+  if (sentryDsn.isNotEmpty) {
     await SentryFlutter.init(
       (options) {
         options.dsn = sentryDsn;
-        options.tracesSampleRate = 0.1;
-        options.environment = kReleaseMode ? 'production' : 'debug';
+        options.environment = sentryEnvironment;
+        options.release = sentryRelease;
+        // Performance monitoring off for v1 — crash reporting only.
+        options.tracesSampleRate = 0.0;
+        // Privacy hardening — see sentry_config.dart for the full
+        // rationale. Do NOT flip any of these without a privacy review.
+        options.sendDefaultPii = false;
+        options.attachScreenshot = false;
+        // Sentry 9.x marks attachViewHierarchy experimental, but we want
+        // it pinned to false explicitly so a future default flip can't
+        // silently start sending the widget tree.
+        // ignore: experimental_member_use
+        options.attachViewHierarchy = false;
+        options.maxBreadcrumbs = 50;
+        options.diagnosticLevel = SentryLevel.warning;
+        options.beforeSend = scrubPii;
       },
       appRunner: appRunner,
     );
