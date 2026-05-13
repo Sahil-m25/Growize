@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -30,21 +29,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-  // B.T1: Hard-fail dotenv in release mode.
-  // In debug, tolerate missing .env (design previews).
-  // In release, require it and assert config is valid.
-  try {
-    await dotenv.load(fileName: '.env');
-  } catch (e) {
-    if (kReleaseMode) {
-      throw StateError('Failed to load .env in release mode: $e');
-    }
-  }
-
-  // B.T1: Assert Supabase is configured in release mode.
+  // B.T1: Assert Supabase is configured in release mode. Config is supplied
+  // via --dart-define-from-file=.env.production (see SupabaseConstants).
   if (kReleaseMode) {
     if (!SupabaseConstants.isConfigured) {
-      throw StateError('Supabase not configured in release mode');
+      throw StateError(
+        'Supabase not configured in release mode. Pass --dart-define-from-file=.env.production.',
+      );
     }
     if (SupabaseConstants.devBypassAuth) {
       throw StateError('devBypassAuth cannot be true in release mode');
@@ -57,8 +48,8 @@ void main() async {
   // Supabase — no-op when env not configured.
   await ArlSupabase.init();
 
-  // E.T1: Initialize Sentry if DSN is configured.
-  final sentryDsn = dotenv.maybeGet('SENTRY_DSN');
+  // E.T1: Initialize Sentry if DSN is configured via dart-define.
+  const sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
 
   Future<void> appRunner() async {
     runApp(
@@ -69,7 +60,7 @@ void main() async {
     );
   }
 
-  if (sentryDsn != null && sentryDsn.isNotEmpty) {
+  if (sentryDsn.isNotEmpty) {
     await SentryFlutter.init(
       (options) {
         options.dsn = sentryDsn;

@@ -22,7 +22,6 @@ dependencies:
 
   # Backend
   supabase_flutter: ^2.5.6
-  flutter_dotenv: ^5.1.0
   sentry_flutter: ^9.0.0
 
   # Offline cache
@@ -66,7 +65,6 @@ flutter:
   assets:
     - assets/images/arl_logo.png
     - assets/images/
-    - .env
   fonts:
     - family: Inter
       fonts:
