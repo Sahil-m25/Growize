@@ -15,6 +15,14 @@ import 'package:arl_app/features/projects/models/project_phase.dart';
 ///   - We `.select()` without an explicit column list to survive schema
 ///     drift between the app + a freshly-applied DB. Models already cope
 ///     with missing keys via null-coalescing in `fromSupabase`.
+///
+/// Privacy: all reads go through `public.projects_public` — a
+/// SECURITY INVOKER view that omits `latitude` / `longitude` (see
+/// supabase/migrations/20260513000000_034_projects_public_view.sql,
+/// audit finding S-002 in docs/security_audit_2026-05-13.md). Raw
+/// coords NEVER leave the wire. If a future screen genuinely needs
+/// them, query `public.projects` from THAT screen only and document
+/// the carve-out at the call site.
 class ProjectsRepository {
   static const _box = HiveBoxes.projects;
   // v2 — old `my_projects` key was poisoned by an empty-list write that
@@ -65,7 +73,8 @@ class ProjectsRepository {
         return const [];
       }
 
-      final rows = await client.from('projects').select().inFilter('id', ids);
+      final rows =
+          await client.from('projects_public').select().inFilter('id', ids);
       final list = (rows as List).cast<Map<String, dynamic>>();
       await ResilientCache.putList(_box, _kMyProjects, list);
       return list.map<Project>((r) => Project.fromSupabase(r)).toList();
@@ -92,14 +101,14 @@ class ProjectsRepository {
       List<dynamic> rows;
       try {
         rows = await client
-            .from('projects')
+            .from('projects_public')
             .select()
             .eq('is_listed_in_marketplace', true)
             .order('marketplace_sort_order', ascending: true);
       } catch (_) {
         // Schema drift: marketplace columns missing. Fetch all + skip
         // sort so the user still sees listings.
-        rows = await client.from('projects').select();
+        rows = await client.from('projects_public').select();
       }
       final list = rows.cast<Map<String, dynamic>>();
       await ResilientCache.putList(_box, _kMarketplace, list);
@@ -124,8 +133,11 @@ class ProjectsRepository {
     if (client == null) return _readProjectByIdCache(id);
 
     try {
-      final row =
-          await client.from('projects').select().eq('id', id).maybeSingle();
+      final row = await client
+          .from('projects_public')
+          .select()
+          .eq('id', id)
+          .maybeSingle();
       if (row == null) return _readProjectByIdCache(id);
       await ResilientCache.putMap(
           _box, '$_kProjectById$id', Map<String, dynamic>.from(row));
