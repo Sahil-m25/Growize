@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/offline/hive_cache.dart';
@@ -48,30 +47,12 @@ void main() async {
   // Supabase — no-op when env not configured.
   await ArlSupabase.init();
 
-  // E.T1: Initialize Sentry if DSN is configured via dart-define.
-  const sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
-
-  Future<void> appRunner() async {
-    runApp(
-      ProviderScope(
-        observers: [_ProviderObserver()],
-        child: const ArlApp(),
-      ),
-    );
-  }
-
-  if (sentryDsn.isNotEmpty) {
-    await SentryFlutter.init(
-      (options) {
-        options.dsn = sentryDsn;
-        options.tracesSampleRate = 0.1;
-        options.environment = kReleaseMode ? 'production' : 'debug';
-      },
-      appRunner: appRunner,
-    );
-  } else {
-    await appRunner();
-  }
+  runApp(
+    ProviderScope(
+      observers: [_ProviderObserver()],
+      child: const ArlApp(),
+    ),
+  );
 }
 
 /// D.T3: Custom observer to capture the ProviderContainer for auth-state-driven
@@ -100,18 +81,6 @@ class _ProviderObserver extends ProviderObserver {
           _container.invalidate(documentsProvider);
           _container.invalidate(galleryProvider);
           StorageHelper.clear();
-
-          // E.T1: Configure Sentry user scope on auth state change.
-          if (event.event == AuthChangeEvent.signedIn &&
-              event.session?.user != null) {
-            Sentry.configureScope((scope) {
-              scope.setUser(SentryUser(id: event.session!.user.id));
-            });
-          } else if (event.event == AuthChangeEvent.signedOut) {
-            Sentry.configureScope((scope) {
-              scope.setUser(null);
-            });
-          }
         }
       });
     }

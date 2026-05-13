@@ -39,12 +39,6 @@
 # Android-specific to keep, but we leave a placeholder in case future
 # native channel code lands.
 
-# ── Sentry (crash reporting) ─────────────────────────────────────────
-# Sentry uses reflection for native crashes + protocol classes.
--keep class io.sentry.** { *; }
--keepnames class io.sentry.** { *; }
--dontwarn io.sentry.**
-
 # ── Kotlin (avoid stripping coroutines metadata used at runtime) ────
 -keepclassmembers class kotlin.Metadata { *; }
 -keep class kotlin.coroutines.Continuation { *; }

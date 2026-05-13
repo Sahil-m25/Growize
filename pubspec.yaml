@@ -22,7 +22,6 @@ dependencies:
 
   # Backend
   supabase_flutter: ^2.5.6
-  sentry_flutter: ^9.0.0
 
   # Offline cache
   hive: ^2.2.3
