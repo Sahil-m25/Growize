@@ -1,8 +1,8 @@
 # Project Status — arl_app
 
 **Last updated:** 2026-05-13
-**Current phase:** Implement → Ship readiness
-**Progress:** Launch-readiness pass in progress. Step 1 done — env config moved to `--dart-define-from-file`. Remaining: sentry removal, PP+ToS, Android signing, iOS metadata, web polish, ops doc Part 8.
+**Current phase:** Ship readiness
+**Progress:** Launch-readiness pass complete (7 commits): env-config dart-define, sentry removal, Privacy+ToS+consent (migration 030), Android signing scaffold, iOS bundle metadata, web manifest+robots, ops doc Part 8. `dart analyze lib` clean, `flutter build web --release` succeeds. Outstanding human actions tracked in `ARL_Test_Tracker.xlsx` → "Launch Readiness" sheet (real keystore, Apple Dev, host pick, migration apply, legal review).
 
 ## Summary
 Flutter port of `Growize App Design.html` (17 pages). Core screens scaffolded across 12 features. Active work: HTML-parity fixes — global header/logo, font bundling, back-nav stack behavior.
