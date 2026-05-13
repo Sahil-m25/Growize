@@ -1257,6 +1257,90 @@ Indexes: `(user_id, created_at DESC)`, **plus** the partial unique index above. 
 
 ---
 
+## Part 7 — Document Tiering (Common / Project / Investor)
+
+Migration `032` adds a `visibility` column to `public.documents` so a single uploaded document can be scoped to one of three tiers:
+
+| Tier       | Who sees it                                                        | `investor_id` | `project_id` |
+|------------|--------------------------------------------------------------------|---------------|--------------|
+| `common`   | Every authenticated investor                                       | NULL          | NULL         |
+| `project`  | Investors who hold units in `project_id`                           | NULL          | required     |
+| `investor` | The investor identified by `investor_id` (legacy default)          | required      | optional     |
+
+The CHECK constraint `documents_tier_columns_check` enforces those nullability rules — bad inserts are rejected at write time, so the app can't end up with a "common doc" that secretly carries an `investor_id`. RLS policy `documents: tiered read` reads them per the table above; storage RLS mirrors the same shape on bucket paths.
+
+### How to upload a common document
+
+Common documents live at the top of `arl-documents/common/`. Anyone authenticated can read them once they're indexed.
+
+1. Open **Supabase Studio → Storage → arl-documents**. Navigate into the `common/` folder (create it on first use).
+2. Upload your file. Note the final path — e.g. `common/sample-agreement-template-v3.pdf`.
+3. Open **SQL Editor** and insert a documents row pointing at that path:
+   ```sql
+   INSERT INTO public.documents
+     (name, doc_type, visibility, storage_path, file_size_kb, uploaded_at)
+   VALUES
+     ('Sample Agreement Template v3', 'agreement', 'common',
+      'common/sample-agreement-template-v3.pdf', 142, now());
+   ```
+4. Open the Flutter app as any investor — the doc appears under the **Common** accordion on the Documents screen.
+
+### How to upload a project document
+
+Project documents live at `arl-documents/project/{project_id}/...`. Only investors with a row in `investor_units` for that `project_id` see them.
+
+1. Look up the project id: `SELECT id, name FROM public.projects WHERE name ILIKE '%pineapple%';`
+2. Upload the file to **Storage → arl-documents → project → <project_id>** (create both folders on first use).
+3. Insert the row, providing both `visibility='project'` and `project_id` (and leaving `investor_id` NULL):
+   ```sql
+   INSERT INTO public.documents
+     (name, doc_type, visibility, project_id, storage_path, file_size_kb, uploaded_at)
+   VALUES
+     ('Pineapple LLP Q4 Land Survey', 'other', 'project',
+      '<project_id>',
+      'project/<project_id>/pineapple-llp-q4-survey.pdf',
+      512, now());
+   ```
+4. Verify visibility: query as a unit-holder via SQL Editor with role `authenticated` and the investor's `auth.uid()` (or just open the app as them).
+
+### How to upload an investor document
+
+The original tier — used for personal contracts, signed KYC packets, payout statements. Path lives at `arl-documents/investor/{auth_user_id}/...`.
+
+1. Look up the investor: `SELECT id, name, email FROM public.investors WHERE email = 'investor@example.com';`. The `id` IS the `auth.users.id`.
+2. Upload to **Storage → arl-documents → investor → <id>**.
+3. Insert pointing to that path with `visibility='investor'` and `investor_id` filled (default works, but explicit is fine):
+   ```sql
+   INSERT INTO public.documents
+     (name, doc_type, visibility, investor_id, storage_path, file_size_kb, uploaded_at)
+   VALUES
+     ('Pineapple LLP — Signed Agreement', 'agreement', 'investor',
+      '<investor_id>',
+      'investor/<investor_id>/pineapple-llp-signed-agreement.pdf',
+      284, now());
+   ```
+4. As that investor, refresh the Documents screen — the row appears under **My Documents**.
+
+### Gotchas
+
+- `visibility = 'common'` rows MUST keep `investor_id = NULL` and `project_id = NULL`. The CHECK constraint will reject anything else with `documents_tier_columns_check`.
+- Direct `INSERT` from the app is restricted to `visibility='investor'` with `investor_id = auth.uid()` (RLS policy `documents: insert own investor doc`). Common + project tiers MUST go via Studio (service_role) or an Edge Function.
+- Storage and DB row are two writes — if you uploaded the file but forgot the DB insert, the app won't show it; if you inserted the row but didn't upload, the signed URL fetch fails silently and the row renders with a broken open-button. Always do BOTH.
+- Soft-deleting a project (Zoho LLP delete trigger) leaves project-tier documents with `project_id = NULL` (FK `ON DELETE SET NULL`). They go silent in the app — RLS filters `project_id IN (...)` so a NULL project_id matches nothing.
+
+**Migration.** `032` + `033` — 2026-05-13. Rollback (destructive — only on dev):
+```sql
+DROP POLICY IF EXISTS "documents: tiered read" ON public.documents;
+DROP POLICY IF EXISTS "documents: insert own investor doc" ON public.documents;
+ALTER TABLE public.documents DROP CONSTRAINT IF EXISTS documents_tier_columns_check;
+ALTER TABLE public.documents DROP COLUMN IF EXISTS visibility;
+ALTER TABLE public.documents DROP COLUMN IF EXISTS project_id;
+ALTER TABLE public.documents ALTER COLUMN investor_id SET NOT NULL;
+-- and restore the legacy storage policy
+```
+
+---
+
 **End of guide.** If you've followed something here and it didn't work, OR you have a use case not covered, file an issue + ping engineering. This document gets out of date — verify against the actual system if in doubt.
 
 Cross-references:

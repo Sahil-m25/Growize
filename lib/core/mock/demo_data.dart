@@ -125,6 +125,7 @@ List<InvestorDocument> demoDocuments() => mockDocuments
               : m.type.toLowerCase().contains('verif')
                   ? 'kyc'
                   : 'other',
+          visibility: 'investor',
           signedUrl: '', // demo docs are never opened
           uploadedAt: null,
           isDemo: true,
@@ -533,6 +534,7 @@ List<InvestorDocument> demoCuratedDocuments() => [
         id: '${demoIdPrefix}doc_001',
         name: 'Pineapple LLP Investment Agreement',
         category: 'agreement',
+        visibility: 'investor',
         signedUrl: '',
         uploadedAt: DateTime(2024, 6, 15),
         isDemo: true,
@@ -541,6 +543,7 @@ List<InvestorDocument> demoCuratedDocuments() => [
         id: '${demoIdPrefix}doc_002',
         name: 'KYC Verification Certificate',
         category: 'kyc',
+        visibility: 'investor',
         signedUrl: '',
         uploadedAt: DateTime(2025, 6, 10),
         isDemo: true,
@@ -549,6 +552,7 @@ List<InvestorDocument> demoCuratedDocuments() => [
         id: '${demoIdPrefix}doc_003',
         name: 'Payout Statement Q4 FY25',
         category: 'other',
+        visibility: 'project',
         signedUrl: '',
         uploadedAt: DateTime(2026, 1, 15),
         isDemo: true,
@@ -557,6 +561,7 @@ List<InvestorDocument> demoCuratedDocuments() => [
         id: '${demoIdPrefix}doc_004',
         name: 'Mango LLP Pre-Launch Disclosure',
         category: 'other',
+        visibility: 'common',
         signedUrl: '',
         uploadedAt: DateTime(2026, 3, 20),
         isDemo: true,
