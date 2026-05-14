@@ -113,14 +113,15 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
                     RouteNames.locationPath(widget.projectId),
                   ),
                 ),
-                // Investor-scoped stats — units owned and capital they
-                // have invested, NOT project totals. Falls back to "—"
-                // while the per-project allocation is loading or absent.
+                // Investor-scoped stats — single card matching the home
+                // QuickStatsRow style. Four data points: units, tenure,
+                // invested, per-unit cost. "—" while the allocation is
+                // loading or absent.
                 Consumer(
                   builder: (context, ref, _) {
-                    final iuAsync =
-                        ref.watch(investorAllocationProvider(project.id));
-                    final iu = iuAsync.valueOrNull;
+                    final iu = ref
+                        .watch(investorAllocationProvider(project.id))
+                        .valueOrNull;
                     final units = iu?.issuedUnits.toString() ?? '—';
                     final invested = iu == null
                         ? '—'
@@ -128,74 +129,18 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
                             iu.capitalInvested + iu.tokenAdvanceAmount,
                             inline: true,
                           );
-                    return Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _StatTile(
-                                  label: 'Your Units',
-                                  value: units,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _StatTile(
-                                  label: 'Month',
-                                  value:
-                                      '${project.monthOfContract}/${project.totalMonths}',
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _StatTile(
-                                  label: 'Invested',
-                                  value: invested,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (iu != null && iu.unitPrice > 0)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text.rich(
-                                    TextSpan(
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: ArlColors.muted,
-                                      ),
-                                      children: [
-                                        const TextSpan(text: 'Invested '),
-                                        TextSpan(
-                                          text: invested,
-                                          style: const TextStyle(
-                                            color: ArlColors.charcoal,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        const TextSpan(text: '  ·  Per-unit '),
-                                        TextSpan(
-                                          text: Money.inr(iu.unitPrice,
-                                              inline: true),
-                                          style: const TextStyle(
-                                            color: ArlColors.charcoal,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
+                    final perUnit = iu == null || iu.unitPrice <= 0
+                        ? '—'
+                        : Money.inr(iu.unitPrice, inline: true);
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: _InvestorStatsCard(
+                        units: units,
+                        tenure:
+                            'Month ${project.monthOfContract} of ${project.totalMonths}',
+                        invested: invested,
+                        perUnit: perUnit,
+                      ),
                     );
                   },
                 ),
@@ -595,43 +540,127 @@ class _Hero extends StatelessWidget {
   }
 }
 
-class _StatTile extends StatelessWidget {
-  final String label;
-  final String value;
-  const _StatTile({required this.label, required this.value});
+/// Single white card holding the four investor-scoped stats — units,
+/// tenure, invested, per-unit cost. Visual style mirrors the home
+/// QuickStatsRow (white bg, sand border, soft shadow, icon + label +
+/// big value).
+class _InvestorStatsCard extends StatelessWidget {
+  final String units;
+  final String tenure;
+  final String invested;
+  final String perUnit;
+
+  const _InvestorStatsCard({
+    required this.units,
+    required this.tenure,
+    required this.invested,
+    required this.perUnit,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: ArlColors.sand),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label.toUpperCase(),
-            style: const TextStyle(
-              color: ArlColors.muted,
-              fontSize: 9,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.7,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: ArlColors.charcoal,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _StatEntry(
+                  icon: Icons.layers,
+                  iconColor: ArlColors.accent,
+                  label: 'Your Units',
+                  value: units,
+                ),
+              ),
+              Expanded(
+                child: _StatEntry(
+                  icon: Icons.calendar_month_outlined,
+                  iconColor: ArlColors.primary,
+                  label: 'Tenure',
+                  value: tenure,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: ArlColors.sand),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _StatEntry(
+                  icon: Icons.account_balance_wallet,
+                  iconColor: ArlColors.gold,
+                  label: 'Invested',
+                  value: invested,
+                ),
+              ),
+              Expanded(
+                child: _StatEntry(
+                  icon: Icons.sell_outlined,
+                  iconColor: ArlColors.earth,
+                  label: 'Per-unit Cost',
+                  value: perUnit,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatEntry extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
+  const _StatEntry({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: iconColor, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(color: ArlColors.muted, fontSize: 11),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            color: ArlColors.charcoal,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
     );
   }
 }
