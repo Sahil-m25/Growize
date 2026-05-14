@@ -65,7 +65,24 @@ class MarketplaceProject {
       subscriptionDeadline!.isBefore(DateTime.now());
 
   /// True if it's a fresh listing (no units issued yet).
+  ///
+  /// Note: this is the underlying signal for "Coming Soon". The filter
+  /// predicate is [isComingSoon] — it also gates on `!isClosed` so a
+  /// closed-but-never-issued listing is excluded.
   bool get isNotYetStarted => unitsAvailable == totalUnits;
+
+  /// Strict marketplace filter predicates — `isOpenForReservation` and
+  /// `isComingSoon` are mutually exclusive (and both imply `!isClosed`),
+  /// so the Explore tabs partition listings cleanly.
+  ///
+  /// - Coming Soon: brand-new listing, no units issued yet.
+  /// - Open for Reservation: subscription window active AND at least one
+  ///   unit has already been issued (so the listing is live, not a
+  ///   placeholder).
+  bool get isComingSoon => !isClosed && unitsAvailable == totalUnits;
+
+  bool get isOpenForReservation =>
+      !isClosed && unitsAvailable > 0 && unitsAvailable < totalUnits;
 }
 
 DateTime? _parseDate(dynamic v) {
