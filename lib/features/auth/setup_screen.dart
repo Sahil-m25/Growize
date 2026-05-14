@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/providers/repositories.dart';
@@ -125,7 +126,10 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
         const SnackBar(content: Text('Onboarding submitted — KYC pending')),
       );
       router.go(RouteNames.home);
-    } catch (e) {
+    } catch (e, stack) {
+      await Sentry.captureException(e,
+          stackTrace: stack,
+          withScope: (s) => s.setTag('flow', 'investor_onboarding_submit'));
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(content: Text('Could not save: $e')),

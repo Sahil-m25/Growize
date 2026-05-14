@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-13
 **Current phase:** Implement
-**Progress:** Pre-launch security hardening pass — 4 High audit findings fixed (S-002 coord leak via `projects_public` view, S-003 `sync_status` SECURITY INVOKER, S-004 anon CRUD revoke on post-019 tables, S-005 edge function CORS allow-list). Migrations 034/035/036 written; CORS helper centralised; 5 edge functions repointed. Apply + redeploy pending operator action — see `docs/security_audit_2026-05-13.md` apply checklist. `dart analyze lib` clean.
+**Progress:** Sentry reintegrated with privacy-safe config (EU region, client-side PII scrubber, screenshots/view-hierarchy off, compile-time DSN). Critical user-action submit paths now report exceptions. Dev-only Test Crash tile on Profile screen. Flutter Feature Audit fixes — all 5 priorities complete from 2026-05-12.
 
 ## Summary
 Flutter port of `Growize App Design.html` (17 pages). Core screens scaffolded across 12 features. Active work: HTML-parity fixes — global header/logo, font bundling, back-nav stack behavior.
@@ -20,7 +20,7 @@ Flutter port of `Growize App Design.html` (17 pages). Core screens scaffolded ac
 - ExploreScreen "Request Consultation" persists to `consultation_requests` with 24h client-side dedup; migration 028 applied (see decisions/2026-05-12_explore-consultation-persistence.md).
 - ExitScreen "Request Exit" persists to `exit_requests`, DB-level partial unique index guards duplicates, screen flips to submitted-state card; migration 029 applied (see decisions/2026-05-12_exit-requests-persistence.md).
 - Ops doc inventory done — recommend appending SecurityScreen/BiometricScreen behaviour notes to `docs/ops_admin_guide.md` (canonical 1070-line ops doc); pending user decision.
-- 2026-05-13 — security hardening pass (4 High fixes, S-002..S-005). Audit doc + 4 decision files written; Part 7 (Security & CORS) appended to ops doc. Operator action still pending: `supabase db push` to apply migrations 034/035/036; `supabase secrets set APP_ALLOWED_ORIGINS=…`; `supabase functions deploy` on each of the 5 affected functions.
+- Sentry reintegrated (2026-05-13). DSN read via `--dart-define-from-file=.env.production` at build time; empty DSN skips init. Client-side `beforeSend` PII scrubber covers PAN, Aadhaar, IFSC, +91 phone, email local-part, JWT, Bearer, generic digit runs. Screenshots and view-hierarchy disabled. Critical paths instrumented: setup KYC submit, exit submit, consultation submit, sign-in (password/OTP/verify). Dev-only Test Crash tile on Profile. Ops doc Part 7 documents the runbook. See decisions/2026-05-13_sentry-reintegration.md.
 
 ## Blockers
 - None.

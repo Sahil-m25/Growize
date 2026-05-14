@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:arl_app/core/auth/session_manager.dart';
+import 'package:arl_app/core/constants/supabase_constants.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/providers/repositories.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
@@ -253,6 +256,15 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
 
+              // Dev-only "Send test crash to Sentry" tile. Hidden in
+              // release builds AND when the dev-bypass flag is off, so
+              // production users never see it.
+              if (kDebugMode || SupabaseConstants.devBypassAuth)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _testCrashTile(context),
+                ),
+
               const SizedBox(height: 24),
 
               // Sign Out — text-only destructive action on white card,
@@ -377,6 +389,52 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
             Icon(Icons.chevron_right, color: ArlColors.primary, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _testCrashTile(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        final stamp = DateTime.now().toIso8601String();
+        try {
+          throw Exception('Sentry integration test — $stamp');
+        } catch (e, stack) {
+          await Sentry.captureException(e, stackTrace: stack);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Test crash sent to Sentry ($stamp)'),
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: ArlColors.earth, width: 1),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.bug_report_outlined, color: ArlColors.earth, size: 18),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'DEV — Send test crash to Sentry',
+                style: TextStyle(
+                  color: ArlColors.earth,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
       ),

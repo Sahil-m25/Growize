@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:arl_app/core/auth/session_manager.dart';
@@ -80,7 +81,10 @@ class _LoginScreenState extends State<LoginScreen> {
       context.go(RouteNames.home);
     } on AuthException catch (e) {
       setState(() => _error = e.message);
-    } catch (e) {
+    } catch (e, stack) {
+      await Sentry.captureException(e,
+          stackTrace: stack,
+          withScope: (s) => s.setTag('flow', 'sign_in_password'));
       setState(() => _error = 'Sign-in failed: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -104,7 +108,10 @@ class _LoginScreenState extends State<LoginScreen> {
       _otpFocus[0].requestFocus();
     } on AuthException catch (e) {
       setState(() => _error = e.message);
-    } catch (e) {
+    } catch (e, stack) {
+      await Sentry.captureException(e,
+          stackTrace: stack,
+          withScope: (s) => s.setTag('flow', 'sign_in_otp_send'));
       setState(() => _error = 'Could not send code: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -130,7 +137,10 @@ class _LoginScreenState extends State<LoginScreen> {
       context.go(RouteNames.home);
     } on AuthException catch (e) {
       setState(() => _error = e.message);
-    } catch (e) {
+    } catch (e, stack) {
+      await Sentry.captureException(e,
+          stackTrace: stack,
+          withScope: (s) => s.setTag('flow', 'sign_in_otp_verify'));
       setState(() => _error = 'Verification failed: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -180,8 +190,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: ArlColors.sand),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 12),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
               ),
             ],
@@ -307,8 +317,8 @@ class _LoginScreenState extends State<LoginScreen> {
               if (SupabaseConstants.devBypassAuth) ...[
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: ArlColors.gold.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(8),
@@ -384,8 +394,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ? Icons.visibility_outlined
                 : Icons.visibility_off_outlined),
             color: ArlColors.muted,
-            onPressed: () =>
-                setState(() => _passwordHidden = !_passwordHidden),
+            onPressed: () => setState(() => _passwordHidden = !_passwordHidden),
           ),
         ),
         const SizedBox(height: 20),
@@ -583,15 +592,15 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _primaryButton({required String label, required Future<void> Function() onTap}) {
+  Widget _primaryButton(
+      {required String label, required Future<void> Function() onTap}) {
     return ElevatedButton(
       onPressed: _busy ? null : onTap,
       style: ElevatedButton.styleFrom(
         backgroundColor: ArlColors.primary,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 14),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         elevation: 0,
       ),
       child: _busy
@@ -603,8 +612,7 @@ class _LoginScreenState extends State<LoginScreen> {
             )
           : Text(
               label,
-              style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
     );
   }

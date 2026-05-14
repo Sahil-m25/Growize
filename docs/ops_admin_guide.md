@@ -1257,183 +1257,62 @@ Indexes: `(user_id, created_at DESC)`, **plus** the partial unique index above. 
 
 ---
 
-## Part 7 — Security & CORS (May 2026 hardening pass)
+## Part 7 — Crash reporting (Sentry)
 
-> Source of truth: `docs/security_audit_2026-05-13.md`. Audited 2026-05-13;
-> 4 High findings remediated in branch `ARL/hopeful-tesla-6f86bc`. Apply +
-> redeploy steps below are an operator's checklist — the code changes are
-> in the commits listed; the live DB / live functions get the changes only
-> after the operator runs the commands here.
+The app ships crash reports to Sentry. Project: **growize-investor-portal** (EU region — events live under `ingest.de.sentry.io`).
 
-| Fix | Finding | Migration / files | Commit |
-|---|---|---|---|
-| S-002 coord leak | High | `034_projects_public_view.sql` + 4 repo repoints + model docstring | `980776c` |
-| S-003 sync_status DEFINER | High | `035_sync_status_security_invoker.sql` | `0dd6225` |
-| S-004 anon CRUD | High | `036_revoke_anon_post_019.sql` | `91e03b0` |
-| S-005 wildcard CORS | High | `_shared/cors.ts` + 5 edge function index.ts | `e279e94` |
+### 7.1 What gets logged
 
-### 7.1 Apply order (after merging the security branch)
+- Uncaught Flutter / Dart exceptions captured by `SentryFlutter.init`.
+- Explicit `Sentry.captureException` calls inside the catch blocks of the user-action submit paths: KYC submit (initial setup), exit request submit, consultation submit, sign-in (password / OTP send / OTP verify). Each is tagged with a `flow` tag so dashboards can filter (`flow:investor_onboarding_submit`, `flow:exit_request_submit`, etc.).
+- The signed-in user is identified by the Supabase auth UUID only — no email, no phone, no name.
 
-1. **Migrations** — one `supabase db push` covers all three:
-   - `034_projects_public_view.sql` (S-002) — creates `public.projects_public` view.
-   - `035_sync_status_security_invoker.sql` (S-003) — flips `sync_status` to `security_invoker = on`.
-   - `036_revoke_anon_post_019.sql` (S-004) — re-runs migration 019's blanket REVOKE on anon, then per-table REVOKEs for the 5 post-019 tables.
+### 7.2 What is NOT logged (privacy posture)
 
-2. **Set the new secret** (one-time):
-   ```
-   supabase secrets set APP_ALLOWED_ORIGINS=https://app.agresearchlabs.com,http://localhost:*
-   ```
-   Replace the production origin once the real web origin is pinned. The
-   `http://localhost:*` entry is for `flutter run -d chrome` (random
-   debug port each launch).
+- `sendDefaultPii = false`. No IP, no auto-attached identity.
+- `attachScreenshot = false`. KYC and Bank screens could leak otherwise.
+- `attachViewHierarchy = false`. Same reason.
+- `tracesSampleRate = 0.0`. No performance / span / transaction data.
+- A **client-side scrubber** runs in `beforeSend` (`lib/core/observability/sentry_config.dart`) and redacts PAN, Aadhaar (with or without separators), IFSC, +91 phone numbers, email local parts, JWT-like tokens, "Bearer …" strings, and any bare 9–18 digit run. Sentry's **server-side** scrubbers are also configured (custom sensitive fields: `pan`, `aadhaar`, `account_number`, `account`, `ifsc`, `dob`, `phone`, `pin`, `pin_hash`). Two layers, on purpose — if either misses a pattern, the other catches it.
+- Do NOT enable `attachScreenshot` or `sendDefaultPii` without a privacy review. The whole privacy posture is documented in `.claude/decisions/2026-05-13_sentry-reintegration.md`.
 
-3. **Redeploy the 5 affected edge functions** — one at a time:
-   ```
-   supabase functions deploy bank-change-request
-   supabase functions deploy create-ticket
-   supabase functions deploy onboard-investor
-   supabase functions deploy reply-ticket
-   supabase functions deploy zoho-crm-webhook
-   ```
-   `--no-verify-jwt` flags (where they applied before) are unchanged — the
-   header comment in each `index.ts` is the source of truth.
+### 7.3 Build-time env vars
 
-4. **Verify** — sections 7.6 + 7.7 below.
+Sentry config is **compile-time**, read via `--dart-define-from-file=.env.production`. None of the values are bundled as a runtime asset — they only exist inside the build that consumed them.
 
-### 7.2 `public.projects_public` view (S-002)
+| Var | Purpose | Example |
+|-----|---------|---------|
+| `SENTRY_DSN` | Project ingest URL. Empty value disables Sentry entirely. | `https://…@o…ingest.de.sentry.io/…` |
+| `SENTRY_ENVIRONMENT` | Tags every event. Use `production`, `staging`, or `dev`. | `production` |
+| `SENTRY_RELEASE` | Groups events by build. | `growize@1.0.0+1` |
 
-SECURITY INVOKER view that mirrors `public.projects` minus `latitude`
-/ `longitude`. Every client read goes through this view; `public.projects`
-is reserved for screens that legitimately need raw coordinates (today:
-none).
+Set these in `.env.production` (gitignored — never commit) before:
 
-| Item | Detail |
-|---|---|
-| Migration | `034_projects_public_view.sql` |
-| Mode | `WITH (security_invoker = on)` — caller's RLS context applies (existing migration 021 policies on `public.projects`). |
-| Exposure rule | **Allowlist not denylist.** Any new column on `public.projects` is invisible through the view until added to the SELECT list in a follow-up migration. Force a deliberate decision on every new field. |
-| Client | `lib/core/repositories/projects_repository.dart` reads `projects_public`; `lib/features/projects/models/project.dart` carries a docstring block restating the rule. |
-| Raw coords | Only ever readable through `public.projects` directly. A future LocationScreen needing them must query `public.projects` from THAT screen only and document the carve-out at the call site (audit S-002). |
-
-### 7.3 `public.sync_status` view (S-003)
-
-Migration 015's pattern applied to one more view. `sync_status` now
-runs as SECURITY INVOKER. All current consumers are service_role
-(`health-check`, `sync-stale-alert`, daily UAT D-01) and bypass RLS,
-so the result set is unchanged. Future authenticated readers will be
-scoped to their own RLS slice.
-
-| Item | Detail |
-|---|---|
-| Migration | `035_sync_status_security_invoker.sql` |
-| Advisor effect | `security_definer_view` warning on `public.sync_status` clears. |
-
-### 7.4 anon role — defense-in-depth (S-004)
-
-Migration 019's blanket `REVOKE ALL ... FROM anon` was a snapshot.
-Tables created after 019 (`sync_alerts`, `user_settings`,
-`login_events`, `consultation_requests`, `exit_requests`) inherited
-default schema grants. Migration 036 closes the gap.
-
-| Item | Detail |
-|---|---|
-| Migration | `036_revoke_anon_post_019.sql` |
-| Pattern | Re-runs the blanket `REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;` and `GRANT SELECT ON public.app_config TO anon;`. Followed by explicit per-table REVOKEs for the 5 new tables (redundant — searchable). |
-| Standing rule | **Every new public-schema table migration must end with `REVOKE ALL ON public.<name> FROM anon;`** (or, very rarely, a tightly-scoped `GRANT` if anon SELECT is genuinely needed). Reviewers should reject migrations that omit this line. |
-
-### 7.5 Edge function CORS allow-list (S-005)
-
-| Item | Detail |
-|---|---|
-| Env var | `APP_ALLOWED_ORIGINS` — comma-separated origins, no spaces. Localhost-port wildcards (`http://localhost:*`) are recognised. |
-| Helper | `supabase/functions/_shared/cors.ts` exports `corsHeaders(req)`, `preflight(req)`, `jsonResponse(req, body, init?)`. Reads `APP_ALLOWED_ORIGINS`, matches request `Origin`, echoes only the matched origin (never `*`). Always sets `Vary: Origin`. |
-| Server-to-server | Zoho webhook + pg_cron callers don't send `Origin` — the helper omits `Allow-Origin` entirely for them, which is correct since CORS only applies in a browser. |
-| Affected functions | `bank-change-request`, `create-ticket`, `onboard-investor`, `reply-ticket`, `zoho-crm-webhook`. |
-| Not affected | `health-check`, `sync-stale-alert`, `zoho-reconcile-daily`, `gallery-sync` — cron-only, no browser path, no CORS to begin with. |
-
-New browser-facing edge functions must import from `../_shared/cors.ts`
-and use `preflight()` + `jsonResponse(req, ...)`. Inline
-`Access-Control-Allow-Origin: *` strings should fail code review.
-
-### 7.6 Verification SQL (run after `db push`)
-
-```sql
--- 1) projects_public view exists, no lat/lng, security_invoker on.
-SELECT column_name FROM information_schema.columns
- WHERE table_schema='public' AND table_name='projects_public'
- ORDER BY ordinal_position;
--- expected: list of columns; latitude / longitude must NOT appear.
-
-SELECT reloptions FROM pg_class
- WHERE relname='projects_public' AND relkind='v';
--- expected: array containing 'security_invoker=on'.
-
--- 2) sync_status now security_invoker.
-SELECT reloptions FROM pg_class WHERE relname='sync_status';
--- expected: array containing 'security_invoker=on'.
-
--- 3) anon grants: only app_config / SELECT may remain.
-SELECT table_name, privilege_type
-  FROM information_schema.role_table_grants
- WHERE grantee='anon' AND table_schema='public'
- ORDER BY table_name;
--- expected: exactly one row — app_config / SELECT.
+```
+flutter build web --release --dart-define-from-file=.env.production
+flutter build apk --release --dart-define-from-file=.env.production
 ```
 
-Also: Studio → Advisors → Security. The `security_definer_view`
-warning on `public.sync_status` must be gone. Anything that comes
-back is a regression and needs a follow-up migration.
+### 7.4 Disabling Sentry for a given build
 
-### 7.7 CORS smoke test (after `secrets set` + redeploys)
+Leave `SENTRY_DSN` empty in the `.env.*` file passed to `--dart-define-from-file`. The init block in `lib/main.dart` short-circuits when the DSN string is empty, so the app boots normally and zero events are produced. Useful for local debug builds that you do not want polluting the dashboard.
 
-```bash
-# Allowed origin — must echo the origin back, no '*'.
-curl -i -X OPTIONS https://oynfhdqizebvgmaoiuax.supabase.co/functions/v1/create-ticket \
-  -H "Origin: http://localhost:8080" \
-  -H "Access-Control-Request-Method: POST" \
-  -H "Access-Control-Request-Headers: authorization, content-type"
-# expect:  Access-Control-Allow-Origin: http://localhost:8080
-#          Vary: Origin
+### 7.5 Verifying integration after a deploy
 
-# Disallowed origin — NO Allow-Origin header at all; browser would block.
-curl -i -X OPTIONS https://oynfhdqizebvgmaoiuax.supabase.co/functions/v1/create-ticket \
-  -H "Origin: https://attacker.example" \
-  -H "Access-Control-Request-Method: POST"
-# expect: no Access-Control-Allow-Origin header in the response.
-```
+A dev-only "Send test crash to Sentry" tile lives on the Profile screen, gated behind `kDebugMode || ARL_DEV_BYPASS`. In a dev build pointed at the production DSN:
 
-### 7.8 Standing rules (codified by this pass)
+1. Run the app, sign in.
+2. Profile → tap "DEV — Send test crash to Sentry".
+3. A snackbar confirms the local capture. Within ~30 s the event should land in the dashboard with title `Exception: Sentry integration test — <ISO timestamp>`.
+4. Verify the event contains NO unredacted PII (if you append PAN/Aadhaar test strings to the message, confirm they arrive as `<…_REDACTED>`).
 
-| Rule | Where it lives |
-|---|---|
-| Client never reads `public.projects` directly — only via `projects_public`. Carve-outs require a code comment + audit pointer at the call site. | `lib/features/projects/models/project.dart` docstring + reviewer attention. |
-| Every new public-schema table migration ends with `REVOKE ALL ON public.<name> FROM anon;` | reviewer attention; this doc 7.4. |
-| Every new browser-facing edge function imports from `_shared/cors.ts` and uses `preflight()` + `jsonResponse(req, ...)`. | reviewer attention; this doc 7.5. |
-| Views default to `security_invoker = on`. SECURITY DEFINER requires a written reason in the migration body. | reviewer attention; this doc 7.3. |
-| RLS review cadence: quarterly diff of `pg_policies` against the previous quarter. One issue per delta with explanation. | calendar reminder; audit doc S-015. |
+The tile is never compiled into a release build (`kDebugMode` is `const false` under `--release`).
 
-### 7.9 Deferred (Medium / Low band) — not in this pass
+### 7.6 Dashboard
 
-See `docs/security_audit_2026-05-13.md` rows S-006..S-015. Each row
-carries a disposition: post-launch, or verify-before-public-launch.
-Items in the deferred set:
-
-- S-006: app PIN switch from iterated SHA-256 to PBKDF2-HMAC / Argon2id.
-- S-007: wire up auto-lock-after-X-minutes timer (today label-only).
-- S-008: FLAG_SECURE on Android for KYC / Bank / PIN entry screens.
-- S-009: encrypted Hive cache (`HiveAesCipher`).
-- S-010: confirm refresh-token storage is Keychain / EncryptedSharedPreferences.
-- S-011: clamp `login_events.user_agent` length on insert.
-- S-012: write audit rows for logout / PIN-change / biometric-toggle.
-- S-013: root / jailbreak detection.
-- S-014: confirm bank-account masking pattern is consistent end-to-end.
-- S-015: document quarterly RLS review cadence (this doc § 7.8 takes the first step).
-
-Posture recommendations (no code change required, owner = ops):
-quarterly RLS reviews; CDN / WAF in front of web build before broader
-launch; CI grep step that fails on `SUPABASE_SERVICE_ROLE_KEY` or
-`service_role` strings inside `lib/`; focused pentest before public
-launch.
+URL: `https://growize.sentry.io/projects/growize-investor-portal/` (EU tenant). Default filters worth pinning:
+- `environment:production` — filter out dev test crashes.
+- `flow:*` — group by user-action submit flow to spot a particular path regressing.
 
 ---
 
@@ -1443,4 +1322,3 @@ Cross-references:
 - `docs/data_flow_guide.md` — architecture reference (for engineers).
 - `docs/debug_runbook.md` — failure playbook (for engineers at 2am).
 - `docs/testing/runs/` — UAT logs from past test runs.
-
