@@ -10,9 +10,7 @@
 | 2026-05-12 | decision | InitialSetupScreen persist KYC on submit | locked | decisions/2026-05-12_initial-setup-persistence.md |
 | 2026-05-12 | decision | ExploreScreen persist consultation requests | locked | decisions/2026-05-12_explore-consultation-persistence.md |
 | 2026-05-12 | decision | ExitScreen persist exit requests + dedup | locked | decisions/2026-05-12_exit-requests-persistence.md |
-| 2026-05-13 | decision | Env config via dart-define-from-file | locked | decisions/2026-05-13_env-dart-define-refactor.md |
-| 2026-05-13 | decision | Remove half-wired Sentry integration | locked | decisions/2026-05-13_remove-sentry.md |
-| 2026-05-13 | decision | Privacy + Terms + consent flow (migration 030) | locked | decisions/2026-05-13_legal-consent-flow.md |
-| 2026-05-13 | decision | Android release signing scaffold | locked | decisions/2026-05-13_android-release-signing.md |
-| 2026-05-13 | decision | iOS bundle metadata + permission strings | locked | decisions/2026-05-13_ios-bundle-metadata.md |
-| 2026-05-13 | decision | Web build polish (manifest, no-crawl) | locked | decisions/2026-05-13_web-build-polish.md |
+| 2026-05-13 | decision | projects_public view — remediate S-002 coord leak | locked | decisions/2026-05-13_projects-public-view.md |
+| 2026-05-13 | decision | sync_status view → SECURITY INVOKER (S-003) | locked | decisions/2026-05-13_sync-status-security-invoker.md |
+| 2026-05-13 | decision | REVOKE anon on post-019 tables (S-004) | locked | decisions/2026-05-13_revoke-anon-post-019.md |
+| 2026-05-13 | decision | Edge function CORS allow-list (S-005) | locked | decisions/2026-05-13_edge-cors-restrict.md |

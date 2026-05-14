@@ -16,6 +16,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as Sentry from "https://deno.land/x/sentry@8.0.0-rc.3/index.mjs";
+import { jsonResponse, preflight } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -28,24 +29,6 @@ if (SENTRY_EDGE_DSN) {
   await Sentry.init({
     dsn: SENTRY_EDGE_DSN,
     tracesSampleRate: 0.1,
-  });
-}
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
-  return new Response(JSON.stringify(body), {
-    ...init,
-    headers: {
-      ...corsHeaders,
-      "content-type": "application/json",
-      ...(init.headers ?? {}),
-    },
   });
 }
 
@@ -97,18 +80,17 @@ interface ChangeBody {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  const pf = preflight(req);
+  if (pf) return pf;
   if (req.method !== "POST") {
-    return jsonResponse({ error: "method not allowed" }, { status: 405 });
+    return jsonResponse(req, { error: "method not allowed" }, { status: 405 });
   }
 
   try {
     // ── Resolve caller from JWT ─────────────────────────────────────
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {
-      return jsonResponse({ error: "unauthorized" }, { status: 401 });
+      return jsonResponse(req, { error: "unauthorized" }, { status: 401 });
     }
     const token = authHeader.slice("Bearer ".length);
 
@@ -118,7 +100,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: userData, error: userErr } = await supabase.auth.getUser(token);
     if (userErr || !userData?.user) {
-      return jsonResponse({ error: "invalid token" }, { status: 401 });
+      return jsonResponse(req, { error: "invalid token" }, { status: 401 });
     }
     const investorId = userData.user.id;
 
@@ -127,17 +109,19 @@ Deno.serve(async (req: Request) => {
     try {
       body = await req.json();
     } catch {
-      return jsonResponse({ error: "invalid json" }, { status: 400 });
+      return jsonResponse(req, { error: "invalid json" }, { status: 400 });
     }
     const { bank_name, account_masked, ifsc, holder_name } = body;
     if (!bank_name || !account_masked || !ifsc || !holder_name) {
       return jsonResponse(
+        req,
         { error: "bank_name, account_masked, ifsc, holder_name are required" },
         { status: 400 },
       );
     }
     if (!isAlreadyMasked(account_masked)) {
       return jsonResponse(
+        req,
         {
           error: "account_masked must already be masked (e.g. XXXX-XXXX-1234)",
           message:
@@ -162,6 +146,7 @@ Deno.serve(async (req: Request) => {
 
     if (recent) {
       return jsonResponse(
+        req,
         {
           error: "rate_limited",
           message: "A pending bank-change request already exists",
@@ -188,6 +173,7 @@ Deno.serve(async (req: Request) => {
 
     if (insertErr || !changeRequest) {
       return jsonResponse(
+        req,
         { error: "insert failed", detail: insertErr?.message },
         { status: 500 },
       );
@@ -213,13 +199,13 @@ Deno.serve(async (req: Request) => {
        <p>Verify with the investor and update Zoho CRM. The Supabase row will sync via webhook.</p>`,
     );
 
-    return jsonResponse({ request_id: changeRequest.id });
+    return jsonResponse(req, { request_id: changeRequest.id });
   } catch (err: unknown) {
     // E.T2: Capture exception in Sentry if configured.
     if (SENTRY_EDGE_DSN) {
       await Sentry.captureException(err);
     }
     const errMsg = err instanceof Error ? err.message : String(err);
-    return jsonResponse({ error: errMsg }, { status: 500 });
+    return jsonResponse(req, { error: errMsg }, { status: 500 });
   }
 });

@@ -1257,235 +1257,183 @@ Indexes: `(user_id, created_at DESC)`, **plus** the partial unique index above. 
 
 ---
 
-## Part 8 — Launch readiness
+## Part 7 — Security & CORS (May 2026 hardening pass)
 
-> Added 2026-05-13 alongside the env-config / Sentry / legal / signing /
-> web-polish pass. Read this before producing any artefact that you plan
-> to put in front of an investor.
+> Source of truth: `docs/security_audit_2026-05-13.md`. Audited 2026-05-13;
+> 4 High findings remediated in branch `ARL/hopeful-tesla-6f86bc`. Apply +
+> redeploy steps below are an operator's checklist — the code changes are
+> in the commits listed; the live DB / live functions get the changes only
+> after the operator runs the commands here.
 
-### §8.1 Distribution model (web URL + APK email + iOS bundle)
+| Fix | Finding | Migration / files | Commit |
+|---|---|---|---|
+| S-002 coord leak | High | `034_projects_public_view.sql` + 4 repo repoints + model docstring | `980776c` |
+| S-003 sync_status DEFINER | High | `035_sync_status_security_invoker.sql` | `0dd6225` |
+| S-004 anon CRUD | High | `036_revoke_anon_post_019.sql` | `91e03b0` |
+| S-005 wildcard CORS | High | `_shared/cors.ts` + 5 edge function index.ts | `e279e94` |
 
-We are **not** publishing through Google Play or the App Store at
-launch. Investors are a known, small, pre-onboarded population, and
-the cost-benefit of opening store reviews + ASO + the 7-day Play
-Console wait does not pay off at our user count. Concretely:
+### 7.1 Apply order (after merging the security branch)
 
-- **Web.** Build is hosted on a single private URL (Netlify / Vercel /
-  S3+CloudFront — see §8.4). URL is emailed to investors. Search
-  engines are blocked via `web/robots.txt` and `<meta robots>` so the
-  site does not get crawled into Google.
-- **Android.** Signed release APK (`.apk`, not `.aab`) is emailed
-  directly to investors. They side-load by tapping it on their phone
-  and granting "Install unknown apps" once for their email client.
-  This works on every Android device in India and skips the Play
-  Console enrolment + review cycle entirely.
-- **iOS.** Scaffolded but not currently distributable. Real
-  distribution (TestFlight, ad-hoc, enterprise, or App Store) requires
-  an Apple Developer account at $99 / year that we do not yet hold.
-  When that account exists, the build can pick up from `ios/` with no
-  re-scaffold needed.
+1. **Migrations** — one `supabase db push` covers all three:
+   - `034_projects_public_view.sql` (S-002) — creates `public.projects_public` view.
+   - `035_sync_status_security_invoker.sql` (S-003) — flips `sync_status` to `security_invoker = on`.
+   - `036_revoke_anon_post_019.sql` (S-004) — re-runs migration 019's blanket REVOKE on anon, then per-table REVOKEs for the 5 post-019 tables.
 
-Why not stores: smaller blast radius for compliance review, no Play /
-Apple gatekeeping on KYC + financial-services copy, no surprise
-deplatforming, faster iteration. Switch to stores if user count grows
-past a few hundred or if compliance posture requires it.
+2. **Set the new secret** (one-time):
+   ```
+   supabase secrets set APP_ALLOWED_ORIGINS=https://app.agresearchlabs.com,http://localhost:*
+   ```
+   Replace the production origin once the real web origin is pinned. The
+   `http://localhost:*` entry is for `flutter run -d chrome` (random
+   debug port each launch).
 
-### §8.2 Building each platform
+3. **Redeploy the 5 affected edge functions** — one at a time:
+   ```
+   supabase functions deploy bank-change-request
+   supabase functions deploy create-ticket
+   supabase functions deploy onboard-investor
+   supabase functions deploy reply-ticket
+   supabase functions deploy zoho-crm-webhook
+   ```
+   `--no-verify-jwt` flags (where they applied before) are unchanged — the
+   header comment in each `index.ts` is the source of truth.
 
-All commands assume you have a real `.env.production` populated with
-working Supabase credentials (see `.env.example`). Run them from the
-repo root.
+4. **Verify** — sections 7.6 + 7.7 below.
 
-```
-# Pub get once after pull
-flutter pub get
+### 7.2 `public.projects_public` view (S-002)
 
-# Web
-flutter build web --release \
-  --dart-define-from-file=.env.production
-# Output: build/web/
+SECURITY INVOKER view that mirrors `public.projects` minus `latitude`
+/ `longitude`. Every client read goes through this view; `public.projects`
+is reserved for screens that legitimately need raw coordinates (today:
+none).
 
-# Android APK (signed — requires android/key.properties + keystore)
-flutter build apk --release \
-  --dart-define-from-file=.env.production
-# Output: build/app/outputs/flutter-apk/app-release.apk
+| Item | Detail |
+|---|---|
+| Migration | `034_projects_public_view.sql` |
+| Mode | `WITH (security_invoker = on)` — caller's RLS context applies (existing migration 021 policies on `public.projects`). |
+| Exposure rule | **Allowlist not denylist.** Any new column on `public.projects` is invisible through the view until added to the SELECT list in a follow-up migration. Force a deliberate decision on every new field. |
+| Client | `lib/core/repositories/projects_repository.dart` reads `projects_public`; `lib/features/projects/models/project.dart` carries a docstring block restating the rule. |
+| Raw coords | Only ever readable through `public.projects` directly. A future LocationScreen needing them must query `public.projects` from THAT screen only and document the carve-out at the call site (audit S-002). |
 
-# Android App Bundle (kept around in case Play Console enrolment
-# happens later — not used for email distribution)
-flutter build appbundle --release \
-  --dart-define-from-file=.env.production
-# Output: build/app/outputs/bundle/release/app-release.aab
+### 7.3 `public.sync_status` view (S-003)
 
-# iOS (only on macOS with Xcode + CocoaPods + Apple Dev account)
-flutter build ios --release \
-  --dart-define-from-file=.env.production
-# Output: build/ios/iphoneos/Runner.app + archive via Xcode for export
-```
+Migration 015's pattern applied to one more view. `sync_status` now
+runs as SECURITY INVOKER. All current consumers are service_role
+(`health-check`, `sync-stale-alert`, daily UAT D-01) and bypass RLS,
+so the result set is unchanged. Future authenticated readers will be
+scoped to their own RLS slice.
 
-### §8.3 Android keystore — first-time generation
+| Item | Detail |
+|---|---|
+| Migration | `035_sync_status_security_invoker.sql` |
+| Advisor effect | `security_definer_view` warning on `public.sync_status` clears. |
 
-The repo ships `android/key.properties.example` with placeholders and
-the exact `keytool` command. Run it **once**, back up the resulting
-`.jks` to a password-manager vault (Bitwarden, 1Password, KeePassXC),
-and never delete it — if the keystore is lost, you cannot push a
-signed update with the same `applicationId` again, and every
-installed investor would have to uninstall + reinstall from scratch.
+### 7.4 anon role — defense-in-depth (S-004)
 
-```
-keytool -genkey -v \
-  -keystore arl-release-key.jks \
-  -keyalg RSA \
-  -keysize 2048 \
-  -validity 10000 \
-  -alias arl-release
-```
+Migration 019's blanket `REVOKE ALL ... FROM anon` was a snapshot.
+Tables created after 019 (`sync_alerts`, `user_settings`,
+`login_events`, `consultation_requests`, `exit_requests`) inherited
+default schema grants. Migration 036 closes the gap.
 
-Then:
+| Item | Detail |
+|---|---|
+| Migration | `036_revoke_anon_post_019.sql` |
+| Pattern | Re-runs the blanket `REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;` and `GRANT SELECT ON public.app_config TO anon;`. Followed by explicit per-table REVOKEs for the 5 new tables (redundant — searchable). |
+| Standing rule | **Every new public-schema table migration must end with `REVOKE ALL ON public.<name> FROM anon;`** (or, very rarely, a tightly-scoped `GRANT` if anon SELECT is genuinely needed). Reviewers should reject migrations that omit this line. |
 
-```
-mv arl-release-key.jks android/app/
-cp android/key.properties.example android/key.properties
-# edit android/key.properties — fill in the four real values that
-# match what you typed into the keytool prompts.
-```
+### 7.5 Edge function CORS allow-list (S-005)
 
-`android/key.properties` and `android/app/*.jks` are gitignored — they
-must never reach the repo.
+| Item | Detail |
+|---|---|
+| Env var | `APP_ALLOWED_ORIGINS` — comma-separated origins, no spaces. Localhost-port wildcards (`http://localhost:*`) are recognised. |
+| Helper | `supabase/functions/_shared/cors.ts` exports `corsHeaders(req)`, `preflight(req)`, `jsonResponse(req, body, init?)`. Reads `APP_ALLOWED_ORIGINS`, matches request `Origin`, echoes only the matched origin (never `*`). Always sets `Vary: Origin`. |
+| Server-to-server | Zoho webhook + pg_cron callers don't send `Origin` — the helper omits `Allow-Origin` entirely for them, which is correct since CORS only applies in a browser. |
+| Affected functions | `bank-change-request`, `create-ticket`, `onboard-investor`, `reply-ticket`, `zoho-crm-webhook`. |
+| Not affected | `health-check`, `sync-stale-alert`, `zoho-reconcile-daily`, `gallery-sync` — cron-only, no browser path, no CORS to begin with. |
 
-Verify next build is signed with the release key (not the debug key):
+New browser-facing edge functions must import from `../_shared/cors.ts`
+and use `preflight()` + `jsonResponse(req, ...)`. Inline
+`Access-Control-Allow-Origin: *` strings should fail code review.
 
-```
-keytool -list -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk
-# Owner CN should match what you entered, not "CN=Android Debug".
-```
+### 7.6 Verification SQL (run after `db push`)
 
-### §8.4 Hosting the web build
+```sql
+-- 1) projects_public view exists, no lat/lng, security_invoker on.
+SELECT column_name FROM information_schema.columns
+ WHERE table_schema='public' AND table_name='projects_public'
+ ORDER BY ordinal_position;
+-- expected: list of columns; latitude / longitude must NOT appear.
 
-`build/web/` contents are a static-site bundle (HTML / JS / WASM /
-assets). Pick one host:
+SELECT reloptions FROM pg_class
+ WHERE relname='projects_public' AND relkind='v';
+-- expected: array containing 'security_invoker=on'.
 
-| Host | Setup time | Cost | Notes |
-|------|------------|------|-------|
-| **Netlify drop** | ~2 min | free tier | Drag-and-drop `build/web/` into the Netlify dashboard. Auto HTTPS, custom domain via CNAME. **Recommended for first iteration.** |
-| Vercel | ~5 min | free tier | CLI `vercel --prod` or dashboard drop. Same ergonomics as Netlify. |
-| Firebase Hosting | ~10 min | free tier | Needs `firebase init hosting` + `firebase deploy`. Lock-in to GCP. |
-| S3 + CloudFront | ~30 min | <$2 / mo | Most control, cheapest at scale, but you wire the bucket, distribution, OAI, certificate, custom domain, error pages yourself. Switch to this if cost or vendor concentration becomes a concern. |
+-- 2) sync_status now security_invoker.
+SELECT reloptions FROM pg_class WHERE relname='sync_status';
+-- expected: array containing 'security_invoker=on'.
 
-Custom domain: point a CNAME (`portal.agresearchlabs.com` or similar)
-at the host. Wait for TLS to provision (typically <5 min on Netlify /
-Vercel). Email the final URL to investors.
-
-CORS: Supabase RLS handles auth at the API layer — the web origin
-itself does not need any CORS configuration on the Supabase side as
-long as you are not using Storage signed URLs from a different
-origin. If you ever serve the web build from `portal.example.com` and
-fetch Storage from `<project>.supabase.co`, browsers will issue
-preflight OPTIONS — Supabase's default CORS allows any origin for
-Storage objects, so no config change needed.
-
-### §8.5 iOS — what's done, what's left
-
-**Done in this pass:**
-- `ios/` scaffold generated via `flutter create --platforms=ios .`
-- Bundle ID `com.agresearchlabs.growize` set in `project.pbxproj` for
-  every configuration (Debug / Release / Profile, Runner + RunnerTests).
-- Display name `Growize`, `CFBundleName` `Growize`.
-- Usage strings for Face ID, camera, photo library, location.
-- `ITSAppUsesNonExemptEncryption = false` so the export-compliance
-  question is a no-op.
-
-**Not done — requires Apple Developer enrolment + macOS:**
-1. Enrol an Apple Developer account at https://developer.apple.com
-   ($99 / year). Personal vs. Organization: pick Organization if you
-   have a DUNS — the listed seller name will be the legal entity, not
-   an individual.
-2. On the macOS build machine, open `ios/Runner.xcworkspace` in Xcode.
-3. Select the Runner target → Signing & Capabilities → tick "Automatically
-   manage signing" → pick the Team that was created on enrolment.
-4. Run `pod install` from `ios/` once (CocoaPods is required for
-   `local_auth` + any other native iOS deps).
-5. Build + archive: `flutter build ipa --release --dart-define-from-file=.env.production`.
-6. Distribute via:
-   - **TestFlight** (recommended for the private investor pool) —
-     upload the `.ipa` via Transporter or `xcrun altool`, invite
-     investors by email, they install via the TestFlight iOS app.
-   - **Ad-hoc** — register each investor's device UDID with Apple,
-     re-sign per release. Painful at >5 testers.
-   - **App Store** — same upload path, plus App Store Connect copy
-     review.
-
-### §8.6 Updating PP + ToS when legal changes them
-
-All legal copy lives in `lib/features/legal/legal_content.dart`.
-The screens (`lib/features/legal/legal_document_screen.dart`) are
-layout-only — they read from `LegalDocs`.
-
-To rev:
-1. Edit `LegalDocs.privacyBody` and / or `LegalDocs.termsBody`.
-2. Bump `LegalDocs.effectiveDate` AND `LegalDocs.version`. The
-   effective date is rendered in the document header.
-3. If the change is material (definition of personal data, basis of
-   consent, jurisdiction, risk disclosure, retention), implement a
-   re-consent banner that compares `user_settings.terms_accepted_at`
-   /  `user_settings.privacy_accepted_at` against
-   `LegalDocs.effectiveDate` and prompts the user to re-accept.
-4. Ship the build; investors who re-accept get a fresh timestamp via
-   `UserSettingsRepository.recordLegalConsent()`.
-
-Database schema for the consent timestamps is migration `030`
-(`supabase/migrations/20260513000000_030_legal_consent.sql`). Apply
-once: `supabase db push --linked`.
-
-The jurisdiction placeholder is currently `Bangalore / Karnataka` in
-`LegalDocs.jurisdictionCity` / `.jurisdictionState`. Confirm with
-counsel before relying on it.
-
-### §8.7 Environment variables required
-
-All env vars are consumed via `--dart-define-from-file=<file>` at
-build / run time. They are NOT read from a bundled `.env` asset
-anymore (post 2026-05-13 refactor).
-
-| Name | Type | Required? | Where used | Description |
-|------|------|-----------|------------|-------------|
-| `SUPABASE_URL` | URL | yes (live) | `lib/core/constants/supabase_constants.dart` | Supabase project URL, e.g. `https://oynfhdqizebvgmaoiuax.supabase.co`. |
-| `SUPABASE_ANON_KEY` | string | yes (live) | same | Publishable anon JWT for the Supabase project. Required for any non-demo build. |
-| `ARL_APP_MODE` | enum | optional | same | `live` (default) or `demo`. `demo` skips all network calls and renders mock data. |
-| `ARL_DEV_BYPASS` | bool | optional | same | Debug-only: when `true`, the router treats the user as signed-in even without a Supabase session. Release builds force this to `false` regardless of the env value. |
-
-Build / run examples:
-
-```
-# Local dev (debug, with bypass flag)
-flutter run --dart-define-from-file=.env.local
-
-# Production-shaped run on a phone (still debug, but live data)
-flutter run --release --dart-define-from-file=.env.production
-
-# Web release artefact
-flutter build web --release --dart-define-from-file=.env.production
-
-# Android signed APK
-flutter build apk --release --dart-define-from-file=.env.production
+-- 3) anon grants: only app_config / SELECT may remain.
+SELECT table_name, privilege_type
+  FROM information_schema.role_table_grants
+ WHERE grantee='anon' AND table_schema='public'
+ ORDER BY table_name;
+-- expected: exactly one row — app_config / SELECT.
 ```
 
-A `.env.example` is committed; copy it to `.env.production` (and
-optionally `.env.local` for dev) and fill in real values. Real env
-files are gitignored.
+Also: Studio → Advisors → Security. The `security_definer_view`
+warning on `public.sync_status` must be gone. Anything that comes
+back is a regression and needs a follow-up migration.
 
-### §8.8 Launch-readiness checklist (action items still owned by humans)
+### 7.7 CORS smoke test (after `secrets set` + redeploys)
 
-| Item | Owner | Status |
-|------|-------|--------|
-| Generate real Android release keystore + back up the `.jks` | ARL ops | TODO |
-| Enrol an Apple Developer account ($99 / year) | ARL ops | TODO |
-| Apply migration 030 (`supabase db push --linked`) | ARL eng | TODO |
-| Pick + provision a web host (Netlify recommended) | ARL ops | TODO |
-| Register a custom domain + point CNAME | ARL ops | TODO |
-| Counsel review of `lib/features/legal/legal_content.dart` | ARL legal | TODO |
-| Confirm or change `LegalDocs.jurisdictionCity / .jurisdictionState` | ARL legal | TODO |
-| Build + email-test the signed APK to a single investor | ARL ops | TODO |
-| Spot-check the deployed web URL on a real investor device | ARL ops | TODO |
+```bash
+# Allowed origin — must echo the origin back, no '*'.
+curl -i -X OPTIONS https://oynfhdqizebvgmaoiuax.supabase.co/functions/v1/create-ticket \
+  -H "Origin: http://localhost:8080" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: authorization, content-type"
+# expect:  Access-Control-Allow-Origin: http://localhost:8080
+#          Vary: Origin
+
+# Disallowed origin — NO Allow-Origin header at all; browser would block.
+curl -i -X OPTIONS https://oynfhdqizebvgmaoiuax.supabase.co/functions/v1/create-ticket \
+  -H "Origin: https://attacker.example" \
+  -H "Access-Control-Request-Method: POST"
+# expect: no Access-Control-Allow-Origin header in the response.
+```
+
+### 7.8 Standing rules (codified by this pass)
+
+| Rule | Where it lives |
+|---|---|
+| Client never reads `public.projects` directly — only via `projects_public`. Carve-outs require a code comment + audit pointer at the call site. | `lib/features/projects/models/project.dart` docstring + reviewer attention. |
+| Every new public-schema table migration ends with `REVOKE ALL ON public.<name> FROM anon;` | reviewer attention; this doc 7.4. |
+| Every new browser-facing edge function imports from `_shared/cors.ts` and uses `preflight()` + `jsonResponse(req, ...)`. | reviewer attention; this doc 7.5. |
+| Views default to `security_invoker = on`. SECURITY DEFINER requires a written reason in the migration body. | reviewer attention; this doc 7.3. |
+| RLS review cadence: quarterly diff of `pg_policies` against the previous quarter. One issue per delta with explanation. | calendar reminder; audit doc S-015. |
+
+### 7.9 Deferred (Medium / Low band) — not in this pass
+
+See `docs/security_audit_2026-05-13.md` rows S-006..S-015. Each row
+carries a disposition: post-launch, or verify-before-public-launch.
+Items in the deferred set:
+
+- S-006: app PIN switch from iterated SHA-256 to PBKDF2-HMAC / Argon2id.
+- S-007: wire up auto-lock-after-X-minutes timer (today label-only).
+- S-008: FLAG_SECURE on Android for KYC / Bank / PIN entry screens.
+- S-009: encrypted Hive cache (`HiveAesCipher`).
+- S-010: confirm refresh-token storage is Keychain / EncryptedSharedPreferences.
+- S-011: clamp `login_events.user_agent` length on insert.
+- S-012: write audit rows for logout / PIN-change / biometric-toggle.
+- S-013: root / jailbreak detection.
+- S-014: confirm bank-account masking pattern is consistent end-to-end.
+- S-015: document quarterly RLS review cadence (this doc § 7.8 takes the first step).
+
+Posture recommendations (no code change required, owner = ops):
+quarterly RLS reviews; CDN / WAF in front of web build before broader
+launch; CI grep step that fails on `SUPABASE_SERVICE_ROLE_KEY` or
+`service_role` strings inside `lib/`; focused pentest before public
+launch.
 
 ---
 
@@ -1495,3 +1443,4 @@ Cross-references:
 - `docs/data_flow_guide.md` — architecture reference (for engineers).
 - `docs/debug_runbook.md` — failure playbook (for engineers at 2am).
 - `docs/testing/runs/` — UAT logs from past test runs.
+

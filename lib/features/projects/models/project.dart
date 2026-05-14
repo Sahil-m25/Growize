@@ -4,6 +4,22 @@
 ///   - [fromSupabase] reads the Supabase `projects` row and derives display
 ///     fields (initials, progress, monthOfContract) the DB doesn't store.
 ///   - [fromJson] is kept for legacy mock-data shape compatibility.
+///
+/// ─── PRIVACY: raw coordinates never leave LocationScreen ─────────────
+/// Reads go through `public.projects_public` — a SECURITY INVOKER view
+/// that intentionally omits `latitude` / `longitude`. See
+/// `supabase/migrations/20260513000000_034_projects_public_view.sql`
+/// and audit finding S-002 in `docs/security_audit_2026-05-13.md`.
+///
+/// This model has no `latitude` / `longitude` fields and must stay that
+/// way. If a future LocationScreen iteration genuinely needs the raw
+/// coords (e.g. to draw a precise marker the investor explicitly
+/// requested), it must:
+///   1) Query `public.projects` directly from that screen only.
+///   2) Hold the coords in a dedicated `LocationCoords` value, not on
+///      this model.
+///   3) Document the carve-out in a comment block at the call site,
+///      with a pointer back to S-002 in the audit doc.
 class Project {
   final String id;
   final String name;
