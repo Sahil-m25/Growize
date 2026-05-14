@@ -48,6 +48,8 @@ app.*.map.json
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
 supabase/.env
 supabase/.env.local
 supabase/.branches/
@@ -57,6 +59,16 @@ supabase/.temp/
 android/key.properties
 android/app/arl-release-key.jks
 android/app/*.jks
+
+# iOS distribution (do not commit)
+ios/ExportOptions.plist
+ios/exportOptions.plist
+ios/Runner/GoogleService-Info.plist
+*.mobileprovision
+*.p12
+*.p8
+*.cer
+*.certSigningRequest
 
 # Office / editor lock files
 .~lock.*#

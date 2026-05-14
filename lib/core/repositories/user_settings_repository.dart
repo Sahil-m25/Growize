@@ -85,6 +85,24 @@ class UserSettingsRepository {
     return _constantTimeEquals(computed, hash);
   }
 
+  /// Record acceptance of the current Terms of Service + Privacy Policy.
+  /// Stamps both timestamps at the same instant. Called once at the end of
+  /// the initial-setup wizard when the user ticks the consent checkbox.
+  /// Safe to call repeatedly — later acceptances overwrite the earlier
+  /// timestamp, which we want if the legal copy is revised and the user
+  /// re-accepts.
+  Future<void> recordLegalConsent() async {
+    final client = ArlSupabase.client;
+    final uid = ArlSupabase.currentUserId;
+    if (client == null || uid == null) return;
+    final now = DateTime.now().toUtc().toIso8601String();
+    await client.from('user_settings').upsert({
+      'user_id': uid,
+      'terms_accepted_at': now,
+      'privacy_accepted_at': now,
+    }, onConflict: 'user_id');
+  }
+
   /// Clear the PIN — used when the user disables app-PIN entirely.
   Future<void> clearPin() async {
     final client = ArlSupabase.requireClient();

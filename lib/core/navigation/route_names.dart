@@ -18,6 +18,8 @@ abstract final class RouteNames {
   static const String biometric = '/biometric';
   static const String newTicket = '/new-ticket';
   static const String projectSelector = '/project-selector';
+  static const String privacy = '/legal/privacy';
+  static const String terms = '/legal/terms';
   // Routes with path params — use helper methods to build full paths
   static const String location = '/location';
   static const String ticketDetail = '/ticket';

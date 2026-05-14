@@ -290,6 +290,32 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
 
+              const SizedBox(height: 16),
+
+              // Legal footer — Privacy + Terms links. Same look as
+              // section, but text-only so they read as fine-print, not as
+              // primary navigation.
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _LegalLinkButton(
+                      label: 'Privacy Policy',
+                      onPressed: () => context.push(RouteNames.privacy),
+                    ),
+                    const Text(
+                      ' · ',
+                      style: TextStyle(color: ArlColors.muted, fontSize: 11),
+                    ),
+                    _LegalLinkButton(
+                      label: 'Terms of Service',
+                      onPressed: () => context.push(RouteNames.terms),
+                    ),
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 24),
             ],
           ),
@@ -422,6 +448,28 @@ class ProfileScreen extends ConsumerWidget {
               size: 18,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LegalLinkButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+  const _LegalLinkButton({required this.label, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: ArlColors.muted,
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          decoration: TextDecoration.underline,
         ),
       ),
     );

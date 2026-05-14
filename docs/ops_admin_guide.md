@@ -1257,6 +1257,238 @@ Indexes: `(user_id, created_at DESC)`, **plus** the partial unique index above. 
 
 ---
 
+## Part 8 — Launch readiness
+
+> Added 2026-05-13 alongside the env-config / Sentry / legal / signing /
+> web-polish pass. Read this before producing any artefact that you plan
+> to put in front of an investor.
+
+### §8.1 Distribution model (web URL + APK email + iOS bundle)
+
+We are **not** publishing through Google Play or the App Store at
+launch. Investors are a known, small, pre-onboarded population, and
+the cost-benefit of opening store reviews + ASO + the 7-day Play
+Console wait does not pay off at our user count. Concretely:
+
+- **Web.** Build is hosted on a single private URL (Netlify / Vercel /
+  S3+CloudFront — see §8.4). URL is emailed to investors. Search
+  engines are blocked via `web/robots.txt` and `<meta robots>` so the
+  site does not get crawled into Google.
+- **Android.** Signed release APK (`.apk`, not `.aab`) is emailed
+  directly to investors. They side-load by tapping it on their phone
+  and granting "Install unknown apps" once for their email client.
+  This works on every Android device in India and skips the Play
+  Console enrolment + review cycle entirely.
+- **iOS.** Scaffolded but not currently distributable. Real
+  distribution (TestFlight, ad-hoc, enterprise, or App Store) requires
+  an Apple Developer account at $99 / year that we do not yet hold.
+  When that account exists, the build can pick up from `ios/` with no
+  re-scaffold needed.
+
+Why not stores: smaller blast radius for compliance review, no Play /
+Apple gatekeeping on KYC + financial-services copy, no surprise
+deplatforming, faster iteration. Switch to stores if user count grows
+past a few hundred or if compliance posture requires it.
+
+### §8.2 Building each platform
+
+All commands assume you have a real `.env.production` populated with
+working Supabase credentials (see `.env.example`). Run them from the
+repo root.
+
+```
+# Pub get once after pull
+flutter pub get
+
+# Web
+flutter build web --release \
+  --dart-define-from-file=.env.production
+# Output: build/web/
+
+# Android APK (signed — requires android/key.properties + keystore)
+flutter build apk --release \
+  --dart-define-from-file=.env.production
+# Output: build/app/outputs/flutter-apk/app-release.apk
+
+# Android App Bundle (kept around in case Play Console enrolment
+# happens later — not used for email distribution)
+flutter build appbundle --release \
+  --dart-define-from-file=.env.production
+# Output: build/app/outputs/bundle/release/app-release.aab
+
+# iOS (only on macOS with Xcode + CocoaPods + Apple Dev account)
+flutter build ios --release \
+  --dart-define-from-file=.env.production
+# Output: build/ios/iphoneos/Runner.app + archive via Xcode for export
+```
+
+### §8.3 Android keystore — first-time generation
+
+The repo ships `android/key.properties.example` with placeholders and
+the exact `keytool` command. Run it **once**, back up the resulting
+`.jks` to a password-manager vault (Bitwarden, 1Password, KeePassXC),
+and never delete it — if the keystore is lost, you cannot push a
+signed update with the same `applicationId` again, and every
+installed investor would have to uninstall + reinstall from scratch.
+
+```
+keytool -genkey -v \
+  -keystore arl-release-key.jks \
+  -keyalg RSA \
+  -keysize 2048 \
+  -validity 10000 \
+  -alias arl-release
+```
+
+Then:
+
+```
+mv arl-release-key.jks android/app/
+cp android/key.properties.example android/key.properties
+# edit android/key.properties — fill in the four real values that
+# match what you typed into the keytool prompts.
+```
+
+`android/key.properties` and `android/app/*.jks` are gitignored — they
+must never reach the repo.
+
+Verify next build is signed with the release key (not the debug key):
+
+```
+keytool -list -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk
+# Owner CN should match what you entered, not "CN=Android Debug".
+```
+
+### §8.4 Hosting the web build
+
+`build/web/` contents are a static-site bundle (HTML / JS / WASM /
+assets). Pick one host:
+
+| Host | Setup time | Cost | Notes |
+|------|------------|------|-------|
+| **Netlify drop** | ~2 min | free tier | Drag-and-drop `build/web/` into the Netlify dashboard. Auto HTTPS, custom domain via CNAME. **Recommended for first iteration.** |
+| Vercel | ~5 min | free tier | CLI `vercel --prod` or dashboard drop. Same ergonomics as Netlify. |
+| Firebase Hosting | ~10 min | free tier | Needs `firebase init hosting` + `firebase deploy`. Lock-in to GCP. |
+| S3 + CloudFront | ~30 min | <$2 / mo | Most control, cheapest at scale, but you wire the bucket, distribution, OAI, certificate, custom domain, error pages yourself. Switch to this if cost or vendor concentration becomes a concern. |
+
+Custom domain: point a CNAME (`portal.agresearchlabs.com` or similar)
+at the host. Wait for TLS to provision (typically <5 min on Netlify /
+Vercel). Email the final URL to investors.
+
+CORS: Supabase RLS handles auth at the API layer — the web origin
+itself does not need any CORS configuration on the Supabase side as
+long as you are not using Storage signed URLs from a different
+origin. If you ever serve the web build from `portal.example.com` and
+fetch Storage from `<project>.supabase.co`, browsers will issue
+preflight OPTIONS — Supabase's default CORS allows any origin for
+Storage objects, so no config change needed.
+
+### §8.5 iOS — what's done, what's left
+
+**Done in this pass:**
+- `ios/` scaffold generated via `flutter create --platforms=ios .`
+- Bundle ID `com.agresearchlabs.growize` set in `project.pbxproj` for
+  every configuration (Debug / Release / Profile, Runner + RunnerTests).
+- Display name `Growize`, `CFBundleName` `Growize`.
+- Usage strings for Face ID, camera, photo library, location.
+- `ITSAppUsesNonExemptEncryption = false` so the export-compliance
+  question is a no-op.
+
+**Not done — requires Apple Developer enrolment + macOS:**
+1. Enrol an Apple Developer account at https://developer.apple.com
+   ($99 / year). Personal vs. Organization: pick Organization if you
+   have a DUNS — the listed seller name will be the legal entity, not
+   an individual.
+2. On the macOS build machine, open `ios/Runner.xcworkspace` in Xcode.
+3. Select the Runner target → Signing & Capabilities → tick "Automatically
+   manage signing" → pick the Team that was created on enrolment.
+4. Run `pod install` from `ios/` once (CocoaPods is required for
+   `local_auth` + any other native iOS deps).
+5. Build + archive: `flutter build ipa --release --dart-define-from-file=.env.production`.
+6. Distribute via:
+   - **TestFlight** (recommended for the private investor pool) —
+     upload the `.ipa` via Transporter or `xcrun altool`, invite
+     investors by email, they install via the TestFlight iOS app.
+   - **Ad-hoc** — register each investor's device UDID with Apple,
+     re-sign per release. Painful at >5 testers.
+   - **App Store** — same upload path, plus App Store Connect copy
+     review.
+
+### §8.6 Updating PP + ToS when legal changes them
+
+All legal copy lives in `lib/features/legal/legal_content.dart`.
+The screens (`lib/features/legal/legal_document_screen.dart`) are
+layout-only — they read from `LegalDocs`.
+
+To rev:
+1. Edit `LegalDocs.privacyBody` and / or `LegalDocs.termsBody`.
+2. Bump `LegalDocs.effectiveDate` AND `LegalDocs.version`. The
+   effective date is rendered in the document header.
+3. If the change is material (definition of personal data, basis of
+   consent, jurisdiction, risk disclosure, retention), implement a
+   re-consent banner that compares `user_settings.terms_accepted_at`
+   /  `user_settings.privacy_accepted_at` against
+   `LegalDocs.effectiveDate` and prompts the user to re-accept.
+4. Ship the build; investors who re-accept get a fresh timestamp via
+   `UserSettingsRepository.recordLegalConsent()`.
+
+Database schema for the consent timestamps is migration `030`
+(`supabase/migrations/20260513000000_030_legal_consent.sql`). Apply
+once: `supabase db push --linked`.
+
+The jurisdiction placeholder is currently `Bangalore / Karnataka` in
+`LegalDocs.jurisdictionCity` / `.jurisdictionState`. Confirm with
+counsel before relying on it.
+
+### §8.7 Environment variables required
+
+All env vars are consumed via `--dart-define-from-file=<file>` at
+build / run time. They are NOT read from a bundled `.env` asset
+anymore (post 2026-05-13 refactor).
+
+| Name | Type | Required? | Where used | Description |
+|------|------|-----------|------------|-------------|
+| `SUPABASE_URL` | URL | yes (live) | `lib/core/constants/supabase_constants.dart` | Supabase project URL, e.g. `https://oynfhdqizebvgmaoiuax.supabase.co`. |
+| `SUPABASE_ANON_KEY` | string | yes (live) | same | Publishable anon JWT for the Supabase project. Required for any non-demo build. |
+| `ARL_APP_MODE` | enum | optional | same | `live` (default) or `demo`. `demo` skips all network calls and renders mock data. |
+| `ARL_DEV_BYPASS` | bool | optional | same | Debug-only: when `true`, the router treats the user as signed-in even without a Supabase session. Release builds force this to `false` regardless of the env value. |
+
+Build / run examples:
+
+```
+# Local dev (debug, with bypass flag)
+flutter run --dart-define-from-file=.env.local
+
+# Production-shaped run on a phone (still debug, but live data)
+flutter run --release --dart-define-from-file=.env.production
+
+# Web release artefact
+flutter build web --release --dart-define-from-file=.env.production
+
+# Android signed APK
+flutter build apk --release --dart-define-from-file=.env.production
+```
+
+A `.env.example` is committed; copy it to `.env.production` (and
+optionally `.env.local` for dev) and fill in real values. Real env
+files are gitignored.
+
+### §8.8 Launch-readiness checklist (action items still owned by humans)
+
+| Item | Owner | Status |
+|------|-------|--------|
+| Generate real Android release keystore + back up the `.jks` | ARL ops | TODO |
+| Enrol an Apple Developer account ($99 / year) | ARL ops | TODO |
+| Apply migration 030 (`supabase db push --linked`) | ARL eng | TODO |
+| Pick + provision a web host (Netlify recommended) | ARL ops | TODO |
+| Register a custom domain + point CNAME | ARL ops | TODO |
+| Counsel review of `lib/features/legal/legal_content.dart` | ARL legal | TODO |
+| Confirm or change `LegalDocs.jurisdictionCity / .jurisdictionState` | ARL legal | TODO |
+| Build + email-test the signed APK to a single investor | ARL ops | TODO |
+| Spot-check the deployed web URL on a real investor device | ARL ops | TODO |
+
+---
+
 **End of guide.** If you've followed something here and it didn't work, OR you have a use case not covered, file an issue + ping engineering. This document gets out of date — verify against the actual system if in doubt.
 
 Cross-references:

@@ -1,9 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/offline/hive_cache.dart';
@@ -30,21 +28,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-  // B.T1: Hard-fail dotenv in release mode.
-  // In debug, tolerate missing .env (design previews).
-  // In release, require it and assert config is valid.
-  try {
-    await dotenv.load(fileName: '.env');
-  } catch (e) {
-    if (kReleaseMode) {
-      throw StateError('Failed to load .env in release mode: $e');
-    }
-  }
-
-  // B.T1: Assert Supabase is configured in release mode.
+  // B.T1: Assert Supabase is configured in release mode. Config is supplied
+  // via --dart-define-from-file=.env.production (see SupabaseConstants).
   if (kReleaseMode) {
     if (!SupabaseConstants.isConfigured) {
-      throw StateError('Supabase not configured in release mode');
+      throw StateError(
+        'Supabase not configured in release mode. Pass --dart-define-from-file=.env.production.',
+      );
     }
     if (SupabaseConstants.devBypassAuth) {
       throw StateError('devBypassAuth cannot be true in release mode');
@@ -57,30 +47,12 @@ void main() async {
   // Supabase — no-op when env not configured.
   await ArlSupabase.init();
 
-  // E.T1: Initialize Sentry if DSN is configured.
-  final sentryDsn = dotenv.maybeGet('SENTRY_DSN');
-
-  Future<void> appRunner() async {
-    runApp(
-      ProviderScope(
-        observers: [_ProviderObserver()],
-        child: const ArlApp(),
-      ),
-    );
-  }
-
-  if (sentryDsn != null && sentryDsn.isNotEmpty) {
-    await SentryFlutter.init(
-      (options) {
-        options.dsn = sentryDsn;
-        options.tracesSampleRate = 0.1;
-        options.environment = kReleaseMode ? 'production' : 'debug';
-      },
-      appRunner: appRunner,
-    );
-  } else {
-    await appRunner();
-  }
+  runApp(
+    ProviderScope(
+      observers: [_ProviderObserver()],
+      child: const ArlApp(),
+    ),
+  );
 }
 
 /// D.T3: Custom observer to capture the ProviderContainer for auth-state-driven
@@ -109,18 +81,6 @@ class _ProviderObserver extends ProviderObserver {
           _container.invalidate(documentsProvider);
           _container.invalidate(galleryProvider);
           StorageHelper.clear();
-
-          // E.T1: Configure Sentry user scope on auth state change.
-          if (event.event == AuthChangeEvent.signedIn &&
-              event.session?.user != null) {
-            Sentry.configureScope((scope) {
-              scope.setUser(SentryUser(id: event.session!.user.id));
-            });
-          } else if (event.event == AuthChangeEvent.signedOut) {
-            Sentry.configureScope((scope) {
-              scope.setUser(null);
-            });
-          }
         }
       });
     }

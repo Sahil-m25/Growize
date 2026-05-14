@@ -7,6 +7,7 @@ import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/providers/repositories.dart';
 import 'package:arl_app/core/supabase/supabase_client.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
+import 'package:arl_app/features/legal/legal_content.dart';
 
 final _panRegex = RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]$');
 final _aadhaarRegex = RegExp(r'^[0-9]{12}$');
@@ -28,6 +29,10 @@ class InitialSetupScreen extends ConsumerStatefulWidget {
 class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
   int _step = 0;
   bool _submitting = false;
+  // Tied to the consent checkbox on the bank step. Submit is blocked
+  // until this is true. Persisted via UserSettingsRepository.recordLegalConsent
+  // immediately after the investor row upsert.
+  bool _consentChecked = false;
 
   final _formKeys = List.generate(3, (_) => GlobalKey<FormState>());
 
@@ -78,6 +83,14 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
       setState(() => _step++);
       return;
     }
+    if (!_consentChecked) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Accept the Terms and Privacy Policy to continue'),
+        ),
+      );
+      return;
+    }
     await _submit();
   }
 
@@ -99,6 +112,13 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
                 ? _name.text.trim()
                 : _holder.text.trim(),
           );
+      // Record consent timestamps once the investor row is in place.
+      // Errors here are non-fatal — the row is the source of truth for
+      // onboarding completion, and the consent stamp can be back-filled
+      // on next sign-in if it failed.
+      try {
+        await ref.read(userSettingsRepositoryProvider).recordLegalConsent();
+      } catch (_) {}
       ref.invalidate(currentInvestorProvider);
       if (!mounted) return;
       messenger.showSnackBar(
@@ -265,6 +285,9 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
             ifsc: _ifsc,
             account: _account,
             holder: _holder,
+            consentChecked: _consentChecked,
+            onConsentChanged: (v) =>
+                setState(() => _consentChecked = v ?? false),
           ),
         );
     }
@@ -429,11 +452,15 @@ class _IdStep extends StatelessWidget {
 
 class _BankStep extends StatelessWidget {
   final TextEditingController bank, ifsc, account, holder;
+  final bool consentChecked;
+  final ValueChanged<bool?> onConsentChanged;
   const _BankStep({
     required this.bank,
     required this.ifsc,
     required this.account,
     required this.holder,
+    required this.consentChecked,
+    required this.onConsentChanged,
   });
 
   @override
@@ -489,9 +516,90 @@ class _BankStep extends StatelessWidget {
           hint: 'Leave blank to use your name above',
           controller: holder,
         ),
+        const SizedBox(height: 4),
+        _ConsentBlock(
+          checked: consentChecked,
+          onChanged: onConsentChanged,
+        ),
       ],
     );
   }
+}
+
+class _ConsentBlock extends StatelessWidget {
+  final bool checked;
+  final ValueChanged<bool?> onChanged;
+  const _ConsentBlock({required this.checked, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(4, 8, 12, 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Checkbox(
+            value: checked,
+            onChanged: onChanged,
+            activeColor: ArlColors.primary,
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text.rich(
+                TextSpan(
+                  style: const TextStyle(
+                    color: ArlColors.charcoal,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                  children: [
+                    const TextSpan(text: 'I agree to the '),
+                    _LegalLink(
+                      label: LegalDocs.termsTitle,
+                      route: RouteNames.terms,
+                    ),
+                    const TextSpan(text: ' and '),
+                    _LegalLink(
+                      label: LegalDocs.privacyTitle,
+                      route: RouteNames.privacy,
+                    ),
+                    const TextSpan(text: '.'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegalLink extends WidgetSpan {
+  _LegalLink({required String label, required String route})
+      : super(
+          alignment: PlaceholderAlignment.baseline,
+          baseline: TextBaseline.alphabetic,
+          child: Builder(
+            builder: (context) => GestureDetector(
+              onTap: () => context.push(route),
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: ArlColors.primary,
+                  fontSize: 12,
+                  height: 1.4,
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ),
+        );
 }
 
 class _StepHeader extends StatelessWidget {
