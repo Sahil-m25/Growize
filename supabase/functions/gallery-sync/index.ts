@@ -101,12 +101,12 @@ Deno.serve(async (req: Request) => {
     // Get Zoho access token
     const accessToken = await getZohoAccessToken();
 
-    // 1. Fetch all active projects
+    // 1. Fetch all active projects (zoho_llp_id lives on llps after the LLP/project split)
     const { data: projects, error: projError } = await supabase
       .from("projects")
-      .select("id, zoho_llp_id, name")
+      .select("id, name, llp_status, llp:llps!inner(zoho_llp_id)")
       .neq("llp_status", "completed")
-      .not("zoho_llp_id", "is", null);
+      .not("llp_id", "is", null);
 
     if (projError) throw new Error(`Failed to fetch projects: ${projError.message}`);
     if (!projects || projects.length === 0) {
@@ -120,6 +120,11 @@ Deno.serve(async (req: Request) => {
     const affectedProjectIds: string[] = [];
 
     for (const project of projects) {
+      // PostgREST returns embedded relations as object or array depending on cardinality; normalise.
+      const llpRel = (project as { llp?: { zoho_llp_id?: string } | Array<{ zoho_llp_id?: string }> }).llp;
+      const zohoLlpId = Array.isArray(llpRel) ? llpRel[0]?.zoho_llp_id : llpRel?.zoho_llp_id;
+      if (!zohoLlpId) continue;
+
       // 2. Fetch existing gallery photo IDs for this project
       const { data: existingPhotos } = await supabase
         .from("gallery_photos")
@@ -129,13 +134,13 @@ Deno.serve(async (req: Request) => {
       const existingFileIds = new Set((existingPhotos ?? []).map((p: { zoho_file_id: string }) => p.zoho_file_id));
 
       // 3. Fetch attachments from Zoho CRM
-      const attachmentsUrl = `https://www.zohoapis.in/crm/v3/LLP_Creation_Module/${project.zoho_llp_id}/Attachments`;
+      const attachmentsUrl = `https://www.zohoapis.in/crm/v3/LLP_Creation_Module/${zohoLlpId}/Attachments`;
       const attachResp = await fetch(attachmentsUrl, {
         headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
       });
 
       if (!attachResp.ok) {
-        console.warn(`Failed to fetch attachments for project ${project.zoho_llp_id}: ${attachResp.status}`);
+        console.warn(`Failed to fetch attachments for project ${zohoLlpId}: ${attachResp.status}`);
         continue;
       }
 
@@ -154,7 +159,7 @@ Deno.serve(async (req: Request) => {
       for (const attachment of newAttachments) {
         try {
           // 5. Download attachment from Zoho
-          const downloadUrl = `https://www.zohoapis.in/crm/v3/LLP_Creation_Module/${project.zoho_llp_id}/Attachments/${attachment.id}`;
+          const downloadUrl = `https://www.zohoapis.in/crm/v3/LLP_Creation_Module/${zohoLlpId}/Attachments/${attachment.id}`;
           const fileResp = await fetch(downloadUrl, {
             headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
           });

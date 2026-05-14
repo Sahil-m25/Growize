@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-13
 **Current phase:** Implement
-**Progress:** e2e_test_plan_v2_extended (2026-05-13) feature gaps — three "build now" groups landed: soft-delete sync (FG-02/03/04), document tiering (FG-05), and notification triggers (FG-06). Migrations 030–034 staged for orchestrator apply via Supabase MCP. Flutter Feature Audit fixes from 2026-05-12 also still applied.
+**Progress:** Extended E2E defects DEF-09/10/11/12 fixed (4 commits). Migrations 042-044 saved locally; user to apply via Supabase MCP. DEF-08 left out of scope (Zoho admin config).
 
 ## Summary
 Flutter port of `Growize App Design.html` (17 pages). Core screens scaffolded across 12 features. Active work: HTML-parity fixes — global header/logo, font bundling, back-nav stack behavior.
@@ -20,14 +20,11 @@ Flutter port of `Growize App Design.html` (17 pages). Core screens scaffolded ac
 - ExploreScreen "Request Consultation" persists to `consultation_requests` with 24h client-side dedup; migration 028 applied (see decisions/2026-05-12_explore-consultation-persistence.md).
 - ExitScreen "Request Exit" persists to `exit_requests`, DB-level partial unique index guards duplicates, screen flips to submitted-state card; migration 029 applied (see decisions/2026-05-12_exit-requests-persistence.md).
 - Ops doc inventory done — recommend appending SecurityScreen/BiometricScreen behaviour notes to `docs/ops_admin_guide.md` (canonical 1070-line ops doc); pending user decision.
-
-## 2026-05-13 — e2e feature gaps (this branch)
-- Group 1 — Soft-delete sync (FG-02/03/04): migrations `030_soft_delete_columns.sql` + `031_soft_delete_rls.sql`, webhook delete handlers, repo `deleted_at` filters, decision file, commit `03ec4f6`.
-- Group 2 — Document tiering (FG-05): migrations `032_documents_tiering_schema.sql` + `033_documents_tiering_rls.sql`, DocumentsScreen Common/Project/Investor sections, demo data per tier, ops doc Part 7, decision file, commit `b00c9c4`.
-- Group 3 — Notification triggers (FG-06): migration `034_notification_triggers.sql` (kyc / exit / ticket-reply / bank-change), CHECK constraint expansion, decision file, commit `77380c9`.
-- Ops doc Part 8 (soft-delete) + Part 9 (notification triggers) appended in final pass.
-- `flutter pub get` + `dart analyze lib` both clean.
-- Migrations NOT applied locally — orchestrator applies via Supabase MCP.
+- Extended E2E defect sweep (2026-05-13):
+  - DEF-09 gallery-sync joins projects via `llps.zoho_llp_id` (commit be56f98).
+  - DEF-10 migration 042 adds `investor_units.deleted_at` + amends owner SELECT RLS (commit bfda11e).
+  - DEF-11 migration 043 adds `bank_change_requests.updated_at` to unblock 010 trigger and the 041 notification path (commit 9b79be9).
+  - DEF-12 migration 044 enforces 5-year lock-in inside the `exit_requests` INSERT policy (commit 9ca6d80).
 
 ## Blockers
-- None.
+- None. Migrations 042-044 staged for user to apply via Supabase MCP.
