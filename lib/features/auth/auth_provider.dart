@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:arl_app/core/auth/secure_session_store.dart';
 import 'package:arl_app/core/auth/session_manager.dart';
 import 'package:arl_app/core/constants/supabase_constants.dart';
 import 'package:arl_app/core/repositories/login_events_repository.dart';
+import 'package:arl_app/core/repositories/user_settings_repository.dart';
 import 'package:arl_app/core/supabase/supabase_client.dart';
 
 /// Live auth state — emits whenever Supabase signals signin / signout.
@@ -34,6 +36,8 @@ final authStateProvider = StreamProvider<AuthState?>((ref) {
   }
 
   final loginEvents = LoginEventsRepository();
+  final secureStore = SecureSessionStore();
+  final settingsRepo = UserSettingsRepository();
   final sub = client.auth.onAuthStateChange.listen(
     (event) {
       controller.add(event);
@@ -41,8 +45,40 @@ final authStateProvider = StreamProvider<AuthState?>((ref) {
       // or the seeded initialSession event — that fires on cold start
       // even when the user hasn't actually re-authenticated).
       if (event.event == AuthChangeEvent.signedIn) {
-        // Fire-and-forget; recordLogin swallows its own errors.
         unawaited(loginEvents.recordLogin());
+      }
+      // Persist refresh token for biometric reuse on signedIn /
+      // tokenRefreshed. Gated by user_settings.biometric_enabled so
+      // disabling biometric on one device tears the cache down on the
+      // next refresh elsewhere too.
+      if (event.event == AuthChangeEvent.signedIn ||
+          event.event == AuthChangeEvent.tokenRefreshed) {
+        final session = event.session;
+        final email = session?.user.email;
+        final refresh = session?.refreshToken;
+        if (email != null && refresh != null) {
+          unawaited(() async {
+            try {
+              final row = await settingsRepo.mySettings();
+              final enabled = row?['biometric_enabled'] == true;
+              if (enabled) {
+                await secureStore.saveSession(
+                  email: email,
+                  refreshToken: refresh,
+                );
+                await secureStore.setBiometricEnabled(true);
+              } else {
+                await secureStore.clearBiometric();
+              }
+            } catch (_) {
+              // Cache-only path — never let it surface as a user-visible
+              // error.
+            }
+          }());
+        }
+      }
+      if (event.event == AuthChangeEvent.signedOut) {
+        unawaited(secureStore.clearBiometric());
       }
     },
     onError: controller.addError,

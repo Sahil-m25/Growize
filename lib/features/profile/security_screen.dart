@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import 'package:arl_app/core/auth/secure_session_store.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/providers/repositories.dart';
+import 'package:arl_app/core/supabase/supabase_client.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 
 class SecurityScreen extends ConsumerWidget {
@@ -342,6 +344,20 @@ class SecurityScreen extends ConsumerWidget {
       await ref
           .read(userSettingsRepositoryProvider)
           .updateToggles(biometricEnabled: value);
+      // Mirror the flag into secure storage so the login screen can
+      // show / hide the biometric button without round-tripping the DB.
+      final store = SecureSessionStore();
+      if (value) {
+        final session = ArlSupabase.client?.auth.currentSession;
+        final email = session?.user.email;
+        final refresh = session?.refreshToken;
+        if (email != null && refresh != null) {
+          await store.saveSession(email: email, refreshToken: refresh);
+        }
+        await store.setBiometricEnabled(true);
+      } else {
+        await store.clearBiometric();
+      }
       ref.invalidate(userSettingsProvider);
     } catch (e) {
       messenger.showSnackBar(
