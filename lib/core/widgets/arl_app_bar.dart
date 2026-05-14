@@ -40,17 +40,19 @@ class ArlAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 // height almost entirely with no stretch and no crop.
                 // Flexible lets it shrink before pushing the buttons
                 // off-screen on narrow phones.
+                // Logo sized at 75% of header glyph height (42px tall in a 56px header)
+                // per UAT feedback 2026-05-14 — the original 56px reading was too dominant.
                 Flexible(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 188),
+                    constraints: const BoxConstraints(maxWidth: 141),
                     child: SizedBox(
-                      height: 56,
+                      height: 42,
                       child: Image.asset(
                         'assets/images/arl_logo_wordmark.png',
                         fit: BoxFit.contain,
                         alignment: Alignment.centerLeft,
                         filterQuality: FilterQuality.high,
-                        cacheHeight: (56 * dpr).round(),
+                        cacheHeight: (42 * dpr).round(),
                         isAntiAlias: true,
                       ),
                     ),

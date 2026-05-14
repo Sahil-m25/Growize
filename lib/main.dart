@@ -162,7 +162,7 @@ class ArlApp extends ConsumerWidget {
       data: (gateStatus) {
         if (gateStatus.state == GateState.forceUpdate) {
           return MaterialApp(
-            title: 'ARL',
+            title: 'Growize',
             theme: arlTheme,
             debugShowCheckedModeBanner: false,
             home: ForceUpdateScreen(
@@ -174,7 +174,7 @@ class ArlApp extends ConsumerWidget {
 
         if (gateStatus.state == GateState.maintenance) {
           return MaterialApp(
-            title: 'ARL',
+            title: 'Growize',
             theme: arlTheme,
             debugShowCheckedModeBanner: false,
             home: MaintenanceScreen(
@@ -189,7 +189,7 @@ class ArlApp extends ConsumerWidget {
         // Normal app flow.
         final router = ref.watch(routerProvider);
         return MaterialApp.router(
-          title: 'ARL',
+          title: 'Growize',
           theme: arlTheme,
           routerConfig: router,
           debugShowCheckedModeBanner: false,
@@ -205,7 +205,7 @@ class ArlApp extends ConsumerWidget {
       },
       loading: () {
         return MaterialApp(
-          title: 'ARL',
+          title: 'Growize',
           theme: arlTheme,
           debugShowCheckedModeBanner: false,
           home: const Scaffold(
@@ -220,7 +220,7 @@ class ArlApp extends ConsumerWidget {
         // If gating check fails, allow app to proceed.
         final router = ref.watch(routerProvider);
         return MaterialApp.router(
-          title: 'ARL',
+          title: 'Growize',
           theme: arlTheme,
           routerConfig: router,
           debugShowCheckedModeBanner: false,
