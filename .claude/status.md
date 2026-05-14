@@ -1,8 +1,8 @@
 # Project Status — arl_app
 
-**Last updated:** 2026-05-12
+**Last updated:** 2026-05-13
 **Current phase:** Implement
-**Progress:** Flutter Feature Audit fixes — all 5 priorities complete. Audit rows updated for SecurityScreen, BiometricScreen, InitialSetupScreen, ExploreScreen, ExitScreen. Ops doc append pending user direction.
+**Progress:** Extended E2E defects DEF-09/10/11/12 fixed (4 commits). Migrations 042-044 saved locally; user to apply via Supabase MCP. DEF-08 left out of scope (Zoho admin config).
 
 ## Summary
 Flutter port of `Growize App Design.html` (17 pages). Core screens scaffolded across 12 features. Active work: HTML-parity fixes — global header/logo, font bundling, back-nav stack behavior.
@@ -20,6 +20,11 @@ Flutter port of `Growize App Design.html` (17 pages). Core screens scaffolded ac
 - ExploreScreen "Request Consultation" persists to `consultation_requests` with 24h client-side dedup; migration 028 applied (see decisions/2026-05-12_explore-consultation-persistence.md).
 - ExitScreen "Request Exit" persists to `exit_requests`, DB-level partial unique index guards duplicates, screen flips to submitted-state card; migration 029 applied (see decisions/2026-05-12_exit-requests-persistence.md).
 - Ops doc inventory done — recommend appending SecurityScreen/BiometricScreen behaviour notes to `docs/ops_admin_guide.md` (canonical 1070-line ops doc); pending user decision.
+- Extended E2E defect sweep (2026-05-13):
+  - DEF-09 gallery-sync joins projects via `llps.zoho_llp_id` (commit be56f98).
+  - DEF-10 migration 042 adds `investor_units.deleted_at` + amends owner SELECT RLS (commit bfda11e).
+  - DEF-11 migration 043 adds `bank_change_requests.updated_at` to unblock 010 trigger and the 041 notification path (commit 9b79be9).
+  - DEF-12 migration 044 enforces 5-year lock-in inside the `exit_requests` INSERT policy (commit 9ca6d80).
 
 ## Blockers
-- None.
+- None. Migrations 042-044 staged for user to apply via Supabase MCP.

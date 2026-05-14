@@ -10,3 +10,7 @@
 | 2026-05-12 | decision | InitialSetupScreen persist KYC on submit | locked | decisions/2026-05-12_initial-setup-persistence.md |
 | 2026-05-12 | decision | ExploreScreen persist consultation requests | locked | decisions/2026-05-12_explore-consultation-persistence.md |
 | 2026-05-12 | decision | ExitScreen persist exit requests + dedup | locked | decisions/2026-05-12_exit-requests-persistence.md |
+| 2026-05-13 | decision | DEF-09 gallery-sync joins projects via llps.zoho_llp_id | locked | decisions/2026-05-13_def-09-gallery-sync-llp-join.md |
+| 2026-05-13 | decision | DEF-10 investor_units.deleted_at soft-delete column | locked | decisions/2026-05-13_def-10-investor-units-soft-delete.md |
+| 2026-05-13 | decision | DEF-11 bank_change_requests.updated_at unblock trigger | locked | decisions/2026-05-13_def-11-bank-change-updated-at.md |
+| 2026-05-13 | decision | DEF-12 server-side 5-year lock-in on exit_requests INSERT | locked | decisions/2026-05-13_def-12-exit-lockin-rls.md |
