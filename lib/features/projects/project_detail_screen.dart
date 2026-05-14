@@ -109,6 +109,9 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
                     }
                   },
                   onGallery: () => context.push(RouteNames.gallery),
+                  onViewArea: () => context.push(
+                    RouteNames.locationPath(widget.projectId),
+                  ),
                 ),
                 // Investor-scoped stats — units owned and capital they
                 // have invested, NOT project totals. Falls back to "—"
@@ -429,6 +432,7 @@ class _Hero extends StatelessWidget {
   final bool isPending;
   final VoidCallback onBack;
   final VoidCallback onGallery;
+  final VoidCallback onViewArea;
 
   const _Hero({
     required this.initials,
@@ -440,6 +444,7 @@ class _Hero extends StatelessWidget {
     required this.isPending,
     required this.onBack,
     required this.onGallery,
+    required this.onViewArea,
   });
 
   @override
@@ -561,7 +566,7 @@ class _Hero extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               TextButton.icon(
-                onPressed: () {},
+                onPressed: onViewArea,
                 style: TextButton.styleFrom(
                   backgroundColor: Colors.white.withValues(alpha: 0.16),
                   padding:
