@@ -1,26 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:arl_app/core/auth/biometric_guard.dart';
+import 'package:arl_app/core/auth/secure_session_store.dart';
 import 'package:arl_app/core/auth/session_manager.dart';
 import 'package:arl_app/core/constants/supabase_constants.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
+import 'package:arl_app/features/auth/auth_provider.dart';
 
 /// Login screen — supports email + password (primary) and email OTP (fallback).
 /// Phone OTP isn't wired to a provider yet; we keep it commented for later.
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
 enum _Mode { password, otpRequest, otpVerify }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final List<TextEditingController> _otp =
@@ -31,6 +35,83 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _busy = false;
   bool _passwordHidden = true;
   String? _error;
+  bool _biometricAvailable = false;
+  final _secureStore = SecureSessionStore();
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrapBiometric();
+  }
+
+  Future<void> _bootstrapBiometric() async {
+    if (SupabaseConstants.devBypassAuth || SupabaseConstants.isDemoMode) {
+      return;
+    }
+    try {
+      final enabled = await _secureStore.readBiometricEnabled();
+      if (!enabled) return;
+      final email = await _secureStore.readEmail();
+      final token = await _secureStore.readRefreshToken();
+      if (email == null || token == null) return;
+      final canUse = await BiometricGuard.isAvailable();
+      if (!canUse || !mounted) return;
+      setState(() {
+        _biometricAvailable = true;
+        if (_emailCtrl.text.isEmpty) _emailCtrl.text = email;
+      });
+    } catch (_) {
+      // Cache-only — never block password sign-in on a probe failure.
+    }
+  }
+
+  Future<void> _signInBiometric() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final passed = await BiometricGuard.authenticate();
+      if (!passed) {
+        setState(() => _busy = false);
+        return;
+      }
+      final token = await _secureStore.readRefreshToken();
+      if (token == null) {
+        setState(() {
+          _busy = false;
+          _biometricAvailable = false;
+          _error = 'Biometric session expired — sign in with password.';
+        });
+        await _secureStore.clearBiometric();
+        return;
+      }
+      await SessionManager.signInWithRefreshToken(token);
+      if (!mounted) return;
+      ref.invalidate(isLoggedInProvider);
+      context.go(RouteNames.home);
+    } on AuthException catch (e) {
+      // Refresh token rejected (revoked / expired). Wipe local cache so
+      // the button stops appearing until password re-auth refreshes it.
+      await _secureStore.clearBiometric();
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _biometricAvailable = false;
+        _error = e.message;
+      });
+    } catch (e, stack) {
+      await Sentry.captureException(e,
+          stackTrace: stack,
+          withScope: (s) => s.setTag('flow', 'sign_in_biometric'));
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = 'Biometric sign-in failed: $e';
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -78,6 +159,10 @@ class _LoginScreenState extends State<LoginScreen> {
         password: password,
       );
       if (!mounted) return;
+      // Force isLoggedInProvider to re-evaluate immediately; otherwise
+      // the cached value lags the auth-state stream and the GoRouter
+      // redirect can bounce to /auth on the first tap.
+      ref.invalidate(isLoggedInProvider);
       context.go(RouteNames.home);
     } on AuthException catch (e) {
       setState(() => _error = e.message);
@@ -134,6 +219,7 @@ class _LoginScreenState extends State<LoginScreen> {
         token: code,
       );
       if (!mounted) return;
+      ref.invalidate(isLoggedInProvider);
       context.go(RouteNames.home);
     } on AuthException catch (e) {
       setState(() => _error = e.message);
@@ -347,17 +433,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
               const SizedBox(height: 32),
-              Center(
-                child: TextButton(
-                  onPressed: () => context.push(RouteNames.setup),
-                  child: const Text(
-                    'New investor? Get started',
-                    style: TextStyle(
-                      color: ArlColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+              const Center(
+                child: Text(
+                  'By continuing, you agree to our Terms of Service',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: ArlColors.muted, fontSize: 10),
                 ),
               ),
               const SizedBox(height: 12),
@@ -373,6 +453,42 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (_biometricAvailable) ...[
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _signInBiometric,
+            icon: const Icon(Icons.fingerprint, color: ArlColors.primary),
+            label: const Text(
+              'Use biometric',
+              style: TextStyle(
+                color: ArlColors.primary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              side: const BorderSide(color: ArlColors.primary, width: 1.2),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          const Row(
+            children: [
+              Expanded(child: Divider(color: ArlColors.sand)),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  'or',
+                  style: TextStyle(color: ArlColors.muted, fontSize: 11),
+                ),
+              ),
+              Expanded(child: Divider(color: ArlColors.sand)),
+            ],
+          ),
+          const SizedBox(height: 18),
+        ],
         _label('Email'),
         const SizedBox(height: 8),
         _textField(
@@ -380,6 +496,7 @@ class _LoginScreenState extends State<LoginScreen> {
           keyboardType: TextInputType.emailAddress,
           hint: 'you@example.com',
           autofillHints: const [AutofillHints.email, AutofillHints.username],
+          textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 16),
         _label('Password'),
@@ -389,6 +506,10 @@ class _LoginScreenState extends State<LoginScreen> {
           obscure: _passwordHidden,
           hint: '••••••••',
           autofillHints: const [AutofillHints.password],
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) {
+            if (!_busy) _signInPassword();
+          },
           suffix: IconButton(
             icon: Icon(_passwordHidden
                 ? Icons.visibility_outlined
@@ -568,6 +689,8 @@ class _LoginScreenState extends State<LoginScreen> {
     TextInputType? keyboardType,
     Iterable<String>? autofillHints,
     Widget? suffix,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onSubmitted,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -580,6 +703,8 @@ class _LoginScreenState extends State<LoginScreen> {
         obscureText: obscure,
         keyboardType: keyboardType,
         autofillHints: autofillHints,
+        textInputAction: textInputAction,
+        onSubmitted: onSubmitted,
         decoration: InputDecoration(
           border: InputBorder.none,
           hintText: hint,

@@ -67,6 +67,15 @@ class SessionManager {
     await c.auth.signOut();
   }
 
+  /// Recover a session from a previously cached refresh token. Used by
+  /// the biometric login flow — the user has already proven identity
+  /// via fingerprint/face, so we redeem the cached token rather than
+  /// asking for a password.
+  static Future<void> signInWithRefreshToken(String refreshToken) async {
+    final client = ArlSupabase.requireClient();
+    await client.auth.setSession(refreshToken);
+  }
+
   /// B.T4: Request a password reset. Sends an email with a recovery link.
   /// Throws AuthException on failure.
   static Future<void> requestPasswordReset(String email) async {

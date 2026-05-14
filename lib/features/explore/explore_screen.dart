@@ -159,14 +159,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   ) {
     switch (filter) {
       case 'open':
-        // "Open for reservation" = subscription window active and at least
-        // one unit free. Includes brand-new listings (units_available ==
-        // total_units) — those ARE the most open of all.
-        return listings
-            .where((p) => !p.isClosed && p.unitsAvailable > 0)
-            .toList();
+        // Open for Reservation: subscription window active AND at least
+        // one unit has already been issued (units_available <
+        // total_units). Excludes brand-new placeholder listings, which
+        // are exclusively surfaced under "Coming Soon" — see the
+        // mutually-exclusive getters on MarketplaceProject.
+        return listings.where((p) => p.isOpenForReservation).toList();
       case 'not_started':
-        return listings.where((p) => p.isNotYetStarted).toList();
+        // Coming Soon: subscription window active AND no units issued
+        // yet (placeholder listing).
+        return listings.where((p) => p.isComingSoon).toList();
       case 'all':
       default:
         return listings;
