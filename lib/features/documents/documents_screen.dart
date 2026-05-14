@@ -26,36 +26,32 @@ class DocumentsScreen extends ConsumerStatefulWidget {
 class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   final Set<int> _open = {0};
 
-  /// Group docs by `doc_type`. Schema check constraint allows
-  /// 'contract', 'agreement', 'kyc', 'other'. Render in fixed order so
-  /// the layout doesn't reshuffle as docs come and go.
+  /// Group docs by visibility tier (migration 032/033). Renders
+  /// Common → My Projects → My Documents in fixed order so the
+  /// layout is stable as docs come and go. Tiers with zero items
+  /// are still emitted so the section's empty-state can render.
   List<_DocSection> _group(List<InvestorDocument> docs) {
-    final bucket = <String, List<InvestorDocument>>{};
+    final common = <InvestorDocument>[];
+    final project = <InvestorDocument>[];
+    final investor = <InvestorDocument>[];
     for (final d in docs) {
-      bucket.putIfAbsent(d.category, () => []).add(d);
-    }
-    const order = [
-      ('agreement', 'Legal Agreements', Icons.description, ArlColors.primary),
-      ('contract', 'Contracts', Icons.assignment, ArlColors.gold),
-      ('kyc', 'KYC Documents', Icons.verified_user, ArlColors.accent),
-      ('other', 'Other', Icons.folder_outlined, ArlColors.earth),
-    ];
-    final sections = <_DocSection>[];
-    for (final t in order) {
-      final items = bucket.remove(t.$1);
-      if (items != null && items.isNotEmpty) {
-        sections.add(_DocSection(t.$2, t.$3, t.$4, items));
+      switch (d.visibility) {
+        case 'common':
+          common.add(d);
+          break;
+        case 'project':
+          project.add(d);
+          break;
+        default:
+          investor.add(d);
       }
     }
-    for (final entry in bucket.entries) {
-      sections.add(_DocSection(
-        entry.key,
-        Icons.folder_outlined,
-        ArlColors.muted,
-        entry.value,
-      ));
-    }
-    return sections;
+    return [
+      _DocSection('Common', Icons.public, ArlColors.primary, common),
+      _DocSection('My Projects', Icons.eco, ArlColors.accent, project),
+      _DocSection(
+          'My Documents', Icons.folder_special, ArlColors.gold, investor),
+    ];
   }
 
   @override
@@ -103,7 +99,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
 
   List<Widget> _dataRows(List<InvestorDocument> docs) {
     final sections = _group(docs);
-    if (sections.isEmpty) return [_emptyState()];
+    if (sections.every((s) => s.items.isEmpty)) return [_emptyState()];
     final rows = <Widget>[];
     for (int i = 0; i < sections.length; i++) {
       rows.add(_Accordion(
@@ -238,14 +234,28 @@ class _Accordion extends StatelessWidget {
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.only(left: 8),
-            child: Column(
-              children: [
-                for (final it in section.items) ...[
-                  _DocRow(item: it, color: section.color),
-                  const SizedBox(height: 8),
-                ],
-              ],
-            ),
+            child: section.items.isEmpty
+                ? Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: ArlColors.sand, width: 1),
+                    ),
+                    child: const Text(
+                      'No documents in this section yet.',
+                      style: TextStyle(color: ArlColors.muted, fontSize: 11),
+                    ),
+                  )
+                : Column(
+                    children: [
+                      for (final it in section.items) ...[
+                        _DocRow(item: it, color: section.color),
+                        const SizedBox(height: 8),
+                      ],
+                    ],
+                  ),
           ),
         ],
       ],

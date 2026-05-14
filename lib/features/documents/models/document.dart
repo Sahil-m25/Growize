@@ -2,6 +2,8 @@ class InvestorDocument {
   final String id;
   final String name;
   final String category; // contract | agreement | kyc | other
+  final String visibility; // common | project | investor
+  final String? projectId; // non-null when visibility == 'project'
   final String signedUrl;
   final DateTime? uploadedAt;
   final int? fileSizeKb;
@@ -11,6 +13,8 @@ class InvestorDocument {
     required this.id,
     required this.name,
     required this.category,
+    required this.visibility,
+    this.projectId,
     required this.signedUrl,
     this.uploadedAt,
     this.fileSizeKb,
@@ -25,6 +29,8 @@ class InvestorDocument {
         id: (j['id'] ?? '') as String,
         name: (j['name'] ?? '') as String,
         category: (j['doc_type'] ?? 'other') as String,
+        visibility: (j['visibility'] ?? 'investor') as String,
+        projectId: j['project_id'] as String?,
         signedUrl: signedUrl,
         uploadedAt: j['uploaded_at'] != null
             ? DateTime.parse(j['uploaded_at'].toString())

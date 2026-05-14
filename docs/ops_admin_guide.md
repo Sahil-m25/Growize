@@ -1257,62 +1257,152 @@ Indexes: `(user_id, created_at DESC)`, **plus** the partial unique index above. 
 
 ---
 
-## Part 7 — Crash reporting (Sentry)
+## Part 7 — Document Tiering (Common / Project / Investor)
 
-The app ships crash reports to Sentry. Project: **growize-investor-portal** (EU region — events live under `ingest.de.sentry.io`).
+Migration `032` adds a `visibility` column to `public.documents` so a single uploaded document can be scoped to one of three tiers:
 
-### 7.1 What gets logged
+| Tier       | Who sees it                                                        | `investor_id` | `project_id` |
+|------------|--------------------------------------------------------------------|---------------|--------------|
+| `common`   | Every authenticated investor                                       | NULL          | NULL         |
+| `project`  | Investors who hold units in `project_id`                           | NULL          | required     |
+| `investor` | The investor identified by `investor_id` (legacy default)          | required      | optional     |
 
-- Uncaught Flutter / Dart exceptions captured by `SentryFlutter.init`.
-- Explicit `Sentry.captureException` calls inside the catch blocks of the user-action submit paths: KYC submit (initial setup), exit request submit, consultation submit, sign-in (password / OTP send / OTP verify). Each is tagged with a `flow` tag so dashboards can filter (`flow:investor_onboarding_submit`, `flow:exit_request_submit`, etc.).
-- The signed-in user is identified by the Supabase auth UUID only — no email, no phone, no name.
+The CHECK constraint `documents_tier_columns_check` enforces those nullability rules — bad inserts are rejected at write time, so the app can't end up with a "common doc" that secretly carries an `investor_id`. RLS policy `documents: tiered read` reads them per the table above; storage RLS mirrors the same shape on bucket paths.
 
-### 7.2 What is NOT logged (privacy posture)
+### How to upload a common document
 
-- `sendDefaultPii = false`. No IP, no auto-attached identity.
-- `attachScreenshot = false`. KYC and Bank screens could leak otherwise.
-- `attachViewHierarchy = false`. Same reason.
-- `tracesSampleRate = 0.0`. No performance / span / transaction data.
-- A **client-side scrubber** runs in `beforeSend` (`lib/core/observability/sentry_config.dart`) and redacts PAN, Aadhaar (with or without separators), IFSC, +91 phone numbers, email local parts, JWT-like tokens, "Bearer …" strings, and any bare 9–18 digit run. Sentry's **server-side** scrubbers are also configured (custom sensitive fields: `pan`, `aadhaar`, `account_number`, `account`, `ifsc`, `dob`, `phone`, `pin`, `pin_hash`). Two layers, on purpose — if either misses a pattern, the other catches it.
-- Do NOT enable `attachScreenshot` or `sendDefaultPii` without a privacy review. The whole privacy posture is documented in `.claude/decisions/2026-05-13_sentry-reintegration.md`.
+Common documents live at the top of `arl-documents/common/`. Anyone authenticated can read them once they're indexed.
 
-### 7.3 Build-time env vars
+1. Open **Supabase Studio → Storage → arl-documents**. Navigate into the `common/` folder (create it on first use).
+2. Upload your file. Note the final path — e.g. `common/sample-agreement-template-v3.pdf`.
+3. Open **SQL Editor** and insert a documents row pointing at that path:
+   ```sql
+   INSERT INTO public.documents
+     (name, doc_type, visibility, storage_path, file_size_kb, uploaded_at)
+   VALUES
+     ('Sample Agreement Template v3', 'agreement', 'common',
+      'common/sample-agreement-template-v3.pdf', 142, now());
+   ```
+4. Open the Flutter app as any investor — the doc appears under the **Common** accordion on the Documents screen.
 
-Sentry config is **compile-time**, read via `--dart-define-from-file=.env.production`. None of the values are bundled as a runtime asset — they only exist inside the build that consumed them.
+### How to upload a project document
 
-| Var | Purpose | Example |
-|-----|---------|---------|
-| `SENTRY_DSN` | Project ingest URL. Empty value disables Sentry entirely. | `https://…@o…ingest.de.sentry.io/…` |
-| `SENTRY_ENVIRONMENT` | Tags every event. Use `production`, `staging`, or `dev`. | `production` |
-| `SENTRY_RELEASE` | Groups events by build. | `growize@1.0.0+1` |
+Project documents live at `arl-documents/project/{project_id}/...`. Only investors with a row in `investor_units` for that `project_id` see them.
 
-Set these in `.env.production` (gitignored — never commit) before:
+1. Look up the project id: `SELECT id, name FROM public.projects WHERE name ILIKE '%pineapple%';`
+2. Upload the file to **Storage → arl-documents → project → <project_id>** (create both folders on first use).
+3. Insert the row, providing both `visibility='project'` and `project_id` (and leaving `investor_id` NULL):
+   ```sql
+   INSERT INTO public.documents
+     (name, doc_type, visibility, project_id, storage_path, file_size_kb, uploaded_at)
+   VALUES
+     ('Pineapple LLP Q4 Land Survey', 'other', 'project',
+      '<project_id>',
+      'project/<project_id>/pineapple-llp-q4-survey.pdf',
+      512, now());
+   ```
+4. Verify visibility: query as a unit-holder via SQL Editor with role `authenticated` and the investor's `auth.uid()` (or just open the app as them).
 
+### How to upload an investor document
+
+The original tier — used for personal contracts, signed KYC packets, payout statements. Path lives at `arl-documents/investor/{auth_user_id}/...`.
+
+1. Look up the investor: `SELECT id, name, email FROM public.investors WHERE email = 'investor@example.com';`. The `id` IS the `auth.users.id`.
+2. Upload to **Storage → arl-documents → investor → <id>**.
+3. Insert pointing to that path with `visibility='investor'` and `investor_id` filled (default works, but explicit is fine):
+   ```sql
+   INSERT INTO public.documents
+     (name, doc_type, visibility, investor_id, storage_path, file_size_kb, uploaded_at)
+   VALUES
+     ('Pineapple LLP — Signed Agreement', 'agreement', 'investor',
+      '<investor_id>',
+      'investor/<investor_id>/pineapple-llp-signed-agreement.pdf',
+      284, now());
+   ```
+4. As that investor, refresh the Documents screen — the row appears under **My Documents**.
+
+### Gotchas
+
+- `visibility = 'common'` rows MUST keep `investor_id = NULL` and `project_id = NULL`. The CHECK constraint will reject anything else with `documents_tier_columns_check`.
+- Direct `INSERT` from the app is restricted to `visibility='investor'` with `investor_id = auth.uid()` (RLS policy `documents: insert own investor doc`). Common + project tiers MUST go via Studio (service_role) or an Edge Function.
+- Storage and DB row are two writes — if you uploaded the file but forgot the DB insert, the app won't show it; if you inserted the row but didn't upload, the signed URL fetch fails silently and the row renders with a broken open-button. Always do BOTH.
+- Soft-deleting a project (Zoho LLP delete trigger) leaves project-tier documents with `project_id = NULL` (FK `ON DELETE SET NULL`). They go silent in the app — RLS filters `project_id IN (...)` so a NULL project_id matches nothing.
+
+**Migration.** `032` + `033` — 2026-05-13. Rollback (destructive — only on dev):
+```sql
+DROP POLICY IF EXISTS "documents: tiered read" ON public.documents;
+DROP POLICY IF EXISTS "documents: insert own investor doc" ON public.documents;
+ALTER TABLE public.documents DROP CONSTRAINT IF EXISTS documents_tier_columns_check;
+ALTER TABLE public.documents DROP COLUMN IF EXISTS visibility;
+ALTER TABLE public.documents DROP COLUMN IF EXISTS project_id;
+ALTER TABLE public.documents ALTER COLUMN investor_id SET NOT NULL;
+-- and restore the legacy storage policy
 ```
-flutter build web --release --dart-define-from-file=.env.production
-flutter build apk --release --dart-define-from-file=.env.production
+
+---
+
+## Part 8 — Soft-Delete Sync from Zoho CRM
+
+Investors, LLPs, and Projects now carry a `deleted_at TIMESTAMPTZ` column. When ops deletes the corresponding record in Zoho CRM, the workflow fires the `zoho-crm-webhook` with `operation=delete` and the row's `deleted_at` is stamped with `now()`. RLS hides soft-deleted rows from the app; FK chains (investor_units → projects → payouts → documents → exit_requests) keep their parents around for audit.
+
+**Behaviour**
+- Contact delete in Zoho → `investors.deleted_at = now()` + the `auth.users` row is banned for 100 years (effectively indefinite). The investor can't sign back in. Refresh tokens stop exchanging within minutes.
+- LLP delete in Zoho → `llps.deleted_at = now()` cascades to every active project under that LLP (`projects.deleted_at = now() WHERE llp_id IN (...)`). Project-tier documents are not deleted; they point at a soft-deleted project and silently disappear from app reads (RLS).
+- App layer also passes `.isFilter('deleted_at', null)` explicitly on investor + project queries — defense in depth against an accidental RLS regression.
+
+**Restoring a soft-deleted row** (rare — usually a Zoho operator mistake):
+```sql
+-- Restore an investor
+UPDATE public.investors SET deleted_at = NULL WHERE arl_id = 'ARL-00142';
+-- Unban their auth.users row
+SELECT auth.admin.update_user_by_id('<auth_user_id>', '{"ban_duration":"none"}'::jsonb);
+-- Restore an LLP and its projects
+UPDATE public.llps     SET deleted_at = NULL WHERE id = '<llp_id>';
+UPDATE public.projects SET deleted_at = NULL WHERE llp_id = '<llp_id>';
 ```
 
-### 7.4 Disabling Sentry for a given build
+**Migration.** `030` + `031` — 2026-05-13. Rollback: `ALTER TABLE ... DROP COLUMN deleted_at` on each of investors/llps/projects (also drops indexes via cascade), and restore the prior policies from `009` / `018` / `021` / `027`.
 
-Leave `SENTRY_DSN` empty in the `.env.*` file passed to `--dart-define-from-file`. The init block in `lib/main.dart` short-circuits when the DSN string is empty, so the app boots normally and zero events are produced. Useful for local debug builds that you do not want polluting the dashboard.
+---
 
-### 7.5 Verifying integration after a deploy
+## Part 9 — In-App Notification Triggers
 
-A dev-only "Send test crash to Sentry" tile lives on the Profile screen, gated behind `kDebugMode || ARL_DEV_BYPASS`. In a dev build pointed at the production DSN:
+Four state transitions now produce a notification row automatically via DB triggers — no Edge Function or app-side post-write needed. Functions are `SECURITY DEFINER` with `SET search_path = public, pg_temp` so they fire regardless of who issued the UPDATE.
 
-1. Run the app, sign in.
-2. Profile → tap "DEV — Send test crash to Sentry".
-3. A snackbar confirms the local capture. Within ~30 s the event should land in the dashboard with title `Exception: Sentry integration test — <ISO timestamp>`.
-4. Verify the event contains NO unredacted PII (if you append PAN/Aadhaar test strings to the message, confirm they arrive as `<…_REDACTED>`).
+| Source table              | Transition                                          | Notification type | Body                                                |
+|---------------------------|-----------------------------------------------------|-------------------|-----------------------------------------------------|
+| `investors`               | `kyc_status` pending → verified                     | `kyc`             | "Your KYC has been verified. Tap to view."          |
+| `investors`               | `kyc_status` pending → rejected                     | `kyc`             | "Your KYC has been rejected. Please re-submit."     |
+| `exit_requests`           | `status` pending → approved/rejected/settled        | `exit`            | Status-specific copy                                |
+| `ticket_messages`         | INSERT WHERE `sender_type='staff'`                  | `ticket`          | "New reply on ticket #<short_id>."                  |
+| `bank_change_requests`    | `status` pending → approved/rejected                | `bank_change`     | Status-specific copy + verifier notes if rejected   |
 
-The tile is never compiled into a release build (`kDebugMode` is `const false` under `--release`).
+**Notes**
+- `notifications.type` CHECK constraint was expanded to add `kyc`, `exit`, `bank_change`. Existing values (`payout`, `photo`, `ticket`, `reminder`, `milestone`) are preserved.
+- All triggers use `IS DISTINCT FROM OLD.<col>` so no-op writes do not produce ghost notifications.
+- The ticket-reply trigger silently no-ops when the parent ticket has been deleted between the message INSERT and trigger fire.
 
-### 7.6 Dashboard
+**To check a fire** (after, say, you mark a KYC verified in Studio):
+```sql
+SELECT id, type, title, body, created_at
+FROM public.notifications
+WHERE investor_id = '<auth_user_id>'
+ORDER BY created_at DESC
+LIMIT 5;
+```
 
-URL: `https://growize.sentry.io/projects/growize-investor-portal/` (EU tenant). Default filters worth pinning:
-- `environment:production` — filter out dev test crashes.
-- `flow:*` — group by user-action submit flow to spot a particular path regressing.
+**Migration.** `034` — 2026-05-13. Rollback:
+```sql
+DROP TRIGGER  IF EXISTS trg_notify_investor_kyc_status_change   ON public.investors;
+DROP TRIGGER  IF EXISTS trg_notify_exit_request_status_change   ON public.exit_requests;
+DROP TRIGGER  IF EXISTS trg_notify_ticket_reply                 ON public.ticket_messages;
+DROP TRIGGER  IF EXISTS trg_notify_bank_change_status_change    ON public.bank_change_requests;
+DROP FUNCTION IF EXISTS public.notify_investor_kyc_status_change();
+DROP FUNCTION IF EXISTS public.notify_exit_request_status_change();
+DROP FUNCTION IF EXISTS public.notify_ticket_reply();
+DROP FUNCTION IF EXISTS public.notify_bank_change_status_change();
+-- Optional: restore tighter notifications.type CHECK
+```
 
 ---
 
