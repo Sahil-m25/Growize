@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,19 +9,20 @@ import 'package:arl_app/core/auth/session_manager.dart';
 import 'package:arl_app/core/constants/supabase_constants.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
+import 'package:arl_app/features/auth/auth_provider.dart';
 
 /// Login screen — supports email + password (primary) and email OTP (fallback).
 /// Phone OTP isn't wired to a provider yet; we keep it commented for later.
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
 enum _Mode { password, otpRequest, otpVerify }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final List<TextEditingController> _otp =
@@ -78,6 +80,10 @@ class _LoginScreenState extends State<LoginScreen> {
         password: password,
       );
       if (!mounted) return;
+      // Force isLoggedInProvider to re-evaluate immediately; otherwise
+      // the cached value lags the auth-state stream and the GoRouter
+      // redirect can bounce to /auth on the first tap.
+      ref.invalidate(isLoggedInProvider);
       context.go(RouteNames.home);
     } on AuthException catch (e) {
       setState(() => _error = e.message);
@@ -134,6 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
         token: code,
       );
       if (!mounted) return;
+      ref.invalidate(isLoggedInProvider);
       context.go(RouteNames.home);
     } on AuthException catch (e) {
       setState(() => _error = e.message);
@@ -347,17 +354,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
               const SizedBox(height: 32),
-              Center(
-                child: TextButton(
-                  onPressed: () => context.push(RouteNames.setup),
-                  child: const Text(
-                    'New investor? Get started',
-                    style: TextStyle(
-                      color: ArlColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+              const Center(
+                child: Text(
+                  'By continuing, you agree to our Terms of Service',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: ArlColors.muted, fontSize: 10),
                 ),
               ),
               const SizedBox(height: 12),
@@ -380,6 +381,7 @@ class _LoginScreenState extends State<LoginScreen> {
           keyboardType: TextInputType.emailAddress,
           hint: 'you@example.com',
           autofillHints: const [AutofillHints.email, AutofillHints.username],
+          textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 16),
         _label('Password'),
@@ -389,6 +391,10 @@ class _LoginScreenState extends State<LoginScreen> {
           obscure: _passwordHidden,
           hint: '••••••••',
           autofillHints: const [AutofillHints.password],
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) {
+            if (!_busy) _signInPassword();
+          },
           suffix: IconButton(
             icon: Icon(_passwordHidden
                 ? Icons.visibility_outlined
@@ -568,6 +574,8 @@ class _LoginScreenState extends State<LoginScreen> {
     TextInputType? keyboardType,
     Iterable<String>? autofillHints,
     Widget? suffix,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onSubmitted,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -580,6 +588,8 @@ class _LoginScreenState extends State<LoginScreen> {
         obscureText: obscure,
         keyboardType: keyboardType,
         autofillHints: autofillHints,
+        textInputAction: textInputAction,
+        onSubmitted: onSubmitted,
         decoration: InputDecoration(
           border: InputBorder.none,
           hintText: hint,

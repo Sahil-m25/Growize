@@ -87,29 +87,7 @@ class AuthScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => context.push(RouteNames.setup),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: ArlColors.primary,
-                        side: const BorderSide(color: ArlColors.primary, width: 1.2),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                      ),
-                      child: const Text(
-                        'New Investor — Get Started',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   const Text(
                     'By continuing, you agree to our Terms of Service',
                     textAlign: TextAlign.center,

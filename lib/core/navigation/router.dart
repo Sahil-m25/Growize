@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'route_names.dart';
 import 'package:arl_app/core/widgets/main_scaffold.dart';
 import 'package:arl_app/core/auth/session_manager.dart';
-import 'package:arl_app/features/auth/auth_provider.dart';
 import 'package:arl_app/features/home/home_screen.dart';
 import 'package:arl_app/features/projects/projects_list_screen.dart';
 import 'package:arl_app/features/projects/project_detail_screen.dart';
@@ -65,7 +64,13 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: RouteNames.home,
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
-      final isLoggedIn = ref.read(isLoggedInProvider);
+      // Read SessionManager directly (sync) instead of the Riverpod
+      // Provider. The Provider value is cached until `authStateProvider`
+      // emits, which lags behind `signInWithPassword`'s await — causing
+      // a one-tap sign-in to bounce back to /auth before the cache
+      // refreshes. SessionManager.isLoggedIn reads currentUser, which
+      // is set synchronously when the sign-in call resolves.
+      final isLoggedIn = SessionManager.isLoggedIn;
       final loc = state.matchedLocation;
       final isPublic = _publicRoutes.contains(loc);
 
