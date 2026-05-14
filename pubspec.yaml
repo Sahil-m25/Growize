@@ -36,6 +36,10 @@ dependencies:
   package_info_plus: ^8.0.0
   crypto: ^3.0.3
 
+  # Observability + env
+  sentry_flutter: ^9.0.0
+  flutter_dotenv: ^5.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
