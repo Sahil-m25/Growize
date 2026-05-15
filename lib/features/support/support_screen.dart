@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/providers/repositories.dart';
+import 'package:arl_app/core/supabase/supabase_client.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/core/widgets/async_value_widget.dart';
-import 'package:arl_app/core/mock/mock_data.dart' show
-    MockSupportTicket, mockSupportTickets;
+import 'package:arl_app/core/mock/mock_data.dart'
+    show MockSupportTicket, mockSupportTickets;
 
 final _ticketsProvider = FutureProvider<List<dynamic>>((ref) async {
   final repo = ref.watch(supportRepositoryProvider);
@@ -16,11 +18,50 @@ final _ticketsProvider = FutureProvider<List<dynamic>>((ref) async {
   return mockSupportTickets;
 });
 
-class SupportScreen extends ConsumerWidget {
+class SupportScreen extends ConsumerStatefulWidget {
   const SupportScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SupportScreen> createState() => _SupportScreenState();
+}
+
+class _SupportScreenState extends ConsumerState<SupportScreen> {
+  RealtimeChannel? _channel;
+
+  @override
+  void initState() {
+    super.initState();
+    // DEF-2026-05-15-03: subscribe to support_tickets changes so
+    // ops-driven status flips propagate without a manual refresh.
+    // Filtered to the current investor's own rows by RLS — the
+    // anon JWT scopes Realtime payloads automatically.
+    final client = ArlSupabase.client;
+    final uid = client?.auth.currentUser?.id;
+    if (client != null && uid != null) {
+      _channel = client.channel('support_tickets_realtime_$uid')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'support_tickets',
+          callback: (_) {
+            if (mounted) ref.invalidate(_ticketsProvider);
+          },
+        )
+        ..subscribe();
+    }
+  }
+
+  @override
+  void dispose() {
+    final ch = _channel;
+    if (ch != null) {
+      ArlSupabase.client?.removeChannel(ch);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final dateFormatter = DateFormat('MMM dd, yyyy');
     final asyncTickets = ref.watch(_ticketsProvider);
 
@@ -123,9 +164,13 @@ class SupportScreen extends ConsumerWidget {
     required dynamic raw,
     required DateFormat dateFormatter,
   }) {
-    final id = raw is MockSupportTicket
-        ? raw.id
-        : (raw['id'] ?? '').toString();
+    final id = raw is MockSupportTicket ? raw.id : (raw['id'] ?? '').toString();
+    // DEF-2026-05-15-12: render UUIDs as a short prefix (matches the
+    // HTML design + the in-bell ticket reference). Mock IDs are
+    // already in short "TKT-NNNN" form; only real UUIDs need
+    // trimming. The full UUID is still in the route + detail title.
+    final isUuid = id.length >= 36 && id.contains('-');
+    final displayId = isUuid ? '#${id.substring(0, 8)}' : id;
     final subject = raw is MockSupportTicket
         ? raw.subject
         : (raw['subject'] ?? '').toString();
@@ -166,7 +211,7 @@ class SupportScreen extends ConsumerWidget {
                 Row(
                   children: [
                     Text(
-                      id,
+                      displayId,
                       style: const TextStyle(
                         color: ArlColors.charcoal,
                         fontSize: 12,
@@ -176,7 +221,8 @@ class SupportScreen extends ConsumerWidget {
                     if (isDemo)
                       Container(
                         margin: const EdgeInsets.only(left: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1),
                         decoration: BoxDecoration(
                           color: ArlColors.gold.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(6),
@@ -198,7 +244,8 @@ class SupportScreen extends ConsumerWidget {
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: isResolved
                         ? ArlColors.accent.withValues(alpha: 0.15)
@@ -208,9 +255,7 @@ class SupportScreen extends ConsumerWidget {
                   child: Text(
                     status,
                     style: TextStyle(
-                      color: isResolved
-                          ? ArlColors.accent
-                          : ArlColors.primary,
+                      color: isResolved ? ArlColors.accent : ArlColors.primary,
                       fontSize: 9,
                       fontWeight: FontWeight.w600,
                     ),

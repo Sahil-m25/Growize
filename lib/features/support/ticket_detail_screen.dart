@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:intl/intl.dart';
+import 'package:arl_app/core/supabase/supabase_client.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/core/widgets/skel_box.dart';
 import 'package:arl_app/core/providers/repositories.dart';
@@ -22,16 +24,60 @@ class TicketDetailScreen extends ConsumerStatefulWidget {
 
 class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
   late TextEditingController _replyController;
+  RealtimeChannel? _channel;
 
   @override
   void initState() {
     super.initState();
     _replyController = TextEditingController();
+    // DEF-2026-05-15-03: Realtime subscription on ticket_messages
+    // + support_tickets so staff replies and status flips render
+    // without a manual refresh. Filter narrows to the current
+    // ticket; RLS already restricts payloads to the investor.
+    final client = ArlSupabase.client;
+    if (client != null) {
+      _channel = client.channel('ticket_realtime_${widget.ticketId}')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'ticket_messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'ticket_id',
+            value: widget.ticketId,
+          ),
+          callback: (_) {
+            if (mounted) {
+              ref.invalidate(ticketMessagesProvider(widget.ticketId));
+            }
+          },
+        )
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'support_tickets',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: widget.ticketId,
+          ),
+          callback: (_) {
+            if (mounted) {
+              ref.invalidate(ticketByIdProvider(widget.ticketId));
+            }
+          },
+        )
+        ..subscribe();
+    }
   }
 
   @override
   void dispose() {
     _replyController.dispose();
+    final ch = _channel;
+    if (ch != null) {
+      ArlSupabase.client?.removeChannel(ch);
+    }
     super.dispose();
   }
 
