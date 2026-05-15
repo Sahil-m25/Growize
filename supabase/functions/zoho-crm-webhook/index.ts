@@ -485,7 +485,7 @@ async function handleContact(
     bank_holder_name: d.Account_Holder_Full_name as string | undefined,
     bank_name: d.Bank_Name as string | undefined,
     date_of_birth: incomingDob,
-    aadhaar_number: incomingAadhaar,
+    aadhaar_masked: incomingAadhaar,
     address_line1: d.Mailing_Street as string | undefined,
     city: d.Mailing_City as string | undefined,
     state: d.Mailing_State as string | undefined,
