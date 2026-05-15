@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
@@ -83,12 +83,12 @@ class _NewTicketScreenState extends ConsumerState<NewTicketScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: ArlColors.charcoal),
           onPressed: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go(RouteNames.home);
-              }
-            },
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(RouteNames.home);
+            }
+          },
         ),
         title: const Text(
           'New Ticket',
@@ -101,6 +101,12 @@ class _NewTicketScreenState extends ConsumerState<NewTicketScreen> {
         centerTitle: false,
       ),
       body: SingleChildScrollView(
+        // DEF-2026-05-15-04: bottom padding clears the system nav
+        // inset + extra slack so the Submit button no longer overlaps
+        // the bottom nav on short viewports / zoomed-in browsers.
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewPaddingOf(context).bottom + 24,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

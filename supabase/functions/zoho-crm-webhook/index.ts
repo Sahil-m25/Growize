@@ -404,6 +404,8 @@ Deno.serve(async (req: Request) => {
       await handleContactDelete(supabase, data);
     } else if (isDelete && zohoModule === "LLP_Creation_Module") {
       await handleLLPDelete(supabase, data);
+    } else if (isDelete && zohoModule === "LLP_UnitAllocation_Module") {
+      await handleAllocationDelete(supabase, data);
     } else if (zohoModule === "Contacts") {
       await handleContact(supabase, data, modifiedTime);
     } else if (zohoModule === "LLP_Creation_Module") {
@@ -452,7 +454,7 @@ async function handleContact(
   // recent changes.
   const { data: cur } = await supabase
     .from("investors")
-    .select("id, updated_at")
+    .select("id, updated_at, email")
     .eq("zoho_contact_id", d.id as string)
     .maybeSingle();
   if (!cur) {
@@ -464,9 +466,15 @@ async function handleContact(
     return; // stale
   }
 
+  const incomingEmail = (d.Email as string | undefined)?.trim() || undefined;
+  // DEF-2026-05-15-09: Zoho-side edits to DOB / Aadhaar previously
+  // never propagated. Pull both into the investors UPSERT map.
+  const incomingDob = asDate(d.Date_of_Birth);
+  const incomingAadhaar = d.Aadhaar_Number as string | undefined;
+
   const update = {
     name: fullName || (d.Full_Name as string) || "(unknown)",
-    email: d.Email as string | undefined,
+    email: incomingEmail,
     phone: (d.Mobile ?? d.Phone) as string | undefined,
     salutation: d.Salutation as string | undefined,
     kyc_status: mapKycStatus(d.KYC),
@@ -476,6 +484,8 @@ async function handleContact(
     bank_branch: d.Bank_Branch as string | undefined,
     bank_holder_name: d.Account_Holder_Full_name as string | undefined,
     bank_name: d.Bank_Name as string | undefined,
+    date_of_birth: incomingDob,
+    aadhaar_number: incomingAadhaar,
     address_line1: d.Mailing_Street as string | undefined,
     city: d.Mailing_City as string | undefined,
     state: d.Mailing_State as string | undefined,
@@ -501,6 +511,30 @@ async function handleContact(
     .eq("zoho_contact_id", d.id as string);
   if (updErr) {
     throw new Error(`investors update failed: ${updErr.message}`);
+  }
+
+  // DEF-2026-05-15-07: keep auth.users.email in sync with the
+  // Zoho-authoritative profile email. Without this, ops-side
+  // email edits would leave the investor signing in with the
+  // stale address. We only push when the value actually changed
+  // and is non-empty so we don't trigger unnecessary GoTrue
+  // confirmation emails. Side-effect; log on failure but don't
+  // roll back the investors update.
+  const prevEmail = (cur.email as string | undefined)?.trim() || undefined;
+  if (
+    incomingEmail
+    && prevEmail !== incomingEmail
+    && cur.id
+  ) {
+    const { error: authErr } = await supabase.auth.admin.updateUserById(
+      cur.id as string,
+      { email: incomingEmail },
+    );
+    if (authErr) {
+      console.error(
+        `auth email push failed for ${cur.id}: ${authErr.message}`,
+      );
+    }
   }
 }
 
@@ -569,8 +603,12 @@ async function handleProject(
     pincode: d.Address_Line_1_Zip_Postal_Code as string | undefined,
     country: d.Address_Line_1_Country_Region as string | undefined,
     total_units: asNumber(d.Total_Units),
-    units_issued: asNumber(d.Units_Issued),
-    units_available: asNumber(d.Units_Available_to_Issue),
+    // DEF-2026-05-15-01 + DEF-2026-05-15-05 (migration 046):
+    // units_issued + units_available are now derived columns,
+    // maintained by the trg_recompute_project_units trigger on
+    // investor_units. The webhook no longer writes them — Zoho's
+    // Units_Issued / Units_Available_to_Issue are treated as
+    // hints, never persisted.
     price_per_unit: asNumber(d.Pet_Unit_Price),
     total_project_cost: asNumber(d.Total_Project_Cost),
     total_ticket_size: asNumber(d.Total_Ticket_Size),
@@ -755,6 +793,31 @@ async function handleContactDelete(
       console.error(`auth ban failed for ${row.id}: ${banErr.message}`);
     }
   }
+}
+
+// DEF-2026-05-15-10: Zoho cancellations on LLP_UnitAllocation_Module
+// were previously only handled for Contacts + LLPs. Allocations
+// stayed active in Supabase until ops manually flipped deleted_at,
+// leaving the investor's portfolio over-counted. Soft-delete the
+// matching investor_units row on Zoho-side allocation delete.
+async function handleAllocationDelete(
+  supabase: ReturnType<typeof createClient>,
+  d: Record<string, unknown>,
+) {
+  const zohoId = (d.id ?? d.Id ?? d.record_id) as string | undefined;
+  if (!zohoId) {
+    throw new Error("missing allocation.id in delete payload");
+  }
+  const { error } = await supabase
+    .from("investor_units")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("zoho_allocation_id", zohoId)
+    .is("deleted_at", null);
+  if (error) {
+    throw new Error(`investor_units soft-delete failed: ${error.message}`);
+  }
+  // Parent project's derived units recompute via the
+  // trg_recompute_project_units trigger from migration 046.
 }
 
 async function handleLLPDelete(
