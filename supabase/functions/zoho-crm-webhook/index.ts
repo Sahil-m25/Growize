@@ -241,6 +241,15 @@ function normaliseRequest(
   const bodyModule = typeof body.module === "string" ? body.module : undefined;
   const bodyOp = typeof body.operation === "string" ? body.operation : undefined;
 
+  // typeof [] === "object" so this predicate already accepts both
+  // array- and plain-object-shaped envelope data. The array form is
+  // how Zoho's v3 Custom Function webhook envelope ships delete
+  // events (and some create/update fan-outs): the body looks like
+  //   { "data": [ { "id": "...", ... } ], "module": "...", "operation": "..." }
+  // — a one-element array wrapping the record. The plain-object form
+  // is what Zoho Flow / our internal reconcile job send. Both are
+  // valid; we unwrap arrays to the first element below so downstream
+  // handlers see a uniform Record shape.
   const hasEnvelopeData =
     body.data !== undefined &&
     body.data !== null &&
@@ -259,7 +268,17 @@ function normaliseRequest(
   let source: "envelope" | "flat" | "mixed" | "query";
 
   if (hasEnvelopeData) {
-    data = body.data as Record<string, unknown>;
+    // Zoho v3 envelope quirk: `data` may be either an array of one
+    // record OR a plain object. Delete events in particular ship as
+    // `data: [{ id: "..." }]`. Unwrap the array to its first element
+    // so the downstream `data["id"]` access works in both shapes.
+    // DEF-2026-05-15-11: previously treated `data` as a Record
+    // unconditionally, which made array-shaped envelopes fail the
+    // missing-record-id check with HTTP 400.
+    const envelopeData = body.data;
+    data = Array.isArray(envelopeData)
+      ? ((envelopeData[0] as Record<string, unknown>) ?? {})
+      : (envelopeData as Record<string, unknown>);
     source = queryModule || queryOp ? "mixed" : "envelope";
   } else if (bodyHasFlatFields) {
     // Flat: every body key except the conventional envelope keys is
