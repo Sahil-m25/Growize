@@ -256,7 +256,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'Enter your email to receive a password reset link.',
+                'Enter the email tied to your investor account. '
+                'If it is registered, we will send a reset link.',
                 style: TextStyle(color: ArlColors.muted, fontSize: 12),
               ),
               const SizedBox(height: 16),
@@ -302,11 +303,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         }
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text(
-                                'Password reset link sent to your email',
+                                'If $email is registered, you will get an '
+                                'email shortly. Check your inbox.',
                               ),
-                              duration: Duration(seconds: 3),
+                              duration: const Duration(seconds: 4),
                             ),
                           );
                         }
