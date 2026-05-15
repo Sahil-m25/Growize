@@ -411,16 +411,21 @@ Deno.serve(async (req: Request) => {
   const logId = logRow.id;
 
   // ── Route by module ──────────────────────────────────────────────────
-  // Soft-delete fan-out: when Zoho fires the delete trigger on a
-  // Contact / LLP record, the workflow stamps the `operation` query
-  // param (or body field) with `delete`. We mark the corresponding
-  // Supabase row's `deleted_at = now()` rather than hard-deleting,
-  // so FK chains (investor_units → projects → payouts → documents)
-  // keep their parents around for audit + history.
+  // Hard-delete fan-out: when Zoho fires the delete trigger on a
+  // Contact / LLP / Allocation record, the workflow stamps the
+  // `operation` query param (or body field) with `delete`. We
+  // `DELETE FROM` the corresponding Supabase row and rely on the
+  // schema's ON DELETE CASCADE FKs to wipe dependents (see each
+  // handler for the full cascade map). Replaces the previous
+  // `deleted_at = now()` soft-delete behaviour — ops asked for a
+  // true hard delete so removed Zoho records don't leave orphans
+  // lingering in Supabase. handleContactDelete is the only one
+  // that needs the logId, since it also writes cascade-count
+  // audit info back to webhook_log.payload.
   const isDelete = (operation ?? "").toLowerCase() === "delete";
   try {
     if (isDelete && zohoModule === "Contacts") {
-      await handleContactDelete(supabase, data);
+      await handleContactDelete(supabase, data, logId);
     } else if (isDelete && zohoModule === "LLP_Creation_Module") {
       await handleLLPDelete(supabase, data);
     } else if (isDelete && zohoModule === "LLP_UnitAllocation_Module") {
@@ -468,30 +473,32 @@ async function handleContact(
   const fullName = [d.First_Name, d.Last_Name].filter(Boolean).join(" ").trim();
   const incomingUpdated = modifiedTime ? new Date(modifiedTime) : new Date();
 
-  // Skip stale updates: if the row already exists and our copy is newer,
-  // do nothing. Prevents out-of-order Zoho deliveries from rolling back
-  // recent changes.
+  // Look up the existing investor row by Zoho contact id. v27 silently
+  // returned here when no match existed, which left first-seen Zoho
+  // Contacts unmirrored and broke downstream allocation lookups
+  // ("investor not found for zoho_contact_id …"). v28 (DEF-V27-01)
+  // upgrades that no-match branch to a real INSERT — see below.
   const { data: cur } = await supabase
     .from("investors")
     .select("id, updated_at, email")
     .eq("zoho_contact_id", d.id as string)
     .maybeSingle();
-  if (!cur) {
-    // No matching investor row — onboard-investor must run first.
-    // We silently skip rather than insert (FK to auth.users would fail).
-    return;
-  }
-  if (cur.updated_at && incomingUpdated <= new Date(cur.updated_at)) {
+
+  // Stale-event guard: when the row already exists and our copy is
+  // older than what's stored, do nothing. Prevents out-of-order Zoho
+  // deliveries from rolling back recent changes. Only relevant on
+  // the UPDATE path — the INSERT path below by definition isn't stale.
+  if (cur?.updated_at && incomingUpdated <= new Date(cur.updated_at)) {
     return; // stale
   }
 
   const incomingEmail = (d.Email as string | undefined)?.trim() || undefined;
   // DEF-2026-05-15-09: Zoho-side edits to DOB / Aadhaar previously
-  // never propagated. Pull both into the investors UPSERT map.
+  // never propagated. Pull both into the investors write map.
   const incomingDob = asDate(d.Date_of_Birth);
   const incomingAadhaar = d.Aadhaar_Number as string | undefined;
 
-  const update = {
+  const fields = {
     name: fullName || (d.Full_Name as string) || "(unknown)",
     email: incomingEmail,
     phone: (d.Mobile ?? d.Phone) as string | undefined,
@@ -519,6 +526,67 @@ async function handleContact(
     last_synced_at: new Date().toISOString(),
   };
 
+  if (!cur) {
+    // ── v28 DEF-V27-01 fix: auto-onboard first-seen Zoho Contacts ──
+    // public.investors.id is `uuid NOT NULL` with no default and FK to
+    // auth.users(id) ON DELETE CASCADE, so we can't INSERT directly
+    // (no value for `id`) and we can't use gen_random_uuid() (it would
+    // trip the FK). Mirror onboard-investor's approach: mint the auth
+    // user via admin.inviteUserByEmail (which also emails a magic-link
+    // password-setup, same as ops-side onboarding), then INSERT the
+    // investors row with that uid as `id`. A returning Zoho update
+    // takes the cur-non-null UPDATE branch below.
+    if (!incomingEmail) {
+      // investors.email is NOT NULL UNIQUE — without it we can't
+      // insert. Surface a clear error so ops can fix the Zoho record
+      // (or add Email to the workflow payload) and retry.
+      throw new Error(
+        `cannot auto-onboard contact ${d.id}: missing Email in Zoho payload`,
+      );
+    }
+    const { data: invited, error: inviteErr } = await supabase.auth.admin
+      .inviteUserByEmail(incomingEmail, {
+        data: {
+          source: "zoho-crm-webhook.handleContact",
+          zoho_contact_id: d.id as string,
+        },
+      });
+    if (inviteErr || !invited?.user) {
+      throw new Error(
+        `inviteUserByEmail failed for ${incomingEmail}: ${
+          inviteErr?.message ?? "no user returned"
+        }`,
+      );
+    }
+    const newUserId = invited.user.id as string;
+
+    const { error: insErr } = await supabase.from("investors").insert({
+      id: newUserId,
+      zoho_contact_id: d.id as string,
+      ...fields,
+    });
+    if (insErr) {
+      // Best-effort cleanup of the auth user we just minted so a
+      // future webhook retry isn't blocked by a half-onboarded state.
+      // If cleanup itself fails we log + still surface the original
+      // insert error — leaving an orphaned auth.users row is the
+      // lesser evil vs. silently swallowing the primary failure.
+      const { error: cleanupErr } = await supabase.auth.admin.deleteUser(
+        newUserId,
+      );
+      if (cleanupErr) {
+        console.error(
+          `[handleContact] auth user cleanup after insert failure for ${newUserId}: ${cleanupErr.message}`,
+        );
+      }
+      throw new Error(
+        `investors insert (auto-onboard) failed for zoho_contact_id ${d.id}: ${insErr.message}`,
+      );
+    }
+    return;
+  }
+
+  // ── Existing investor — UPDATE the full field set ───────────────
   // Destructure { error } — bare `await` would swallow PostgREST
   // errors (RLS denial, CHECK violation, FK mismatch) and silently
   // mark the webhook_log row as processed. Throwing surfaces the
@@ -526,7 +594,7 @@ async function handleContact(
   // error_message, so we notice in Slack / health-check.
   const { error: updErr } = await supabase
     .from("investors")
-    .update(update)
+    .update(fields)
     .eq("zoho_contact_id", d.id as string);
   if (updErr) {
     throw new Error(`investors update failed: ${updErr.message}`);
@@ -671,6 +739,17 @@ async function handleAllocation(
   // After the LLP/project split, projects no longer carry zoho_llp_id —
   // it lives on `llps`. Look up the llp first, then its default project
   // (the one created by the webhook's handleProject path).
+  //
+  // v28 (DEF-V27-01) note: allocation upsert intentionally does NOT
+  // auto-onboard a missing investor or LLP. The Contact + LLP webhooks
+  // already self-create their rows on first-seen (Contacts via
+  // handleContact's invite path; LLPs via handleProject's existing
+  // upsert), so by the time an allocation lands both parents should
+  // exist. If they don't, surface a clear error so ops can re-fire
+  // the parent webhook in isolation — auto-creating a phantom investor
+  // / LLP from an allocation payload would invent rows with missing
+  // mandatory fields (email, name, registered address) and trip
+  // downstream NOT-NULL constraints.
   const [{ data: inv }, { data: llp }] = await Promise.all([
     supabase.from("investors").select("id").eq("zoho_contact_id", customerZohoId).maybeSingle(),
     supabase.from("llps").select("id").eq("zoho_llp_id", llpZohoId).maybeSingle(),
@@ -724,11 +803,19 @@ async function handleAllocation(
   const zohoAllocationId = d.id as string;
 
   // Unpack payouts from UTR_1..UTR_10 / Amount_1..10 / Date_1..10.
+  // Zoho field-naming quirk (DEF-OPS-02): the "UTR 1" picklist on
+  // LLP_UnitAllocation_Module ships over the API as `UTR` — no
+  // `_1` suffix — and likewise for `Amount` / `Date` for slot 1.
+  // Slots 2-10 follow the expected `UTR_2`..`UTR_10` pattern.
+  // The `?? d.UTR` fallback below is compensating for that Zoho
+  // inconsistency, not a bug — please don't "tidy" it away.
   const payoutRows: Record<string, unknown>[] = [];
   for (let i = 1; i <= 10; i++) {
-    const utr = d[`UTR_${i}`];
-    const amt = asNumber(d[`Amount_${i}`]);
-    const dt = d[`Date_${i}`];
+    const utr = i === 1 ? (d.UTR_1 ?? d.UTR) : d[`UTR_${i}`];
+    const amt = i === 1
+      ? asNumber(d.Amount_1 ?? d.Amount)
+      : asNumber(d[`Amount_${i}`]);
+    const dt = i === 1 ? (d.Date_1 ?? d.Date) : d[`Date_${i}`];
     if (!utr || amt === undefined) continue;
     payoutRows.push({
       investor_id: inv.id,
@@ -749,128 +836,4 @@ async function handleAllocation(
     });
     if (payoutErr) throw new Error(`payouts upsert failed: ${payoutErr.message}`);
 
-    // Notify investor of new payouts (one notification per webhook,
-    // not per payout — investor sees a single "X new payouts" item).
-    const { data: projInfo } = await supabase
-      .from("projects")
-      .select("name")
-      .eq("id", prj.id)
-      .maybeSingle();
-
-    // Side-effect; log on failure but don't roll back the allocation/payout writes.
-    const { error: notifErr } = await supabase.from("notifications").insert({
-      investor_id: inv.id,
-      type: "payout",
-      title: "Payout processed",
-      body: `Your payout for ${projInfo?.name ?? "your project"} has been processed.`,
-      metadata: {
-        project_id: prj.id,
-        payout_count: payoutRows.length,
-        allocation_id: allocationId,
-      },
-    });
-    if (notifErr) console.error(`notifications insert failed: ${notifErr.message}`);
-  }
-}
-
-// ── Soft-delete handlers ───────────────────────────────────────────────
-// Zoho fires a workflow on Contact / LLP record deletion that POSTs
-// here with `operation=delete` and the original record id in the
-// payload. We mark `deleted_at = now()` so RLS hides the row from
-// the app, FK chains stay intact, and a future restore is trivial
-// (UPDATE ... SET deleted_at = NULL). Disabling the auth.users row
-// for a deleted contact prevents the now-orphaned investor from
-// signing back in.
-
-async function handleContactDelete(
-  supabase: ReturnType<typeof createClient>,
-  d: Record<string, unknown>,
-) {
-  const zohoId = (d.id ?? d.Id ?? d.record_id) as string | undefined;
-  if (!zohoId) {
-    throw new Error("missing Contact.id in delete payload");
-  }
-  const { data: rows, error } = await supabase
-    .from("investors")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("zoho_contact_id", zohoId)
-    .is("deleted_at", null)
-    .select("id");
-  if (error) {
-    throw new Error(`investors soft-delete failed: ${error.message}`);
-  }
-  // Ban the auth.users row so any cached refresh token cannot
-  // exchange for a new access token. ban_duration is the GoTrue
-  // mechanism — Supabase Admin SDK has no `banned: true` flag.
-  // 100 years (876000h) is the conventional "indefinite" value.
-  for (const row of rows ?? []) {
-    const { error: banErr } = await supabase.auth.admin.updateUserById(
-      row.id as string,
-      { ban_duration: "876000h" } as { ban_duration: string },
-    );
-    if (banErr) {
-      console.error(`auth ban failed for ${row.id}: ${banErr.message}`);
-    }
-  }
-}
-
-// DEF-2026-05-15-10: Zoho cancellations on LLP_UnitAllocation_Module
-// were previously only handled for Contacts + LLPs. Allocations
-// stayed active in Supabase until ops manually flipped deleted_at,
-// leaving the investor's portfolio over-counted. Soft-delete the
-// matching investor_units row on Zoho-side allocation delete.
-async function handleAllocationDelete(
-  supabase: ReturnType<typeof createClient>,
-  d: Record<string, unknown>,
-) {
-  const zohoId = (d.id ?? d.Id ?? d.record_id) as string | undefined;
-  if (!zohoId) {
-    throw new Error("missing allocation.id in delete payload");
-  }
-  const { error } = await supabase
-    .from("investor_units")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("zoho_allocation_id", zohoId)
-    .is("deleted_at", null);
-  if (error) {
-    throw new Error(`investor_units soft-delete failed: ${error.message}`);
-  }
-  // Parent project's derived units recompute via the
-  // trg_recompute_project_units trigger from migration 046.
-}
-
-async function handleLLPDelete(
-  supabase: ReturnType<typeof createClient>,
-  d: Record<string, unknown>,
-) {
-  const zohoId = (d.id ?? d.Id ?? d.record_id) as string | undefined;
-  if (!zohoId) {
-    throw new Error("missing LLP.id in delete payload");
-  }
-  const now = new Date().toISOString();
-
-  const { data: llpRows, error: llpErr } = await supabase
-    .from("llps")
-    .update({ deleted_at: now })
-    .eq("zoho_llp_id", zohoId)
-    .is("deleted_at", null)
-    .select("id");
-  if (llpErr) {
-    throw new Error(`llps soft-delete failed: ${llpErr.message}`);
-  }
-
-  // Cascade: every active project under this LLP gets the same
-  // deleted_at stamp. Projects are mirrored 1:1 with LLPs today,
-  // but the join keys it generically.
-  const llpIds = (llpRows ?? []).map((r) => r.id as string);
-  if (llpIds.length > 0) {
-    const { error: prjErr } = await supabase
-      .from("projects")
-      .update({ deleted_at: now })
-      .in("llp_id", llpIds)
-      .is("deleted_at", null);
-    if (prjErr) {
-      throw new Error(`projects cascade soft-delete failed: ${prjErr.message}`);
-    }
-  }
-}
+    // Notify investor of new payouts (one notification per webh
