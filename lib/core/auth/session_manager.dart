@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:arl_app/core/constants/supabase_constants.dart';
 import 'package:arl_app/core/supabase/supabase_client.dart';
 
 /// Thin wrapper around Supabase auth. Pure static surface so screens
@@ -42,10 +43,38 @@ class SessionManager {
     await client.auth.signInWithPassword(email: email, password: password);
   }
 
-  /// Magic link / OTP request. Sends an email, user gets a code.
+  /// Magic link / OTP request. Routes through the `request-auth-email`
+  /// Edge Function so we only send to addresses that actually map to
+  /// an investor (invite-only enumeration protection). The function
+  /// always returns `{ok:true}` — never throws on "unknown email".
   static Future<void> signInWithOtp({required String email}) async {
+    await _requestAuthEmail(email: email, mode: 'magic_link');
+  }
+
+  /// Internal: POSTs to the auth-gate Edge Function. Same surface for
+  /// both reset + magic-link flows. Throws on transport / 4xx / 5xx so
+  /// the UI can show a generic "couldn't reach server" message —
+  /// success vs "email unknown" is indistinguishable by design.
+  static Future<void> _requestAuthEmail({
+    required String email,
+    required String mode,
+  }) async {
     final client = ArlSupabase.requireClient();
-    await client.auth.signInWithOtp(email: email);
+    final secret = SupabaseConstants.authGateSecret;
+    if (secret.isEmpty) {
+      throw const AuthException(
+        'Auth gate not configured. Contact support.',
+      );
+    }
+    final res = await client.functions.invoke(
+      SupabaseConstants.fnRequestAuthEmail,
+      body: {'email': email, 'mode': mode},
+      headers: {'x-arl-cron-secret': secret},
+    );
+    final status = res.status;
+    if (status < 200 || status >= 300) {
+      throw AuthException('Auth service unavailable (HTTP $status).');
+    }
   }
 
   /// Verify the email OTP code the user typed in.
@@ -76,11 +105,14 @@ class SessionManager {
     await client.auth.setSession(refreshToken);
   }
 
-  /// B.T4: Request a password reset. Sends an email with a recovery link.
-  /// Throws AuthException on failure.
+  /// B.T4: Request a password reset. Routed through the
+  /// `request-auth-email` Edge Function so a recovery email only goes
+  /// out for addresses that map to a registered investor (invite-only
+  /// + enumeration protection). The function always responds
+  /// `{ok:true}` regardless of whether the email exists, so callers
+  /// must show a generic "if registered, check your inbox" message.
   static Future<void> requestPasswordReset(String email) async {
-    final client = ArlSupabase.requireClient();
-    await client.auth.resetPasswordForEmail(email);
+    await _requestAuthEmail(email: email, mode: 'reset');
   }
 
   /// B.T4: Update the user's password (used after recovery link).

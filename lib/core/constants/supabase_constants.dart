@@ -33,8 +33,7 @@ abstract final class SupabaseConstants {
   /// Returns the compile-time `String.fromEnvironment` value if present;
   /// otherwise falls back to `flutter_dotenv` (loaded in main.dart from
   /// the bundled `.env` asset); otherwise returns the explicit fallback.
-  static String _envOr(String defineValue, String key,
-      [String fallback = '']) {
+  static String _envOr(String defineValue, String key, [String fallback = '']) {
     if (defineValue.isNotEmpty) return defineValue;
     try {
       final v = dotenv.maybeGet(key);
@@ -79,4 +78,14 @@ abstract final class SupabaseConstants {
   static const String fnCreateTicket = 'create-ticket';
   static const String fnReplyTicket = 'reply-ticket';
   static const String fnBankChangeRequest = 'bank-change-request';
+  static const String fnRequestAuthEmail = 'request-auth-email';
+
+  /// Shared secret sent in the `x-arl-cron-secret` header when calling
+  /// the `request-auth-email` Edge Function. Separate from CRON_SECRET
+  /// so the value baked into the Flutter binary can be rotated without
+  /// touching DB-trigger-fired functions.
+  static const String _authGateSecretDefine =
+      String.fromEnvironment('ARL_AUTH_GATE_SECRET', defaultValue: '');
+  static String get authGateSecret =>
+      _envOr(_authGateSecretDefine, 'ARL_AUTH_GATE_SECRET');
 }
