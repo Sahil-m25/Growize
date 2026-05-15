@@ -1406,9 +1406,78 @@ DROP FUNCTION IF EXISTS public.notify_bank_change_status_change();
 
 ---
 
+---
+
+## Part 10 — Topic-Specific Deep Dives
+
+This guide is the master index. Some workflows are deep enough that they live in their own files under `docs/ops/`. Read those when you need the step-by-step, with copy-pasteable SQL and screen-by-screen walkthroughs. Each was written 2026-05-15 against the live database (`oynfhdqizebvgmaoiuax`) using the test investor `ofclash98@gmail.com` (`27d3735e-470d-47a5-a413-9ae502194d3d`); the SQL is real and the recipes were executed end-to-end.
+
+### 10.1 — Support tickets
+
+**Read:** `docs/ops/tickets.md` (709 lines)
+
+What it covers: schema of `support_tickets` + `ticket_messages`, RLS, the `create-ticket` and `reply-ticket` edge functions, the `trg_notify_ticket_reply` trigger from migration 034, and the four Flutter screens under `lib/features/support/`. Includes recipes T-1 through T-6: reply from ops, close/re-open, look up by investor, find aging tickets, and the FG-01 stopgap for initiating a ticket addressed to an investor (the trigger fires automatically because `sender_type='staff'` is the gate).
+
+When to consult: any ops touching `support_tickets`, `ticket_messages`, or wanting to know what the bell badge counts.
+
+### 10.2 — Marketplace project lifecycle
+
+**Read:** `docs/ops/marketplace.md` (816 lines)
+
+What it covers: how a project flows from Zoho `LLP_Creation_Module` → webhook → `llps` + `projects` → Explore screen card. Documents the exact Dart filter predicates for "All" / "Open for Reservation" / "Coming Soon" tabs (post commit `2d3ddae`). Includes recipes M-1 through M-6 covering listing, status transitions, marketplace card metadata, and sunset. Auto-balance for `units_available` was investigated — the recommended fix would race the Zoho webhook, so it is documented as a future planned change and NOT shipped. Manual reconcile recipe M-5 is the current workaround.
+
+When to consult: adding a new project, debugging "why isn't this project showing up in Explore", or reconciling a drift between `projects.units_issued` and `sum(investor_units.issued_units)`.
+
+### 10.3 — Documents tiering
+
+**Read:** `docs/ops/documents.md` (563 lines)
+
+What it covers: the 3-tier document model from migrations 032 + 033 — `common`, `project`, `investor`. Storage bucket conventions for `arl-documents`, the `documents_tier_columns_check` invariant, and the RLS predicates for both `public.documents` and `storage.objects`. Includes recipes D-1 through D-7: upload common/project/investor docs, replace, delete, bulk upload, and audit visibility. Flagged P1: the four existing seed rows have `storage_path` values prefixed with `documents/` but the storage RLS predicate matches on first-folder = `common`/`project`/`investor`. Bucket is empty so the bug is latent — engineering call needed before shipping.
+
+When to consult: any time ops uploads a PDF for investors to view, or you need to debug "why can't this investor see this document".
+
+### 10.4 — Investor profile management
+
+**Read:** `docs/ops/investor_profile.md` (1012 lines)
+
+What it covers: the full ops checklist for editing any aspect of an investor's profile — personal info, KYC, sensitive identity fields (PAN/Aadhaar/DOB/bank), project assignments, payouts, exit requests, bank change requests, auth-level controls, PIN reset, and account deletion. Each follows the WHAT / WHO / WHERE / WHEN / NOTIFICATION / SQL / ROLLBACK template. Live-tested KYC + exit-request + bank-change-request state transitions against migration 034 triggers. Master quick-reference table at the end.
+
+When to consult: any change you make to an `investors` row, or any time you're processing a request the investor submitted (exit, bank change, KYC re-submission).
+
+### Defect roll-up surfaced during this consolidation pass
+
+These are summarised here so the master guide carries the breadcrumb. Full reproduction steps live in each deep-dive doc.
+
+| Tag           | Severity | Topic        | Headline                                                                                                              |
+|---------------|----------|--------------|-----------------------------------------------------------------------------------------------------------------------|
+| DEF-MKT-01    | P1       | Marketplace  | `Sample Test LLP` has `units_available = -30`. No CHECK constraint guards against `units_issued > total_units`.       |
+| DOC-RLS-PATH  | P1       | Documents    | Seed `documents.storage_path` values prefixed `documents/` but storage RLS reads folder level 1 — paths can't co-exist. Bucket empty, latent. |
+| D-1           | P2       | Tickets      | Status flips don't push to investor UI without a manual refresh. No Realtime subscription on ticket providers.        |
+| D-2           | P2       | Tickets      | New-ticket submit button overlaps bottom nav; first tap can land on `/documents`.                                     |
+| DEF-MKT-02    | P2       | Marketplace  | 5 projects drift between `projects.units_issued` and `sum(investor_units.issued_units)`. M-5 recipe is the workaround.|
+| DEF-MKT-03    | P2       | Marketplace  | `projects.units_issued` is NULL on two UAT rows; column should default to 0.                                          |
+| DEF-OPS-1     | P2       | Profile      | Webhook never pushes Zoho `Contacts.Email` to `auth.users.email`. Sign-in email can drift from profile email.         |
+| DEF-OPS-2     | P2       | Profile      | Exit-request `approved → settled` does not fire a notification — trigger gates on `OLD.status='pending'`.             |
+| DEF-OPS-3     | P2       | Profile      | Webhook does not pull `Contacts.Date_of_Birth` or `Contacts.Aadhaar_Number`. Only the self-onboard path writes those. |
+| DEF-OPS-4     | P2       | Profile      | Webhook does not handle `LLP_UnitAllocation_Module` delete operation — cancellations leave Supabase rows active.      |
+| DEF-OPS-5     | P2       | Profile      | `kyc_resubmissions` status changes do not fire a notification.                                                        |
+| D-3 / D-4 / D-5 | P3     | Tickets      | UUID display cosmetic; notification body wording for ops-initiated tickets; `bank_change`/`exit_request` not selectable as ticket categories. |
+| DEF-MKT-04/05 | P3       | Marketplace  | `marketplace_sort_order` mostly 0 (no convention); cosmetic `Darft` typo in Zoho status picklist (ignored by allow-list). |
+| DEF-OPS-6/7   | P3       | Profile      | `investors.address_line2` is dead column; `kyc_status='in_progress'` does not fire a notification.                    |
+
+### FG-01 status
+
+Still open. Ops can now use **Recipe T-6** in `docs/ops/tickets.md` (single CTE, INSERT support_tickets + INSERT ticket_messages with `sender_type='staff'`) to initiate a ticket addressed to an investor. The migration 034 trigger fires the bell automatically. This is the recommended stopgap until an ops admin UI exists.
+
+---
+
 **End of guide.** If you've followed something here and it didn't work, OR you have a use case not covered, file an issue + ping engineering. This document gets out of date — verify against the actual system if in doubt.
 
 Cross-references:
 - `docs/data_flow_guide.md` — architecture reference (for engineers).
 - `docs/debug_runbook.md` — failure playbook (for engineers at 2am).
 - `docs/testing/runs/` — UAT logs from past test runs.
+- `docs/ops/tickets.md` — support ticket lifecycle deep-dive (Part 10.1).
+- `docs/ops/marketplace.md` — marketplace project lifecycle deep-dive (Part 10.2).
+- `docs/ops/documents.md` — documents tiering deep-dive (Part 10.3).
+- `docs/ops/investor_profile.md` — investor profile management deep-dive (Part 10.4).

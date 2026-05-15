@@ -14,3 +14,4 @@
 | 2026-05-13 | decision | DEF-10 investor_units.deleted_at soft-delete column | locked | decisions/2026-05-13_def-10-investor-units-soft-delete.md |
 | 2026-05-13 | decision | DEF-11 bank_change_requests.updated_at unblock trigger | locked | decisions/2026-05-13_def-11-bank-change-updated-at.md |
 | 2026-05-13 | decision | DEF-12 server-side 5-year lock-in on exit_requests INSERT | locked | decisions/2026-05-13_def-12-exit-lockin-rls.md |
+| 2026-05-15 | decision | Ops-doc consolidation: 4 topic deep-dives + Part 10 master TOC; migration 045 applied LIVE | locked | decisions/2026-05-15_ops-doc-consolidation.md |

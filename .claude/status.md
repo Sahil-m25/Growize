@@ -1,8 +1,8 @@
 # Project Status — arl_app
 
-**Last updated:** 2026-05-13
+**Last updated:** 2026-05-15
 **Current phase:** Implement
-**Progress:** Extended E2E defects DEF-09/10/11/12 fixed (4 commits). Migrations 042-044 saved locally; user to apply via Supabase MCP. DEF-08 left out of scope (Zoho admin config).
+**Progress:** Ops-doc consolidation done. 4 new topic deep-dives under docs/ops/ (~3,100 lines), Part 10 added to docs/ops_admin_guide.md as master TOC. Migration 045 applied LIVE on oynfhdqizebvgmaoiuax (fixes DEF-MKT-03 + DEF-OPS-2). 18 new defects logged in tracker (DEF-2026-05-15-01..18); LR-OPS-001 + LR-DB-045 marked Done. Three deferred items flagged for engineering review (auto-balance race vs Zoho webhook, documents storage_path RLS drift, units_available negative outlier).
 
 ## Summary
 Flutter port of `Growize App Design.html` (17 pages). Core screens scaffolded across 12 features. Active work: HTML-parity fixes — global header/logo, font bundling, back-nav stack behavior.

@@ -19,24 +19,15 @@ class AuthScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [ArlColors.primary, ArlColors.accent],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'ARL',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                  // Growize "g" mark — replaces the legacy ARL placeholder square.
+                  SizedBox(
+                    width: 96,
+                    height: 96,
+                    child: Image.asset(
+                      'assets/images/growize_g.png',
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                      isAntiAlias: true,
                     ),
                   ),
                   const SizedBox(height: 24),
