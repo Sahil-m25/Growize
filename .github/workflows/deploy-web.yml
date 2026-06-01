@@ -3,68 +3,67 @@ name: Build & Deploy Web
 on:
   push:
     branches: [main]
-  # Allow manual trigger from the Actions tab
   workflow_dispatch:
 
 jobs:
   deploy:
     name: Flutter Web → Netlify
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
-      # ── 1. Checkout ────────────────────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── 2. Flutter ─────────────────────────────────────────────────
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.x'   # pin to a stable channel
+          flutter-version: '3.24.x'
           channel: 'stable'
           cache: true
 
       - name: Flutter pub get
         run: flutter pub get
 
-      # ── 3. Write .env.production from GitHub Secrets ───────────────
-      #    Add every variable below as a repository secret:
-      #    Settings → Secrets and variables → Actions → New repository secret
-      - name: Write .env.production
+      # Write .env.production (compile-time dart-defines)
+      # and .env (runtime asset loaded by flutter_dotenv at startup).
+      # Uses printf + env vars to avoid heredoc leading-space corruption
+      # that happens when YAML indents the block scalar content.
+      - name: Write env files
         run: |
-          cat > .env.production <<EOF
-          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
-          ARL_APP_MODE=live
-          ARL_DEV_BYPASS=false
-          SENTRY_DSN=${{ secrets.SENTRY_DSN }}
-          SENTRY_ENVIRONMENT=production
-          SENTRY_RELEASE=growize@${{ github.sha }}
-          ARL_AUTH_GATE_SECRET=${{ secrets.ARL_AUTH_GATE_SECRET }}
-          EOF
+          printf 'SUPABASE_URL=%s\n'          "$SUPABASE_URL"          > .env.production
+          printf 'SUPABASE_ANON_KEY=%s\n'     "$SUPABASE_ANON_KEY"    >> .env.production
+          printf 'ARL_APP_MODE=live\n'                                 >> .env.production
+          printf 'ARL_DEV_BYPASS=false\n'                              >> .env.production
+          printf 'SENTRY_DSN=%s\n'            "$SENTRY_DSN"           >> .env.production
+          printf 'SENTRY_ENVIRONMENT=production\n'                     >> .env.production
+          printf 'SENTRY_RELEASE=growize@%s\n' "$GITHUB_SHA"          >> .env.production
+          printf 'ARL_AUTH_GATE_SECRET=%s\n'  "$ARL_AUTH_GATE_SECRET" >> .env.production
+          # .env is declared as a Flutter asset in pubspec.yaml and loaded
+          # by flutter_dotenv at runtime — must exist or release build crashes.
+          cp .env.production .env
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          ARL_AUTH_GATE_SECRET: ${{ secrets.ARL_AUTH_GATE_SECRET }}
 
-      # ── 4. Build ───────────────────────────────────────────────────
       - name: Build Flutter web
         run: |
           flutter build web \
             --release \
             --dart-define-from-file=.env.production \
-            --web-renderer auto \
+            --web-renderer html \
             --pwa-strategy offline-first \
             --no-source-maps
 
-      # ── 5. Deploy to Netlify ───────────────────────────────────────
-      #    Secrets needed:
-      #      NETLIFY_AUTH_TOKEN  — from netlify.com → User settings → OAuth → Personal access tokens
-      #      NETLIFY_SITE_ID     — from netlify.com → Site → Site configuration → Site ID
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3.0
         with:
           publish-dir: build/web
           production-branch: main
           production-deploy: true
-          deploy-message: "Deploy from GitHub Actions — ${{ github.sha }}"
+          deploy-message: "Deploy ${{ github.sha }}"
           enable-pull-request-comment: false
           enable-commit-comment: false
         env:
