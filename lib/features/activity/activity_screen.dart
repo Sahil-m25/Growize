@@ -149,7 +149,7 @@ class _NotifView extends StatelessWidget {
               Icon(
                 Icons.notifications_none,
                 size: 36,
-                color: ArlColors.muted.withValues(alpha: 0.6),
+                color: ArlColors.muted.withOpacity(0.6),
               ),
               const SizedBox(height: 12),
               const Text(
@@ -273,9 +273,9 @@ class _NotifCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.08),
+        color: tint.withOpacity(0.08),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: tint.withValues(alpha: 0.25)),
+        border: Border.all(color: tint.withOpacity(0.25)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,7 +325,7 @@ class _NotifCard extends StatelessWidget {
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
-                      backgroundColor: tint.withValues(alpha: 0.12),
+                      backgroundColor: tint.withOpacity(0.12),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20)),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -422,7 +422,7 @@ class _TimelineView extends StatelessWidget {
                 Icon(
                   Icons.history,
                   size: 36,
-                  color: ArlColors.muted.withValues(alpha: 0.6),
+                  color: ArlColors.muted.withOpacity(0.6),
                 ),
                 const SizedBox(height: 12),
                 const Text(
@@ -521,7 +521,7 @@ class _TimelineItem extends StatelessWidget {
               border: Border.all(color: Colors.white, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: dotColor.withValues(alpha: 0.4),
+                  color: dotColor.withOpacity(0.4),
                   blurRadius: 4,
                 ),
               ],
@@ -537,7 +537,7 @@ class _TimelineItem extends StatelessWidget {
               border: Border.all(color: ArlColors.sand),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
+                  color: Colors.black.withOpacity(0.04),
                   blurRadius: 6,
                   offset: const Offset(0, 1),
                 ),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/arl_colors.dart';
@@ -17,7 +17,7 @@ class ProjectCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6)],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -25,7 +25,7 @@ class ProjectCard extends StatelessWidget {
             Container(
               height: 120,
               decoration: BoxDecoration(
-                color: ArlColors.primary.withValues(alpha: 0.1),
+                color: ArlColors.primary.withOpacity(0.1),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
               ),
               child: const Center(
@@ -50,7 +50,7 @@ class ProjectCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text('${project.cropType} • ${project.location}',
+                  Text('${project.cropType} � ${project.location}',
                       style: const TextStyle(fontSize: 12, color: ArlColors.muted, fontFamily: 'Inter')),
                 ],
               ),

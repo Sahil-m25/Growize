@@ -431,7 +431,7 @@ class _IdStep extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: ArlColors.gold.withValues(alpha: 0.1),
+            color: ArlColors.gold.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: const Row(

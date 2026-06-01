@@ -127,7 +127,7 @@ class _NewTicketScreenState extends ConsumerState<NewTicketScreen> {
                 decoration: InputDecoration(
                   hintText: 'Brief description of your issue',
                   hintStyle: TextStyle(
-                    color: ArlColors.muted.withValues(alpha: 0.6),
+                    color: ArlColors.muted.withOpacity(0.6),
                   ),
                   filled: true,
                   fillColor: Colors.white,
@@ -227,7 +227,7 @@ class _NewTicketScreenState extends ConsumerState<NewTicketScreen> {
                 decoration: InputDecoration(
                   hintText: 'Describe your issue in detail',
                   hintStyle: TextStyle(
-                    color: ArlColors.muted.withValues(alpha: 0.6),
+                    color: ArlColors.muted.withOpacity(0.6),
                   ),
                   filled: true,
                   fillColor: Colors.white,

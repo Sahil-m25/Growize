@@ -102,7 +102,7 @@ class SecurityScreen extends ConsumerWidget {
                           _SecurityRow(
                             icon: Icons.fingerprint,
                             iconColor: ArlColors.accent,
-                            iconBg: ArlColors.accent.withValues(alpha: 0.15),
+                            iconBg: ArlColors.accent.withOpacity(0.15),
                             title: 'Biometric unlock',
                             subtitle: lock.biometricEnabled
                                 ? 'On — required to open the app'
@@ -131,7 +131,7 @@ class SecurityScreen extends ConsumerWidget {
                         _SecurityRow(
                           icon: Icons.password,
                           iconColor: ArlColors.primary,
-                          iconBg: ArlColors.primary.withValues(alpha: 0.1),
+                          iconBg: ArlColors.primary.withOpacity(0.1),
                           title: 'Require PIN',
                           subtitle: !lock.hasPin
                               ? 'Set a PIN first to enable'
@@ -152,7 +152,7 @@ class SecurityScreen extends ConsumerWidget {
                         _SecurityRow(
                           icon: Icons.smartphone,
                           iconColor: ArlColors.primary,
-                          iconBg: ArlColors.primary.withValues(alpha: 0.1),
+                          iconBg: ArlColors.primary.withOpacity(0.1),
                           title: lock.hasPin ? 'App PIN' : 'Set App PIN',
                           subtitle: lock.hasPin ? 'Set' : 'Not set',
                           onTap: () =>
@@ -165,7 +165,7 @@ class SecurityScreen extends ConsumerWidget {
                         _SecurityRow(
                           icon: Icons.notifications_outlined,
                           iconColor: ArlColors.gold,
-                          iconBg: ArlColors.gold.withValues(alpha: 0.15),
+                          iconBg: ArlColors.gold.withOpacity(0.15),
                           title: 'Notifications',
                           subtitle: notificationsEnabled ? 'On' : 'Off',
                           trailing: Switch(
@@ -184,10 +184,10 @@ class SecurityScreen extends ConsumerWidget {
                       margin: const EdgeInsets.only(bottom: 20),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: ArlColors.gold.withValues(alpha: 0.10),
+                        color: ArlColors.gold.withOpacity(0.10),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: ArlColors.gold.withValues(alpha: 0.35),
+                          color: ArlColors.gold.withOpacity(0.35),
                         ),
                       ),
                       child: Row(
@@ -755,7 +755,7 @@ class _LoginRow extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: ArlColors.muted.withValues(alpha: 0.12),
+            color: ArlColors.muted.withOpacity(0.12),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.history, color: ArlColors.muted, size: 16),

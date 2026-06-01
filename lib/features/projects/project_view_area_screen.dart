@@ -166,7 +166,7 @@ class _MapPreview extends StatelessWidget {
         border: Border.all(color: ArlColors.sand),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -203,10 +203,10 @@ class _MapPreview extends StatelessWidget {
                       width: 180,
                       height: 180,
                       decoration: BoxDecoration(
-                        color: ArlColors.accent.withValues(alpha: 0.18),
+                        color: ArlColors.accent.withOpacity(0.18),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: ArlColors.accent.withValues(alpha: 0.9),
+                          color: ArlColors.accent.withOpacity(0.9),
                           width: 2,
                         ),
                       ),
@@ -220,7 +220,7 @@ class _MapPreview extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.9),
+                        color: Colors.white.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Row(
@@ -255,7 +255,7 @@ class _MapPreview extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: ArlColors.accent.withValues(alpha: 0.95),
+                        color: ArlColors.accent.withOpacity(0.95),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
@@ -321,7 +321,7 @@ class _GridOverlay extends StatelessWidget {
 
 class _GridPainter extends CustomPainter {
   static final _paint = Paint()
-    ..color = const Color(0xFFCDD6C7).withValues(alpha: 0.55)
+    ..color = const Color(0xFFCDD6C7).withOpacity(0.55)
     ..strokeWidth = 0.5;
 
   @override
@@ -359,7 +359,7 @@ class _CropsCard extends StatelessWidget {
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: isPrimary
-                  ? ArlColors.accent.withValues(alpha: 0.12)
+                  ? ArlColors.accent.withOpacity(0.12)
                   : ArlColors.sand,
               borderRadius: BorderRadius.circular(20),
             ),
@@ -446,7 +446,7 @@ class _ClimateTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
       decoration: BoxDecoration(
-        color: ArlColors.sand.withValues(alpha: 0.4),
+        color: ArlColors.sand.withOpacity(0.4),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: ArlColors.sand),
       ),
@@ -520,7 +520,7 @@ class _AcreageCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: ArlColors.primary.withValues(alpha: 0.05),
+              color: ArlColors.primary.withOpacity(0.05),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -565,12 +565,12 @@ class _PropTile extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: emphasize
-            ? ArlColors.accent.withValues(alpha: 0.1)
-            : ArlColors.sand.withValues(alpha: 0.4),
+            ? ArlColors.accent.withOpacity(0.1)
+            : ArlColors.sand.withOpacity(0.4),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: emphasize
-              ? ArlColors.accent.withValues(alpha: 0.3)
+              ? ArlColors.accent.withOpacity(0.3)
               : ArlColors.sand,
         ),
       ),
@@ -624,7 +624,7 @@ class _SectionCard extends StatelessWidget {
         border: Border.all(color: ArlColors.sand),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -664,10 +664,10 @@ class _Caption extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: ArlColors.primary.withValues(alpha: 0.05),
+        color: ArlColors.primary.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: ArlColors.primary.withValues(alpha: 0.1),
+          color: ArlColors.primary.withOpacity(0.1),
         ),
       ),
       child: Row(

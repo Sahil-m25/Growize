@@ -59,7 +59,7 @@ class ProjectHeroBanner extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withValues(alpha: 0.65),
+                    Colors.black.withOpacity(0.65),
                   ],
                   stops: const [0.4, 1.0],
                 ),
@@ -73,7 +73,7 @@ class ProjectHeroBanner extends StatelessWidget {
               top: topInset + 12,
               left: 12,
               child: Material(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: Colors.white.withOpacity(0.2),
                 shape: const CircleBorder(),
                 child: InkWell(
                   customBorder: const CircleBorder(),
@@ -99,10 +99,10 @@ class ProjectHeroBanner extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.45),
+                  color: Colors.black.withOpacity(0.45),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: Colors.white.withOpacity(0.2),
                   ),
                 ),
                 child: Row(
@@ -161,7 +161,7 @@ class ProjectHeroBanner extends StatelessWidget {
                         child: Text(
                           location!,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color: Colors.white.withOpacity(0.9),
                             fontSize: 12,
                             shadows: const [
                               Shadow(
@@ -197,7 +197,7 @@ class ProjectHeroBanner extends StatelessWidget {
           : Text(
               initials!,
               style: TextStyle(
-                color: ArlColors.primary.withValues(alpha: 0.4),
+                color: ArlColors.primary.withOpacity(0.4),
                 fontSize: 56,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2,

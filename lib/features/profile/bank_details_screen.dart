@@ -1,4 +1,4 @@
-ï»¿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
@@ -75,7 +75,7 @@ class BankDetailsScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   // Single rounded-15 white card with sand dividers between
-                  // fields â€” matches HTML pattern. Each field is a label
+                  // fields — matches HTML pattern. Each field is a label
                   // + value row inside one card, NOT individually bordered.
                   Container(
                     width: double.infinity,
@@ -105,10 +105,10 @@ class BankDetailsScreen extends ConsumerWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.1),
+                        color: Colors.green.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Colors.green.withValues(alpha: 0.3),
+                          color: Colors.green.withOpacity(0.3),
                         ),
                       ),
                       child: const Row(
@@ -132,13 +132,13 @@ class BankDetailsScreen extends ConsumerWidget {
                     ),
                   if (hasPendingRequest) ...[
                     const SizedBox(height: 20),
-                    // Pending request banner â€” sand tint per HTML
+                    // Pending request banner — sand tint per HTML
                     // pattern (NOT generic warning orange).
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: ArlColors.sand.withValues(alpha: 0.5),
+                        color: ArlColors.sand.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: ArlColors.sand),
                       ),
@@ -163,7 +163,7 @@ class BankDetailsScreen extends ConsumerWidget {
                     ),
                   ],
                   const SizedBox(height: 24),
-                  // Gradient-primary CTA â€” primaryâ†’accent rounded-15 card
+                  // Gradient-primary CTA — primary?accent rounded-15 card
                   // wrapping InkWell. Matches HTML "gradient-primary"
                   // button styling used across the app.
                   Material(
@@ -437,7 +437,7 @@ class BankDetailsScreen extends ConsumerWidget {
                 vertical: 2,
               ),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
+                color: Colors.green.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(

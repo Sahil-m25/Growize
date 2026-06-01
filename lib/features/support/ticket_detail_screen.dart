@@ -160,7 +160,7 @@ class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.15),
+                          color: statusColor.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -257,7 +257,7 @@ class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
                 decoration: BoxDecoration(
                   border: Border(
                     top: BorderSide(
-                      color: ArlColors.sand.withValues(alpha: 0.5),
+                      color: ArlColors.sand.withOpacity(0.5),
                     ),
                   ),
                 ),
@@ -266,7 +266,7 @@ class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: ArlColors.accent.withValues(alpha: 0.1),
+                          color: ArlColors.accent.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Center(
@@ -379,7 +379,7 @@ class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
           decoration: BoxDecoration(
             color: isCustomer
                 ? ArlColors.cream
-                : Colors.green.withValues(alpha: 0.15),
+                : Colors.green.withOpacity(0.15),
             borderRadius: BorderRadius.circular(12),
             border: isCustomer ? Border.all(color: ArlColors.sand) : null,
           ),

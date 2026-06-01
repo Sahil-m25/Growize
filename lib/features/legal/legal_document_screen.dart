@@ -70,10 +70,10 @@ class LegalDocumentScreen extends StatelessWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: ArlColors.gold.withValues(alpha: 0.1),
+                        color: ArlColors.gold.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: ArlColors.gold.withValues(alpha: 0.4),
+                          color: ArlColors.gold.withOpacity(0.4),
                         ),
                       ),
                       child: const Row(

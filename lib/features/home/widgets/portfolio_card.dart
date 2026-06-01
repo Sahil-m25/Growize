@@ -61,7 +61,7 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                 borderRadius: BorderRadius.circular(15),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
+                color: Colors.black.withOpacity(0.1),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -86,7 +86,7 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                             Text(
                               'TOTAL PORTFOLIO VALUE',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.7),
+                                color: Colors.white.withOpacity(0.7),
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0.5,
@@ -103,7 +103,7 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                                   _showValues
                                       ? Icons.visibility_outlined
                                       : Icons.visibility_off_outlined,
-                                  color: Colors.white.withValues(alpha: 0.85),
+                                  color: Colors.white.withOpacity(0.85),
                                   size: 14,
                                 ),
                               ),
@@ -137,7 +137,7 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
+                        color: Colors.white.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(15),
                       ),
                       child: Column(
@@ -146,7 +146,7 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                           Text(
                             'INVESTED',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.6),
+                              color: Colors.white.withOpacity(0.6),
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.5,
@@ -173,7 +173,7 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
+                        color: Colors.white.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(15),
                       ),
                       child: Column(
@@ -182,7 +182,7 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                           Text(
                             'RETURNS',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.6),
+                              color: Colors.white.withOpacity(0.6),
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.5,
@@ -211,7 +211,7 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: Colors.white.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Row(
@@ -231,7 +231,7 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                         Text(
                           'Annual ROI',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
+                            color: Colors.white.withOpacity(0.6),
                             fontSize: 10,
                           ),
                         ),
@@ -246,7 +246,7 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: ArlColors.gold.withValues(alpha: 0.3),
+                            color: ArlColors.gold.withOpacity(0.3),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Text(
@@ -262,7 +262,7 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                         Text(
                           'vs 12% Nifty',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
+                            color: Colors.white.withOpacity(0.6),
                             fontSize: 10,
                           ),
                         ),
@@ -283,7 +283,7 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                 height: 120,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: ArlColors.gold.withValues(alpha: 0.1),
+                  color: ArlColors.gold.withOpacity(0.1),
                 ),
               ),
             ),
@@ -355,7 +355,7 @@ class _SyncBadgeState extends State<_SyncBadge>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
+        color: Colors.white.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -384,7 +384,7 @@ class _SyncBadgeState extends State<_SyncBadge>
             Icon(
               Icons.schedule,
               size: 12,
-              color: Colors.white.withValues(alpha: 0.7),
+              color: Colors.white.withOpacity(0.7),
             ),
           const SizedBox(width: 6),
           Text(

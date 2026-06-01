@@ -224,7 +224,7 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
                   imageUrl: _heroImageFor(project),
                   tierBadge: _tierFor(project),
                   initials: project.initials,
-                  fallbackTint: brand.withValues(alpha: 0.35),
+                  fallbackTint: brand.withOpacity(0.35),
                   onBack: () {
                     if (context.canPop()) {
                       context.pop();
@@ -366,7 +366,7 @@ class _ContractProgressCard extends StatelessWidget {
         border: Border.all(color: ArlColors.sand),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -472,7 +472,7 @@ class _CurrentPhaseCard extends StatelessWidget {
         border: Border.all(color: ArlColors.sand),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -488,7 +488,7 @@ class _CurrentPhaseCard extends StatelessWidget {
                 width: 26,
                 height: 26,
                 decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.15),
+                  color: accent.withOpacity(0.15),
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
@@ -527,7 +527,7 @@ class _CurrentPhaseCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.15),
+                  color: accent.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -583,7 +583,7 @@ class _RecentPayoutsCard extends StatelessWidget {
         border: Border.all(color: ArlColors.sand),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -610,7 +610,7 @@ class _RecentPayoutsCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: ArlColors.primary.withValues(alpha: 0.1),
+                    color: ArlColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Row(
@@ -638,7 +638,7 @@ class _RecentPayoutsCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: ArlColors.sand.withValues(alpha: 0.4),
+                color: ArlColors.sand.withOpacity(0.4),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Row(
@@ -662,10 +662,10 @@ class _RecentPayoutsCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: ArlColors.accent.withValues(alpha: 0.05),
+                      color: ArlColors.accent.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: ArlColors.accent.withValues(alpha: 0.1),
+                        color: ArlColors.accent.withOpacity(0.1),
                       ),
                     ),
                     child: Row(
@@ -674,7 +674,7 @@ class _RecentPayoutsCard extends StatelessWidget {
                           width: 26,
                           height: 26,
                           decoration: BoxDecoration(
-                            color: ArlColors.accent.withValues(alpha: 0.2),
+                            color: ArlColors.accent.withOpacity(0.2),
                             shape: BoxShape.circle,
                           ),
                           alignment: Alignment.center,
@@ -748,7 +748,7 @@ class _MonthlyUpdatesCard extends StatelessWidget {
         border: Border.all(color: ArlColors.sand),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -821,7 +821,7 @@ class _UpdateRow extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: ArlColors.gold.withValues(alpha: 0.18),
+              color: ArlColors.gold.withOpacity(0.18),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -890,7 +890,7 @@ class _UpdatesSkeleton extends StatelessWidget {
           child: Container(
             height: 78,
             decoration: BoxDecoration(
-              color: ArlColors.sand.withValues(alpha: 0.5),
+              color: ArlColors.sand.withOpacity(0.5),
               borderRadius: BorderRadius.circular(12),
             ),
           ),
@@ -911,7 +911,7 @@ class _UpdatesInlineMessage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: ArlColors.sand.withValues(alpha: 0.4),
+        color: ArlColors.sand.withOpacity(0.4),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -1055,7 +1055,7 @@ class _ProjectDocumentsCard extends ConsumerWidget {
         border: Border.all(color: ArlColors.sand),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -1172,7 +1172,7 @@ class _ProjectDocCardMini extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.12),
+                color: accent.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -1205,10 +1205,10 @@ class _ViewAllPill extends StatelessWidget {
         width: 110,
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: ArlColors.primary.withValues(alpha: 0.08),
+          color: ArlColors.primary.withOpacity(0.08),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: ArlColors.primary.withValues(alpha: 0.25),
+            color: ArlColors.primary.withOpacity(0.25),
           ),
         ),
         child: const Column(

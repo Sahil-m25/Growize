@@ -175,7 +175,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         child: Container(
           height: 64,
           decoration: BoxDecoration(
-            color: ArlColors.sand.withValues(alpha: 0.5),
+            color: ArlColors.sand.withOpacity(0.5),
             borderRadius: BorderRadius.circular(15),
           ),
         ),
@@ -293,7 +293,7 @@ class _ProjectDocumentsBlock extends StatelessWidget {
             child: Container(
               height: 64,
               decoration: BoxDecoration(
-                color: ArlColors.sand.withValues(alpha: 0.5),
+                color: ArlColors.sand.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(15),
               ),
             ),
@@ -412,7 +412,7 @@ class _ProjectGroupHeader extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: ArlColors.gold.withValues(alpha: 0.18),
+              color: ArlColors.gold.withOpacity(0.18),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -478,7 +478,7 @@ class _ProjectDocRow extends StatelessWidget {
           border: Border.all(color: ArlColors.sand, width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -490,7 +490,7 @@ class _ProjectDocRow extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: ArlColors.accent.withValues(alpha: 0.12),
+                color: ArlColors.accent.withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.description_outlined,
@@ -555,7 +555,7 @@ class _CategoryPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: ArlColors.accent.withValues(alpha: 0.12),
+        color: ArlColors.accent.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -592,7 +592,7 @@ class _Accordion extends StatelessWidget {
               border: Border.all(color: ArlColors.sand, width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
+                  color: Colors.black.withOpacity(0.04),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
@@ -604,7 +604,7 @@ class _Accordion extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: section.color.withValues(alpha: 0.12),
+                    color: section.color.withOpacity(0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(section.icon, color: section.color, size: 16),
@@ -731,7 +731,7 @@ class _DocRow extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
+              color: color.withOpacity(0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.description, color: color, size: 14),

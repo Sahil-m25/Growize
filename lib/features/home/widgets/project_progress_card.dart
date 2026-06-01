@@ -15,7 +15,7 @@ class ProjectProgressCard extends ConsumerWidget {
 
   static List<Color> _barFor(Project p) {
     final base = _hexToColor(p.colorHex);
-    return [base, base.withValues(alpha: 0.7)];
+    return [base, base.withOpacity(0.7)];
   }
 
   @override
@@ -94,7 +94,7 @@ BoxDecoration _cardDeco() => BoxDecoration(
       border: Border.all(color: ArlColors.sand, width: 1),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.06),
+          color: Colors.black.withOpacity(0.06),
           blurRadius: 8,
           offset: const Offset(0, 2),
         ),
@@ -150,7 +150,7 @@ class _SingleProjectView extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: (isPending ? ArlColors.earth : ArlColors.accent)
-                    .withValues(alpha: 0.15),
+                    .withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -196,7 +196,7 @@ class _SingleProjectView extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: ArlColors.earth.withValues(alpha: 0.1),
+              color: ArlColors.earth.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Row(
@@ -286,7 +286,7 @@ class _ProjectsPill extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: ArlColors.primary.withValues(alpha: 0.1),
+            color: ArlColors.primary.withOpacity(0.1),
             borderRadius: BorderRadius.circular(999),
           ),
           child: Row(

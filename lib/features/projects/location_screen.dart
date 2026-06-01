@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
@@ -61,7 +61,7 @@ class LocationScreen extends StatelessWidget {
                 height: 224,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [ArlColors.sand, ArlColors.primary.withValues(alpha: 0.3)],
+                    colors: [ArlColors.sand, ArlColors.primary.withOpacity(0.3)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -85,7 +85,7 @@ class LocationScreen extends StatelessWidget {
                           gradient: LinearGradient(
                             colors: [
                               Colors.transparent,
-                              ArlColors.primary.withValues(alpha: 0.9),
+                              ArlColors.primary.withOpacity(0.9),
                             ],
                           ),
                           borderRadius: const BorderRadius.only(
@@ -109,7 +109,7 @@ class LocationScreen extends StatelessWidget {
                             Text(
                               'Farm location shown within this area',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.8),
+                                color: Colors.white.withOpacity(0.8),
                                 fontSize: 10,
                               ),
                             ),
@@ -126,10 +126,10 @@ class LocationScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: ArlColors.primary.withValues(alpha: 0.05),
+                  color: ArlColors.primary.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: ArlColors.primary.withValues(alpha: 0.1),
+                    color: ArlColors.primary.withOpacity(0.1),
                   ),
                 ),
                 child: const Row(
@@ -197,7 +197,7 @@ class LocationScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: lightBg ? ArlColors.sand : ArlColors.accent.withValues(alpha: 0.05),
+        color: lightBg ? ArlColors.sand : ArlColors.accent.withOpacity(0.05),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(

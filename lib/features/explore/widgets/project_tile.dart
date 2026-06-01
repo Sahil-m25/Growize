@@ -40,7 +40,7 @@ class ProjectTile extends StatelessWidget {
           border: Border.all(color: ArlColors.sand),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -185,8 +185,8 @@ class ProjectTile extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            tint.withValues(alpha: 0.85),
-            ArlColors.accent.withValues(alpha: 0.65),
+            tint.withOpacity(0.85),
+            ArlColors.accent.withOpacity(0.65),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -306,7 +306,7 @@ class ProjectTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
-        color: ArlColors.sand.withValues(alpha: 0.55),
+        color: ArlColors.sand.withOpacity(0.55),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: ArlColors.sand),
       ),
@@ -347,10 +347,10 @@ class ProjectTile extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
-          color: ArlColors.accent.withValues(alpha: 0.10),
+          color: ArlColors.accent.withOpacity(0.10),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: ArlColors.accent.withValues(alpha: 0.30),
+            color: ArlColors.accent.withOpacity(0.30),
           ),
         ),
         child: Row(
@@ -507,7 +507,7 @@ class _StatusPillSpec {
     if (p.isClosed) {
       return _StatusPillSpec(
         label: 'CLOSED',
-        bg: ArlColors.earth.withValues(alpha: 0.85),
+        bg: ArlColors.earth.withOpacity(0.85),
         fg: Colors.white,
       );
     }

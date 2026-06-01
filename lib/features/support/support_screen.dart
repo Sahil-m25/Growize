@@ -142,7 +142,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: ArlColors.sand.withValues(alpha: 0.4),
+                  color: ArlColors.sand.withOpacity(0.4),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(color: ArlColors.sand),
                 ),
@@ -152,7 +152,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: ArlColors.primary.withValues(alpha: 0.10),
+                        color: ArlColors.primary.withOpacity(0.10),
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
@@ -190,7 +190,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                       onPressed: () => context.push(RouteNames.newTicket),
                       style: TextButton.styleFrom(
                         backgroundColor:
-                            ArlColors.primary.withValues(alpha: 0.10),
+                            ArlColors.primary.withOpacity(0.10),
                         foregroundColor: ArlColors.primary,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -290,7 +290,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
           border: Border.all(color: ArlColors.sand, width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: Colors.black.withOpacity(0.06),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -318,10 +318,10 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 1),
                         decoration: BoxDecoration(
-                          color: ArlColors.gold.withValues(alpha: 0.18),
+                          color: ArlColors.gold.withOpacity(0.18),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: ArlColors.gold.withValues(alpha: 0.4),
+                            color: ArlColors.gold.withOpacity(0.4),
                             width: 0.6,
                           ),
                         ),
@@ -342,8 +342,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: isResolved
-                        ? ArlColors.accent.withValues(alpha: 0.15)
-                        : ArlColors.primary.withValues(alpha: 0.15),
+                        ? ArlColors.accent.withOpacity(0.15)
+                        : ArlColors.primary.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -437,7 +437,7 @@ class _WhatsAppCta extends StatelessWidget {
           border: Border.all(color: ArlColors.sand),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),

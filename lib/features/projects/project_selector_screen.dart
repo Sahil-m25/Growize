@@ -200,7 +200,7 @@ class ProjectSelectorScreen extends ConsumerWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: Colors.black.withOpacity(0.06),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -233,7 +233,7 @@ class ProjectSelectorScreen extends ConsumerWidget {
                   gradient: LinearGradient(
                     colors: [
                       initialsColor!,
-                      initialsColor.withValues(alpha: 0.7),
+                      initialsColor.withOpacity(0.7),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(10),
@@ -284,7 +284,7 @@ class ProjectSelectorScreen extends ConsumerWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: statusColor!.withValues(alpha: 0.15),
+                            color: statusColor!.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(

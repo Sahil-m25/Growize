@@ -57,7 +57,7 @@ class GalleryScreen extends ConsumerWidget {
             Text(
               'Daily 9:00 AM IST · Last 30 days',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
+                color: Colors.white.withOpacity(0.6),
                 fontSize: 11,
               ),
             ),
@@ -78,17 +78,17 @@ class GalleryScreen extends ConsumerWidget {
           return Column(
             children: [
               Container(
-                color: Colors.black.withValues(alpha: 0.15),
+                color: Colors.black.withOpacity(0.15),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
                     Icon(Icons.camera_alt_outlined,
-                        color: Colors.white.withValues(alpha: 0.6), size: 14),
+                        color: Colors.white.withOpacity(0.6), size: 14),
                     const SizedBox(width: 8),
                     Text(
                       'Photos captured daily at 9:00 AM IST',
                       style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6), fontSize: 11),
+                          color: Colors.white.withOpacity(0.6), fontSize: 11),
                     ),
                   ],
                 ),
@@ -113,7 +113,7 @@ class GalleryScreen extends ConsumerWidget {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.12),
+                                  color: Colors.white.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -138,7 +138,7 @@ class GalleryScreen extends ConsumerWidget {
                               Text(
                                 '${dayPhotos.length} photo${dayPhotos.length > 1 ? 's' : ''}',
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.5),
+                                  color: Colors.white.withOpacity(0.5),
                                   fontSize: 9,
                                 ),
                               ),
@@ -181,7 +181,7 @@ class GalleryScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.photo_library_outlined,
-                  size: 32, color: Colors.white.withValues(alpha: 0.4)),
+                  size: 32, color: Colors.white.withOpacity(0.4)),
               const SizedBox(height: 10),
               Text(
                 'No photos yet',
@@ -189,7 +189,7 @@ class GalleryScreen extends ConsumerWidget {
                   fontFamily: 'Inter',
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.8),
+                  color: Colors.white.withOpacity(0.8),
                 ),
               ),
               const SizedBox(height: 4),
@@ -199,7 +199,7 @@ class GalleryScreen extends ConsumerWidget {
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 11,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: Colors.white.withOpacity(0.5),
                 ),
               ),
             ],
@@ -218,7 +218,7 @@ class _PhotoTile extends StatelessWidget {
     final hasUrl = photo.signedUrl.isNotEmpty;
     return Container(
       decoration: BoxDecoration(
-        color: ArlColors.primary.withValues(alpha: 0.4),
+        color: ArlColors.primary.withOpacity(0.4),
         borderRadius: BorderRadius.circular(8),
       ),
       child: ClipRRect(
@@ -233,14 +233,14 @@ class _PhotoTile extends StatelessWidget {
                 placeholder: (_, __) => Center(
                   child: Icon(
                     Icons.image_outlined,
-                    color: Colors.white.withValues(alpha: 0.35),
+                    color: Colors.white.withOpacity(0.35),
                     size: 28,
                   ),
                 ),
                 errorWidget: (_, __, ___) => Center(
                   child: Icon(
                     Icons.broken_image_outlined,
-                    color: Colors.white.withValues(alpha: 0.35),
+                    color: Colors.white.withOpacity(0.35),
                     size: 28,
                   ),
                 ),
@@ -249,7 +249,7 @@ class _PhotoTile extends StatelessWidget {
               Center(
                 child: Icon(
                   Icons.image_not_supported_outlined,
-                  color: Colors.white.withValues(alpha: 0.35),
+                  color: Colors.white.withOpacity(0.35),
                   size: 28,
                 ),
               ),
@@ -259,7 +259,7 @@ class _PhotoTile extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.4),
+                  color: Colors.black.withOpacity(0.4),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -275,7 +275,7 @@ class _PhotoTile extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                   decoration: BoxDecoration(
-                    color: ArlColors.gold.withValues(alpha: 0.85),
+                    color: ArlColors.gold.withOpacity(0.85),
                     borderRadius: BorderRadius.circular(3),
                   ),
                   child: const Text(

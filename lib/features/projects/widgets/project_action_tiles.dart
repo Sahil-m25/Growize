@@ -101,7 +101,7 @@ class _Tile extends StatelessWidget {
         border: Border.all(color: ArlColors.sand),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -115,7 +115,7 @@ class _Tile extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: tint.withValues(alpha: 0.12),
+              color: tint.withOpacity(0.12),
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,

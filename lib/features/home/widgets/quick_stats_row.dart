@@ -244,7 +244,7 @@ class _IconDisc extends StatelessWidget {
       width: 28,
       height: 28,
       decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.15),
+        color: tint.withOpacity(0.15),
         shape: BoxShape.circle,
       ),
       child: Icon(icon, color: tint, size: 16),
@@ -258,7 +258,7 @@ BoxDecoration _cardDeco() => BoxDecoration(
       border: Border.all(color: ArlColors.sand, width: 1),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.06),
+          color: Colors.black.withOpacity(0.06),
           blurRadius: 8,
           offset: const Offset(0, 2),
         ),

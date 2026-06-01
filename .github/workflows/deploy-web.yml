@@ -48,10 +48,6 @@ jobs:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           ARL_AUTH_GATE_SECRET: ${{ secrets.ARL_AUTH_GATE_SECRET }}
 
-      # Run dart analysis first so any compile errors show file + line number
-      - name: Dart analyze
-        run: flutter analyze --no-fatal-infos 2>&1 || true
-
       - name: Build Flutter web
         run: |
           flutter build web \
@@ -59,7 +55,7 @@ jobs:
             --dart-define-from-file=.env.production \
             --web-renderer html \
             --pwa-strategy offline-first \
-            --verbose
+            --no-source-maps
 
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3.0

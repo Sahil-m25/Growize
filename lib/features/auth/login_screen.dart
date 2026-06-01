@@ -176,7 +176,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: ArlColors.gold.withValues(alpha: 0.18),
+                    color: ArlColors.gold.withOpacity(0.18),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
@@ -294,8 +294,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: ArlColors.primary,
             foregroundColor: Colors.white,
-            disabledBackgroundColor: ArlColors.primary.withValues(alpha: 0.4),
-            disabledForegroundColor: Colors.white.withValues(alpha: 0.7),
+            disabledBackgroundColor: ArlColors.primary.withOpacity(0.4),
+            disabledForegroundColor: Colors.white.withOpacity(0.7),
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),

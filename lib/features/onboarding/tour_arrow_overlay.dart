@@ -435,7 +435,7 @@ class _ScrimPainter extends CustomPainter {
     final ring = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2
-      ..color = ArlColors.gold.withValues(alpha: 0.85);
+      ..color = ArlColors.gold.withOpacity(0.85);
     canvas.drawRRect(
       RRect.fromRectAndRadius(cutout!, const Radius.circular(_radius)),
       ring,
@@ -832,7 +832,7 @@ class _BubbleCard extends StatelessWidget {
               border: Border.all(color: ArlColors.primary, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.18),
+                  color: Colors.black.withOpacity(0.18),
                   blurRadius: 22,
                   offset: const Offset(0, 8),
                 ),
@@ -861,7 +861,7 @@ class _BubbleCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: ArlColors.primary.withValues(alpha: 0.08),
+                            color: ArlColors.primary.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -1024,10 +1024,10 @@ class _SkipLink extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.35),
+            color: Colors.black.withOpacity(0.35),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.25),
+              color: Colors.white.withOpacity(0.25),
             ),
           ),
           child: const Text(

@@ -102,10 +102,10 @@ class FinancialsScreen extends ConsumerWidget {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: ArlColors.accent.withValues(alpha: 0.1),
+                          color: ArlColors.accent.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: ArlColors.accent.withValues(alpha: 0.3),
+                            color: ArlColors.accent.withOpacity(0.3),
                           ),
                         ),
                         child: const Row(
@@ -168,7 +168,7 @@ class FinancialsScreen extends ConsumerWidget {
                                         'TOTAL EARNED',
                                         style: TextStyle(
                                           color: Colors.white
-                                              .withValues(alpha: 0.7),
+                                              .withOpacity(0.7),
                                           fontSize: 10,
                                         ),
                                       ),
@@ -199,11 +199,11 @@ class FinancialsScreen extends ConsumerWidget {
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: ArlColors.gold
-                                        .withValues(alpha: 0.15),
+                                        .withOpacity(0.15),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: ArlColors.gold
-                                          .withValues(alpha: 0.3),
+                                          .withOpacity(0.3),
                                     ),
                                   ),
                                   child: Column(
@@ -214,7 +214,7 @@ class FinancialsScreen extends ConsumerWidget {
                                         'THIS FY',
                                         style: TextStyle(
                                           color: ArlColors.charcoal
-                                              .withValues(alpha: 0.6),
+                                              .withOpacity(0.6),
                                           fontSize: 10,
                                         ),
                                       ),

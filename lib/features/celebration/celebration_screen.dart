@@ -244,7 +244,7 @@ class _ConfettiHeader extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: Colors.white.withOpacity(0.6),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -341,7 +341,7 @@ class _PrimaryCta extends StatelessWidget {
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
-              color: ArlColors.primary.withValues(alpha: 0.18),
+              color: ArlColors.primary.withOpacity(0.18),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),

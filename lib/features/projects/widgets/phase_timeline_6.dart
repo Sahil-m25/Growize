@@ -173,7 +173,7 @@ class PhaseTimeline6 extends StatelessWidget {
               nodeSize: nodeSize,
               colour: clamped >= 5
                   ? ArlColors.gold
-                  : ArlColors.muted.withValues(alpha: 0.4),
+                  : ArlColors.muted.withOpacity(0.4),
             ),
             _RoadmapRow(
               stageIndices: row2,
@@ -233,7 +233,7 @@ class PhaseTimeline6 extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: ArlColors.muted.withValues(alpha: 0.3),
+                    color: ArlColors.muted.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -262,7 +262,7 @@ class PhaseTimeline6 extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
+                  color: statusColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -406,8 +406,8 @@ class _RoadmapRow extends StatelessWidget {
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
                         color: segmentDone
-                            ? ArlColors.gold.withValues(alpha: 0.7)
-                            : ArlColors.muted.withValues(alpha: 0.25),
+                            ? ArlColors.gold.withOpacity(0.7)
+                            : ArlColors.muted.withOpacity(0.25),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -458,7 +458,7 @@ class _RoadmapNode extends StatelessWidget {
       fgColor = accent;
     } else {
       bgColor = Colors.white;
-      borderColor = ArlColors.muted.withValues(alpha: 0.45);
+      borderColor = ArlColors.muted.withOpacity(0.45);
       fgColor = ArlColors.muted;
     }
 
@@ -503,7 +503,7 @@ class _RoadmapNode extends StatelessWidget {
                   boxShadow: isCurrent
                       ? [
                           BoxShadow(
-                            color: accent.withValues(alpha: 0.18),
+                            color: accent.withOpacity(0.18),
                             blurRadius: 4,
                             offset: const Offset(0, 1),
                           ),

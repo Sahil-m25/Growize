@@ -23,10 +23,10 @@ class DemoBadge extends StatelessWidget {
       margin: margin,
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: ArlColors.gold.withValues(alpha: 0.18),
+        color: ArlColors.gold.withOpacity(0.18),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: ArlColors.gold.withValues(alpha: 0.4),
+          color: ArlColors.gold.withOpacity(0.4),
           width: 0.6,
         ),
       ),
@@ -57,7 +57,7 @@ class DemoModeBanner extends StatelessWidget {
     if (!show) return const SizedBox.shrink();
     return Container(
       width: double.infinity,
-      color: ArlColors.gold.withValues(alpha: 0.16),
+      color: ArlColors.gold.withOpacity(0.16),
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
       child: const Row(
         children: [

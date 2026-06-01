@@ -30,7 +30,7 @@ class SkelBox extends StatelessWidget {
       height: height,
       margin: margin,
       decoration: BoxDecoration(
-        color: ArlColors.sand.withValues(alpha: 0.5),
+        color: ArlColors.sand.withOpacity(0.5),
         borderRadius: BorderRadius.circular(radius),
       ),
     );

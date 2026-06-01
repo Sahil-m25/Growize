@@ -158,9 +158,9 @@ class _ExploreDetailScreenState extends ConsumerState<ExploreDetailScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.black.withValues(alpha: 0.15),
+                    Colors.black.withOpacity(0.15),
                     Colors.transparent,
-                    Colors.black.withValues(alpha: 0.65),
+                    Colors.black.withOpacity(0.65),
                   ],
                   stops: const [0.0, 0.35, 1.0],
                   begin: Alignment.topCenter,
@@ -362,8 +362,8 @@ class _ExploreDetailScreenState extends ConsumerState<ExploreDetailScreen> {
                 value: returnText,
                 subValue: 'per annum',
                 valueColor: ArlColors.accent,
-                bg: ArlColors.accent.withValues(alpha: 0.08),
-                borderColor: ArlColors.accent.withValues(alpha: 0.30),
+                bg: ArlColors.accent.withOpacity(0.08),
+                borderColor: ArlColors.accent.withOpacity(0.30),
               ),
             ),
           ],
@@ -406,7 +406,7 @@ class _ExploreDetailScreenState extends ConsumerState<ExploreDetailScreen> {
         border: Border.all(color: ArlColors.sand),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -483,7 +483,7 @@ class _ExploreDetailScreenState extends ConsumerState<ExploreDetailScreen> {
         border: Border.all(color: borderColor ?? ArlColors.sand),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -534,9 +534,9 @@ class _ExploreDetailScreenState extends ConsumerState<ExploreDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: ArlColors.primary.withValues(alpha: 0.05),
+        color: ArlColors.primary.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ArlColors.primary.withValues(alpha: 0.10)),
+        border: Border.all(color: ArlColors.primary.withOpacity(0.10)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -601,8 +601,8 @@ class _ExploreDetailScreenState extends ConsumerState<ExploreDetailScreen> {
             child: _miniLabelCard(
               label: 'SUBSCRIPTION DEADLINE',
               value: deadlineText,
-              bg: ArlColors.gold.withValues(alpha: 0.10),
-              border: ArlColors.gold.withValues(alpha: 0.30),
+              bg: ArlColors.gold.withOpacity(0.10),
+              border: ArlColors.gold.withOpacity(0.30),
               valueColor: ArlColors.charcoal,
               leadingIcon: Icons.event_outlined,
             ),
@@ -650,7 +650,7 @@ class _ExploreDetailScreenState extends ConsumerState<ExploreDetailScreen> {
         border: Border.all(color: border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -716,7 +716,7 @@ class _ExploreDetailScreenState extends ConsumerState<ExploreDetailScreen> {
             gradient: LinearGradient(
               colors: [
                 ArlColors.sand,
-                ArlColors.primary.withValues(alpha: 0.30),
+                ArlColors.primary.withOpacity(0.30),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -733,9 +733,9 @@ class _ExploreDetailScreenState extends ConsumerState<ExploreDetailScreen> {
                   height: 80,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: ArlColors.accent.withValues(alpha: 0.25),
+                    color: ArlColors.accent.withOpacity(0.25),
                     border: Border.all(
-                      color: ArlColors.accent.withValues(alpha: 0.55),
+                      color: ArlColors.accent.withOpacity(0.55),
                       width: 1.5,
                     ),
                   ),
@@ -749,7 +749,7 @@ class _ExploreDetailScreenState extends ConsumerState<ExploreDetailScreen> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: Colors.white.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Row(

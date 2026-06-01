@@ -270,7 +270,7 @@ class _FullscreenPhoto extends StatelessWidget {
             top: MediaQuery.of(context).padding.top + 8,
             left: 8,
             child: Material(
-              color: Colors.black.withValues(alpha: 0.4),
+              color: Colors.black.withOpacity(0.4),
               shape: const CircleBorder(),
               child: InkWell(
                 customBorder: const CircleBorder(),
@@ -302,7 +302,7 @@ class _EmptyState extends StatelessWidget {
             Icon(
               Icons.photo_library_outlined,
               size: 48,
-              color: ArlColors.muted.withValues(alpha: 0.7),
+              color: ArlColors.muted.withOpacity(0.7),
             ),
             const SizedBox(height: 12),
             const Text(

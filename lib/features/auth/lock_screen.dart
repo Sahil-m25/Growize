@@ -252,10 +252,10 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                         width: 88,
                         height: 88,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.08),
+                          color: Colors.white.withOpacity(0.08),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: ArlColors.gold.withValues(alpha: 0.45),
+                            color: ArlColors.gold.withOpacity(0.45),
                             width: 1.5,
                           ),
                         ),
@@ -300,7 +300,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                                   : 'Sign in again to continue.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.75),
+                        color: Colors.white.withOpacity(0.75),
                         fontSize: 13,
                         fontFamily: 'Inter',
                       ),
@@ -318,14 +318,14 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                             Expanded(
                                 child: Divider(
                                     color: Colors.white
-                                        .withValues(alpha: 0.25))),
+                                        .withOpacity(0.25))),
                             Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 10),
                               child: Text(
                                 'or use PIN',
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.6),
+                                  color: Colors.white.withOpacity(0.6),
                                   fontSize: 11,
                                   fontFamily: 'Inter',
                                 ),
@@ -334,7 +334,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                             Expanded(
                                 child: Divider(
                                     color: Colors.white
-                                        .withValues(alpha: 0.25))),
+                                        .withOpacity(0.25))),
                           ],
                         ),
                       if (canUsePin) const SizedBox(height: 18),
@@ -356,7 +356,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                             backgroundColor: ArlColors.gold,
                             foregroundColor: ArlColors.charcoal,
                             disabledBackgroundColor:
-                                ArlColors.gold.withValues(alpha: 0.4),
+                                ArlColors.gold.withOpacity(0.4),
                             padding:
                                 const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
@@ -397,10 +397,10 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.05),
+                          color: Colors.white.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.15),
+                            color: Colors.white.withOpacity(0.15),
                           ),
                         ),
                         child: Text(
@@ -409,7 +409,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                               : 'No unlock method is configured. Sign out below to log back in.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
+                            color: Colors.white.withOpacity(0.85),
                             fontSize: 12,
                             fontFamily: 'Inter',
                           ),
@@ -422,10 +422,10 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          color: ArlColors.earth.withValues(alpha: 0.18),
+                          color: ArlColors.earth.withOpacity(0.18),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: ArlColors.earth.withValues(alpha: 0.4),
+                            color: ArlColors.earth.withOpacity(0.4),
                           ),
                         ),
                         child: Row(
@@ -465,12 +465,12 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                       child: Text(
                         'Sign out and log back in',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.85),
+                          color: Colors.white.withOpacity(0.85),
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           decoration: TextDecoration.underline,
                           decorationColor:
-                              Colors.white.withValues(alpha: 0.4),
+                              Colors.white.withOpacity(0.4),
                           fontFamily: 'Inter',
                         ),
                       ),
@@ -501,10 +501,10 @@ class _BiometricButton extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: Colors.white.withOpacity(0.08),
           borderRadius: BorderRadius.circular(15),
           border: Border.all(
-            color: ArlColors.gold.withValues(alpha: 0.55),
+            color: ArlColors.gold.withOpacity(0.55),
             width: 1.2,
           ),
         ),
@@ -572,17 +572,17 @@ class _PinField extends StatelessWidget {
         counterText: '',
         hintText: '••••',
         hintStyle: TextStyle(
-          color: Colors.white.withValues(alpha: 0.35),
+          color: Colors.white.withOpacity(0.35),
           letterSpacing: 8,
           fontSize: 22,
         ),
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.08),
+        fillColor: Colors.white.withOpacity(0.08),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.25)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
@@ -590,7 +590,7 @@ class _PinField extends StatelessWidget {
         ),
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.15)),
         ),
       ),
     );

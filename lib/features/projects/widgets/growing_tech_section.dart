@@ -94,7 +94,7 @@ class GrowingTechSection extends StatelessWidget {
         border: Border.all(color: ArlColors.sand),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -122,7 +122,7 @@ class GrowingTechSection extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: ArlColors.accent.withValues(alpha: 0.1),
+                  color: ArlColors.accent.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -213,10 +213,10 @@ class GrowingTechSection extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: ArlColors.primary.withValues(alpha: 0.08),
+                        color: ArlColors.primary.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: ArlColors.primary.withValues(alpha: 0.18),
+                          color: ArlColors.primary.withOpacity(0.18),
                         ),
                       ),
                       child: Row(
@@ -254,7 +254,7 @@ class GrowingTechSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: ArlColors.sand.withValues(alpha: 0.4),
+        color: ArlColors.sand.withOpacity(0.4),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: ArlColors.sand),
       ),
@@ -310,12 +310,12 @@ class GrowingTechSection extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: active
-            ? ArlColors.accent.withValues(alpha: 0.1)
-            : ArlColors.sand.withValues(alpha: 0.4),
+            ? ArlColors.accent.withOpacity(0.1)
+            : ArlColors.sand.withOpacity(0.4),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: active
-              ? ArlColors.accent.withValues(alpha: 0.3)
+              ? ArlColors.accent.withOpacity(0.3)
               : ArlColors.sand,
         ),
       ),

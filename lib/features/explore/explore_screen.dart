@@ -195,7 +195,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       itemBuilder: (_, __) {
         return Container(
           decoration: BoxDecoration(
-            color: ArlColors.sand.withValues(alpha: 0.5),
+            color: ArlColors.sand.withOpacity(0.5),
             borderRadius: BorderRadius.circular(16),
           ),
         );

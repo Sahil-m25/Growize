@@ -47,7 +47,7 @@ class ForceUpdateScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: ArlColors.primary.withValues(alpha: 0.25),
+                          color: ArlColors.primary.withOpacity(0.25),
                           blurRadius: 14,
                           offset: const Offset(0, 6),
                         ),

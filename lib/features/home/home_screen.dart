@@ -203,7 +203,7 @@ class _HomeSkeleton extends StatelessWidget {
       width: double.infinity,
       height: height,
       decoration: BoxDecoration(
-        color: ArlColors.sand.withValues(alpha: 0.5),
+        color: ArlColors.sand.withOpacity(0.5),
         borderRadius: BorderRadius.circular(radius),
       ),
     );

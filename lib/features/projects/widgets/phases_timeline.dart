@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/arl_colors.dart';
@@ -36,7 +36,7 @@ class PhasesTimeline extends StatelessWidget {
                         color: dotColor, shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                         boxShadow: [BoxShadow(
-                          color: dotColor.withValues(alpha: 0.4), blurRadius: 4,
+                          color: dotColor.withOpacity(0.4), blurRadius: 4,
                         )],
                       ),
                     ),
@@ -67,7 +67,7 @@ class PhasesTimeline extends StatelessWidget {
                           if (label.isEmpty) return const SizedBox.shrink();
                           return Padding(
                             padding: const EdgeInsets.only(top: 2),
-                            child: Text('• $label', style: const TextStyle(
+                            child: Text('� $label', style: const TextStyle(
                               fontSize: 12, color: ArlColors.muted, fontFamily: 'Inter',
                             )),
                           );

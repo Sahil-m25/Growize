@@ -227,7 +227,7 @@ class _SetupBiometricScreenState extends ConsumerState<SetupBiometricScreen> {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: ArlColors.accent.withValues(alpha: 0.12),
+                  color: ArlColors.accent.withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(

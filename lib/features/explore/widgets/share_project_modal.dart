@@ -382,7 +382,7 @@ class _ShareProjectModalState extends State<ShareProjectModal> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: ArlColors.gold.withValues(alpha: 0.25),
+                          color: ArlColors.gold.withOpacity(0.25),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -543,7 +543,7 @@ class _ShareProjectModalState extends State<ShareProjectModal> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF25D366).withValues(alpha: 0.28),
+                    color: const Color(0xFF25D366).withOpacity(0.28),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),

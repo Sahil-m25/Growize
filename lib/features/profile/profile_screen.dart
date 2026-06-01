@@ -66,10 +66,10 @@ class ProfileScreen extends ConsumerWidget {
                           width: 64,
                           height: 64,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
+                            color: Colors.white.withOpacity(0.2),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.3),
+                              color: Colors.white.withOpacity(0.3),
                               width: 2,
                             ),
                           ),
@@ -101,7 +101,7 @@ class ProfileScreen extends ConsumerWidget {
                               Text(
                                 investorArl,
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
+                                  color: Colors.white.withOpacity(0.7),
                                   fontSize: 13,
                                 ),
                               ),
@@ -145,7 +145,7 @@ class ProfileScreen extends ConsumerWidget {
                           ? '$projectCount ${projectCount == 1 ? "Project" : "Projects"}'
                           : '$projectCount ${projectCount == 1 ? "Project" : "Projects"} · $investedLabel invested',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
+                        color: Colors.white.withOpacity(0.7),
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -168,7 +168,7 @@ class ProfileScreen extends ConsumerWidget {
                     border: Border.all(color: ArlColors.sand, width: 1),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
+                        color: Colors.black.withOpacity(0.04),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -522,7 +522,7 @@ class ProfileScreen extends ConsumerWidget {
                   vertical: 2,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.1),
+                  color: Colors.green.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(

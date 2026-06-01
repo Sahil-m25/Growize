@@ -190,8 +190,8 @@ class _ExitScreenState extends ConsumerState<ExitScreen> {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: isEligible
-                      ? ArlColors.accent.withValues(alpha: 0.1)
-                      : ArlColors.gold.withValues(alpha: 0.1),
+                      ? ArlColors.accent.withOpacity(0.1)
+                      : ArlColors.gold.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Row(
@@ -413,9 +413,9 @@ class _SubmittedCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: ArlColors.accent.withValues(alpha: 0.08),
+        color: ArlColors.accent.withOpacity(0.08),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: ArlColors.accent.withValues(alpha: 0.3)),
+        border: Border.all(color: ArlColors.accent.withOpacity(0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -220,7 +220,7 @@ class _ProjectTile extends StatelessWidget {
           border: Border.all(color: ArlColors.sand),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -254,9 +254,9 @@ class _ProjectTile extends StatelessWidget {
                         end: Alignment.bottomCenter,
                         stops: const [0.0, 0.5, 1.0],
                         colors: [
-                          Colors.black.withValues(alpha: 0.05),
+                          Colors.black.withOpacity(0.05),
                           Colors.transparent,
-                          Colors.black.withValues(alpha: 0.45),
+                          Colors.black.withOpacity(0.45),
                         ],
                       ),
                     ),
@@ -291,10 +291,10 @@ class _ProjectTile extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.45),
+                        color: Colors.black.withOpacity(0.45),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: Colors.white.withOpacity(0.2),
                         ),
                       ),
                       child: Row(
