@@ -4,6 +4,7 @@ import 'package:arl_app/core/supabase/supabase_client.dart';
 import 'package:arl_app/features/projects/models/marketplace_project.dart';
 import 'package:arl_app/features/projects/models/project.dart';
 import 'package:arl_app/features/projects/models/project_phase.dart';
+import 'package:arl_app/features/projects/models/project_update.dart';
 
 /// All project queries.
 ///
@@ -24,6 +25,7 @@ class ProjectsRepository {
   static const _kMarketplace = 'marketplace';
   static const _kProjectById = 'project_by_id_';
   static const _kPhases = 'phases_';
+  static const _kUpdates = 'updates_';
   static const _kAllocation = 'allocation_';
   static const _kAllUnits = 'all_units';
 
@@ -246,5 +248,38 @@ class ProjectsRepository {
     final cached = ResilientCache.getList(_box, '$_kPhases$projectId');
     if (cached == null) return const [];
     return cached.map<ProjectPhase>((r) => ProjectPhase.fromJson(r)).toList();
+  }
+
+  /// Monthly project updates (narrative posts), most-recent-first.
+  /// Limited to 6 rows — the UI surfaces a single card per update and
+  /// older entries roll off rather than paginate.
+  Future<List<ProjectUpdate>> updatesFor(String projectId) async {
+    if (projectId.isEmpty || projectId.startsWith('demo:')) return const [];
+
+    final client = ArlSupabase.client;
+    if (client == null) return _readUpdatesCache(projectId);
+    try {
+      final rows = await client
+          .from('project_updates')
+          .select()
+          .eq('project_id', projectId)
+          .order('update_date', ascending: false)
+          .limit(6);
+      final list = (rows as List).cast<Map<String, dynamic>>();
+      await ResilientCache.putList(_box, '$_kUpdates$projectId', list);
+      return list
+          .map<ProjectUpdate>((r) => ProjectUpdate.fromJson(r))
+          .toList();
+    } catch (_) {
+      return _readUpdatesCache(projectId);
+    }
+  }
+
+  List<ProjectUpdate> _readUpdatesCache(String projectId) {
+    final cached = ResilientCache.getList(_box, '$_kUpdates$projectId');
+    if (cached == null) return const [];
+    return cached
+        .map<ProjectUpdate>((r) => ProjectUpdate.fromJson(r))
+        .toList();
   }
 }

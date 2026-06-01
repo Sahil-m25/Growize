@@ -5,11 +5,11 @@ import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/providers/repositories.dart';
 import 'package:arl_app/core/supabase/supabase_client.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
+import 'package:arl_app/features/activity/activity_provider.dart';
+import 'package:arl_app/features/onboarding/tour_keys.dart';
 
 class ArlAppBar extends ConsumerWidget implements PreferredSizeWidget {
-  const ArlAppBar({super.key, this.showNotifDot = true});
-
-  final bool showNotifDot;
+  const ArlAppBar({super.key});
 
   @override
   Size get preferredSize => const Size.fromHeight(56);
@@ -17,6 +17,11 @@ class ArlAppBar extends ConsumerWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dpr = MediaQuery.of(context).devicePixelRatio;
+    // Bell glows (gold dot) only when there's at least 1 unread
+    // notification — otherwise the icon stands alone so the user
+    // doesn't see a persistent "you have something" cue.
+    final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
+    final hasUnread = unread > 0;
 
     return Container(
       decoration: const BoxDecoration(
@@ -44,6 +49,7 @@ class ArlAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 // per UAT feedback rounds 1 + 2 — original was 56px, first cut took it to
                 // 42px (75%), this further 20% reduction lands at 34px.
                 Flexible(
+                  key: TourKeys.appBarLogo,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 113),
                     child: SizedBox(
@@ -62,24 +68,50 @@ class ArlAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 Row(
                   children: [
                     _CircleButton(
+                      key: TourKeys.notificationBell,
                       onTap: () => context.push(RouteNames.activity),
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          const Icon(Icons.notifications_outlined,
-                              color: ArlColors.charcoal, size: 22),
-                          if (showNotifDot)
+                          Icon(
+                            hasUnread
+                                ? Icons.notifications_active
+                                : Icons.notifications_outlined,
+                            color: hasUnread
+                                ? ArlColors.gold
+                                : ArlColors.charcoal,
+                            size: 22,
+                          ),
+                          if (hasUnread)
                             Positioned(
-                              top: 0,
-                              right: 0,
+                              top: -2,
+                              right: -2,
                               child: Container(
-                                width: 8,
-                                height: 8,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 1,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 14,
+                                  minHeight: 14,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: ArlColors.gold,
-                                  shape: BoxShape.circle,
+                                  color: ArlColors.earth,
+                                  borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                      color: ArlColors.cream, width: 2),
+                                    color: ArlColors.cream,
+                                    width: 2,
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  unread > 9 ? '9+' : '$unread',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1,
+                                  ),
                                 ),
                               ),
                             ),
@@ -88,6 +120,7 @@ class ArlAppBar extends ConsumerWidget implements PreferredSizeWidget {
                     ),
                     const SizedBox(width: 4),
                     GestureDetector(
+                      key: TourKeys.profileAvatar,
                       onTap: () => context.push(RouteNames.profile),
                       child: Container(
                         width: 40,
@@ -155,7 +188,7 @@ class ArlAppBar extends ConsumerWidget implements PreferredSizeWidget {
 }
 
 class _CircleButton extends StatelessWidget {
-  const _CircleButton({required this.onTap, required this.child});
+  const _CircleButton({super.key, required this.onTap, required this.child});
   final VoidCallback onTap;
   final Widget child;
 

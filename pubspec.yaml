@@ -20,6 +20,25 @@ dependencies:
   # UI / Images
   cached_network_image: ^3.3.1
 
+  # In-app document rendering. Syncfusion's Community Edition is
+  # Apache 2.0 and free for orgs under the revenue threshold — it
+  # gives us native zoom / page-jump / text-search on mobile and
+  # works on web via canvas. Justification: user-feedback (2026-05-23)
+  # required documents stay inside the app shell; launchUrl handed
+  # the signed URL to the OS browser which exposed it to share /
+  # screenshot. See decisions/2026-05-21_inapp_doc_viewer.md.
+  syncfusion_flutter_pdfviewer: ^27.1.48
+
+  # FLAG_SECURE on Android + screen-record blanking on iOS. Small
+  # package, scoped per-screen (enabled in DocumentViewerScreen
+  # initState, disabled in dispose). No-op on web.
+  screen_protector: ^1.5.0
+
+  # Download bytes from signed Supabase URLs for offline view.
+  # Transitively pulled by supabase_flutter; pinned here so the
+  # import is stable when we bump the backend SDK.
+  http: ^1.2.2
+
   # Backend
   supabase_flutter: ^2.5.6
 
@@ -31,6 +50,9 @@ dependencies:
   # Utils
   intl: ^0.19.0
   url_launcher: ^6.3.0
+  # Native OS share sheet — used by the Share Project modal so investors
+  # can hand off the project link to WhatsApp, Telegram, Mail, etc.
+  share_plus: ^10.1.4
   local_auth: ^2.3.0
   flutter_secure_storage: ^9.2.2
   connectivity_plus: ^6.0.3
@@ -50,17 +72,17 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: false
-  image_path: "assets/images/arl_logo.png"
+  image_path: "assets/images/growize_g.png"
   min_sdk_android: 21
   adaptive_icon_background: "#FAFAF7"
-  adaptive_icon_foreground: "assets/images/arl_logo.png"
+  adaptive_icon_foreground: "assets/images/growize_g.png"
   # Android 13+ themed-icon: pure white silhouette of the logo on
   # transparent background. Generated from arl_logo.png by alpha-keyed
   # white-fill (see notes/icon_generation.md if it ever needs regen).
   adaptive_icon_monochrome: "assets/images/arl_logo_monochrome.png"
   web:
     generate: true
-    image_path: "assets/images/arl_logo.png"
+    image_path: "assets/images/growize_g.png"
     background_color: "#FAFAF7"
     theme_color: "#3C5152"
 
@@ -68,7 +90,6 @@ flutter:
   uses-material-design: true
   assets:
     - .env
-    - assets/images/arl_logo.png
     - assets/images/
   fonts:
     - family: Inter

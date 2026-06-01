@@ -8,8 +8,10 @@ import 'package:arl_app/core/widgets/arl_app_bar.dart';
 import 'package:arl_app/core/widgets/demo_badge.dart';
 import 'package:arl_app/core/widgets/dev_bypass_banner.dart';
 import 'package:arl_app/core/widgets/offline_banner.dart';
-import 'package:arl_app/features/onboarding/tutorial_overlay.dart';
-import 'package:arl_app/features/onboarding/tutorial_provider.dart';
+import 'package:arl_app/core/version/version_banner.dart';
+import 'package:arl_app/features/onboarding/tour_arrow_overlay.dart';
+import 'package:arl_app/features/onboarding/tour_controller.dart';
+import 'package:arl_app/features/onboarding/tour_keys.dart';
 import 'package:arl_app/features/projects/projects_provider.dart';
 
 class MainScaffold extends ConsumerWidget {
@@ -27,23 +29,46 @@ class MainScaffold extends ConsumerWidget {
     final projects = ref.watch(projectsProvider).valueOrNull ?? const [];
     final inDemoMode = projects.any((p) => p.isDemo);
 
-    final showTutorial = ref.watch(shouldShowTutorialProvider);
+    // Auto-start the new arrow tour once per device: triggers when the
+    // user lands in the shell and hasn't seen it. The gate is async
+    // (reads `arl_tour_seen_v2` from secure storage) so we explicitly
+    // ignore loading/error here — if storage is unreachable we'd
+    // rather skip the auto-start than show the tour every launch on a
+    // partial read. Once persisted state resolves to `false`, the
+    // post-frame callback flips the tour on exactly once.
+    final autoStartAsync = ref.watch(tourShouldAutoStartProvider);
+    final tourActive = ref.watch(tourActiveProvider);
+    autoStartAsync.whenData((shouldStart) {
+      if (!shouldStart) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Re-check inside the frame so a fast state flip doesn't
+        // double-start the tour.
+        if (!ref.read(tourActiveProvider)) {
+          startTour(ref, isAutoStart: true);
+        }
+      });
+    });
 
-    return Scaffold(
+    // The tour overlay is hoisted OUT of Scaffold.body so its painting
+    // canvas spans the entire screen (AppBar + body + bottomNavigationBar
+    // included). Inside the body, [RenderBox.localToGlobal] would return
+    // global screen coords while the painter's local space starts at the
+    // top of the body — the two diverge by the AppBar's height and the
+    // cutout/arrow land in the wrong place (e.g. on the row below the
+    // bell). Wrapping the Scaffold in a top-level Stack keeps the
+    // overlay's local space = global screen space, so cutouts on AppBar
+    // and bottomNavigationBar widgets paint where the user actually sees
+    // them.
+    final scaffold = Scaffold(
       backgroundColor: ArlColors.cream,
       appBar: const ArlAppBar(),
-      body: Stack(
+      body: Column(
         children: [
-          Column(
-            children: [
-              const OfflineBanner(),
-              if (SupabaseConstants.devBypassAuth) const DevBypassBanner(),
-              DemoModeBanner(show: inDemoMode),
-              Expanded(child: child),
-            ],
-          ),
-          if (showTutorial)
-            const Positioned.fill(child: TutorialOverlay()),
+          const OfflineBanner(),
+          if (SupabaseConstants.devBypassAuth) const DevBypassBanner(),
+          DemoModeBanner(show: inDemoMode),
+          const VersionBanner(),
+          Expanded(child: child),
         ],
       ),
       bottomNavigationBar: Container(
@@ -58,6 +83,7 @@ class MainScaffold extends ConsumerWidget {
             child: Row(
               children: [
                 _NavItem(
+                  key: TourKeys.bottomNavHome,
                   icon: Icons.home_outlined,
                   activeIcon: Icons.home,
                   label: 'Home',
@@ -65,6 +91,7 @@ class MainScaffold extends ConsumerWidget {
                   onTap: () => context.go(RouteNames.home),
                 ),
                 _NavItem(
+                  key: TourKeys.bottomNavProjects,
                   icon: Icons.eco_outlined,
                   activeIcon: Icons.eco,
                   label: 'Projects',
@@ -72,6 +99,7 @@ class MainScaffold extends ConsumerWidget {
                   onTap: () => context.go(RouteNames.projects),
                 ),
                 _NavItem(
+                  key: TourKeys.bottomNavFinancials,
                   icon: Icons.bar_chart_outlined,
                   activeIcon: Icons.bar_chart,
                   label: 'Financials',
@@ -79,6 +107,7 @@ class MainScaffold extends ConsumerWidget {
                   onTap: () => context.go(RouteNames.financials),
                 ),
                 _NavItem(
+                  key: TourKeys.bottomNavExplore,
                   icon: Icons.explore_outlined,
                   activeIcon: Icons.explore,
                   label: 'Explore',
@@ -90,6 +119,17 @@ class MainScaffold extends ConsumerWidget {
           ),
         ),
       ),
+    );
+
+    // Stack the overlay above the entire Scaffold so its painting space
+    // matches the screen's global coordinate space. See the comment
+    // above the Scaffold construction for the geometry rationale.
+    if (!tourActive) return scaffold;
+    return Stack(
+      children: [
+        scaffold,
+        const Positioned.fill(child: TourArrowOverlay()),
+      ],
     );
   }
 
@@ -109,6 +149,7 @@ class _NavItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const _NavItem({
+    super.key,
     required this.icon,
     required this.activeIcon,
     required this.label,

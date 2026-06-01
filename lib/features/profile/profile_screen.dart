@@ -4,13 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:arl_app/core/auth/session_manager.dart';
-import 'package:arl_app/core/constants/supabase_constants.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/providers/repositories.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/core/utils/money.dart';
 import 'package:arl_app/features/home/home_provider.dart';
-import 'package:arl_app/features/onboarding/tutorial_provider.dart';
+import 'package:arl_app/features/onboarding/tour_controller.dart';
+import 'package:arl_app/features/onboarding/tour_keys.dart';
 import 'package:arl_app/features/projects/projects_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -34,7 +34,15 @@ class ProfileScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: ArlColors.cream,
       body: SafeArea(
+        // DEF-V32-AUTH-01: explicit AlwaysScrollableScrollPhysics +
+        // bottom padding prevents the Privacy / Terms / celebration
+        // preview tiles from being clipped under the bottom nav on
+        // short web viewports. Without AlwaysScrollable, mouse-wheel
+        // drag was getting consumed before reaching the scroll view
+        // because the inner Scaffold ate the gesture.
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -245,21 +253,36 @@ class ProfileScreen extends ConsumerWidget {
                       title: 'Project Exit',
                       route: RouteNames.exit,
                     ),
+                    // Security (biometric / PIN) is mobile-only — hidden on web.
+                    if (!kIsWeb)
+                      KeyedSubtree(
+                        key: TourKeys.profileSecurityTile,
+                        child: _menuTile(
+                          context,
+                          icon: Icons.lock_outline,
+                          title: 'Security',
+                          route: RouteNames.security,
+                        ),
+                      ),
+                    KeyedSubtree(
+                      key: TourKeys.profileReplayTour,
+                      child: _replayTutorialTile(context, ref),
+                    ),
                     _menuTile(
                       context,
-                      icon: Icons.lock_outline,
-                      title: 'Security',
-                      route: RouteNames.security,
+                      icon: Icons.celebration,
+                      title: 'Preview First-Payout Celebration',
+                      route: '/celebration?amount=41000&project=EKA&date=2026-03-15',
                     ),
-                    _replayTutorialTile(context, ref),
                   ],
                 ),
               ),
 
-              // Dev-only "Send test crash to Sentry" tile. Hidden in
-              // release builds AND when the dev-bypass flag is off, so
-              // production users never see it.
-              if (kDebugMode || SupabaseConstants.devBypassAuth)
+              // Dev-only "Send test crash to Sentry" tile. Gated on
+              // kDebugMode so it disappears from `flutter build apk
+              // --release` (compile-time strip). Walkthrough lives at
+              // docs/ops/sentry_smoke_test.md.
+              if (kDebugMode)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _testCrashTile(context),
@@ -360,11 +383,18 @@ class ProfileScreen extends ConsumerWidget {
   /// Bound to a ref so it can mutate the tutorial state. Same visual
   /// shape as [_menuTile] but routes via [replayTutorial] instead of
   /// pushing a screen.
+  ///
+  /// Re-run Tutorial entry — restores the 10-step onboarding tour on
+  /// demand. Useful for investors who want a refresher or who skipped
+  /// the tour on first sign-in.
   Widget _replayTutorialTile(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       onTap: () async {
-        await replayTutorial(ref);
-        if (context.mounted) context.go(RouteNames.home);
+        // First navigate home so the tour opens against the live home
+        // widgets (the tour's step 1 already lives on /home but the
+        // controller's settler will short-circuit when locations match).
+        context.go(RouteNames.home);
+        await replayTour(ref);
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
@@ -398,9 +428,15 @@ class ProfileScreen extends ConsumerWidget {
   Widget _testCrashTile(BuildContext context) {
     return GestureDetector(
       onTap: () async {
+        // Item 7 / Sentry smoke test. Catch + captureException is used
+        // here instead of a bare `throw` so the tap handler doesn't
+        // crash the app under us — Sentry receives the same payload
+        // either way. See docs/ops/sentry_smoke_test.md.
         final stamp = DateTime.now().toIso8601String();
         try {
-          throw Exception('Sentry integration test — $stamp');
+          throw Exception(
+            'Sentry smoke test from Profile debug button at $stamp',
+          );
         } catch (e, stack) {
           await Sentry.captureException(e, stackTrace: stack);
           if (context.mounted) {

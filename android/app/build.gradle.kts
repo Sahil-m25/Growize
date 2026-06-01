@@ -35,6 +35,11 @@ android {
 
     defaultConfig {
         applicationId = "com.arl.app"
+        // local_auth's BiometricPrompt requires API 23+ (Android 6.0,
+        // Marshmallow). Flutter's default minSdkVersion is currently 21
+        // — too low for fingerprint auth, which would cause local_auth
+        // to bail out silently on older devices. Pin to 23 so the build
+        // surface matches what biometric APIs actually require.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

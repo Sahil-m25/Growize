@@ -8,6 +8,7 @@ import 'package:arl_app/features/projects/models/investor_unit.dart';
 import 'package:arl_app/features/projects/models/marketplace_project.dart';
 import 'package:arl_app/features/projects/models/project.dart';
 import 'package:arl_app/features/projects/models/project_phase.dart';
+import 'package:arl_app/features/projects/models/project_update.dart';
 // Imported transitively via repositories.dart (currentInvestorProvider).
 
 /// Currently selected project (null = "all"). Drives the home/financials
@@ -111,6 +112,21 @@ final projectPhasesProvider =
   final phases = await repo.phasesFor(projectId);
   if (phases.isNotEmpty) return phases;
   return demoPhases(projectId);
+});
+
+/// Monthly Updates for a project — narrative posts surfaced on the
+/// Project Detail screen. Real Supabase rows only; demo projects return
+/// an empty list (the empty-state copy renders for those).
+final projectUpdatesProvider =
+    FutureProvider.family<List<ProjectUpdate>, String>((ref, projectId) async {
+  ref.watch(authStateProvider);
+  if (projectId.startsWith(demoIdPrefix)) return const <ProjectUpdate>[];
+  final repo = ref.watch(projectsRepositoryProvider);
+  try {
+    return await repo.updatesFor(projectId);
+  } catch (_) {
+    return const <ProjectUpdate>[];
+  }
 });
 
 /// Per-project allocation for the signed-in investor. Returns null when

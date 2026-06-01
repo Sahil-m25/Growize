@@ -1,8 +1,8 @@
 # Project Status — arl_app
 
-**Last updated:** 2026-05-15
+**Last updated:** 2026-05-21
 **Current phase:** Implement
-**Progress:** Ops-doc consolidation done. 4 new topic deep-dives under docs/ops/ (~3,100 lines), Part 10 added to docs/ops_admin_guide.md as master TOC. Migration 045 applied LIVE on oynfhdqizebvgmaoiuax (fixes DEF-MKT-03 + DEF-OPS-2). 18 new defects logged in tracker (DEF-2026-05-15-01..18); LR-OPS-001 + LR-DB-045 marked Done. Three deferred items flagged for engineering review (auto-balance race vs Zoho webhook, documents storage_path RLS drift, units_available negative outlier).
+**Progress:** Real biometric + PIN app-lock gate landed. Pre-change, SecurityScreen toggles persisted but never gated runtime (biometric only affected the LoginScreen shortcut, PIN was never asked for, "Auto-lock after 5 minutes" was a static label). Now: per-device AppLockService (salted SHA-256 PIN in flutter_secure_storage), appLockProvider (Riverpod), full-screen LockScreen (biometric auto-prompt + 4-6 digit PIN fallback + 3-strike cooldown), and a WidgetsBindingObserver on ArlApp that locks after 30s of backgrounding and on cold launch. Web gracefully no-ops biometric and falls back to PIN-only. SecurityScreen has three real toggles (Biometric unlock / Require PIN / App PIN) with a hint card. See `.claude/decisions/2026-05-21_security_biometric_pin.md`.
 
 ## Summary
 Flutter port of `Growize App Design.html` (17 pages). Core screens scaffolded across 12 features. Active work: HTML-parity fixes — global header/logo, font bundling, back-nav stack behavior.

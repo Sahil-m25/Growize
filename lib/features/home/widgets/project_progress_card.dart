@@ -219,25 +219,12 @@ class _SingleProjectView extends StatelessWidget {
         const SizedBox(height: 12),
         Align(
           alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: () => context.push(RouteNames.projects),
-            style: TextButton.styleFrom(
-              backgroundColor: ArlColors.primary.withValues(alpha: 0.1),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            icon: const Text(
-              'View Project',
-              style: TextStyle(
-                color: ArlColors.primary,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            label: const Icon(Icons.arrow_forward,
-                color: ArlColors.primary, size: 14),
+          child: _ProjectsPill(
+            label: 'View Project',
+            // `context.go` matches the bottom-nav convention so the
+            // Projects tab becomes the active root instead of stacking
+            // on top of Home in the back-stack.
+            onTap: () => context.go(RouteNames.projects),
           ),
         ),
       ],
@@ -270,28 +257,59 @@ class _AllProjectsView extends StatelessWidget {
         const SizedBox(height: 12),
         Align(
           alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: () => context.push(RouteNames.projects),
-            style: TextButton.styleFrom(
-              backgroundColor: ArlColors.primary.withValues(alpha: 0.1),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            icon: const Text(
-              'View All Projects',
-              style: TextStyle(
-                color: ArlColors.primary,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            label: const Icon(Icons.arrow_forward,
-                color: ArlColors.primary, size: 14),
+          child: _ProjectsPill(
+            label: 'View All Projects',
+            onTap: () => context.go(RouteNames.projects),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Reusable pill CTA matching HTML
+/// `text-xs text-arl-primary font-semibold bg-arl-primary/10 px-3 py-1.5 rounded-full`.
+/// Used by both the single-project ("View Project") and all-projects
+/// ("View All Projects") views inside [ProjectProgressCard].
+class _ProjectsPill extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _ProjectsPill({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: ArlColors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: ArlColors.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.arrow_forward,
+                color: ArlColors.primary,
+                size: 14,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

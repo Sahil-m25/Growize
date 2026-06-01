@@ -7,6 +7,7 @@ import 'package:arl_app/features/financials/financials_provider.dart';
 import 'package:arl_app/features/home/home_provider.dart';
 import 'package:arl_app/features/home/models/portfolio_summary.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:arl_app/features/onboarding/tour_keys.dart';
 import 'package:arl_app/features/projects/projects_provider.dart';
 import 'widgets/portfolio_card.dart';
 import 'widgets/project_progress_card.dart';
@@ -17,6 +18,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // TODO: integration: call CelebrationTrigger.maybeShow(context, ref) here. See lib/features/celebration/README_FOR_T4.md
     // Use the scoped provider so picking a single project on the home
     // page filters Total Portfolio Value, Invested, Returns, Active
     // Units, etc. to that project. With selection cleared (All
@@ -141,11 +143,11 @@ class HomeScreen extends ConsumerWidget {
     if (cached != null) {
       return Column(
         children: [
-          PortfolioCard(portfolio: cached),
+          PortfolioCard(key: TourKeys.portfolioCard, portfolio: cached),
           const SizedBox(height: 12),
-          const ProjectProgressCard(),
+          ProjectProgressCard(key: TourKeys.projectProgressCard),
           const SizedBox(height: 12),
-          QuickStatsRow(portfolio: cached),
+          QuickStatsRow(key: TourKeys.quickStatsRow, portfolio: cached),
           const SizedBox(height: 24),
         ],
       );

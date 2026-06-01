@@ -836,4 +836,207 @@ async function handleAllocation(
     });
     if (payoutErr) throw new Error(`payouts upsert failed: ${payoutErr.message}`);
 
-    // Notify investor of new payouts (one notification per webh
+    // Notify investor of new payouts (one notification per webhook,
+    // not per payout — investor sees a single "X new payouts" item).
+    const { data: projInfo } = await supabase
+      .from("projects")
+      .select("name")
+      .eq("id", prj.id)
+      .maybeSingle();
+
+    // Side-effect; log on failure but don't roll back the allocation/payout writes.
+    const { error: notifErr } = await supabase.from("notifications").insert({
+      investor_id: inv.id,
+      type: "payout",
+      title: "Payout processed",
+      body: `Your payout for ${projInfo?.name ?? "your project"} has been processed.`,
+      metadata: {
+        project_id: prj.id,
+        payout_count: payoutRows.length,
+        allocation_id: allocationId,
+      },
+    });
+    if (notifErr) console.error(`notifications insert failed: ${notifErr.message}`);
+  }
+}
+
+// ── Hard-delete handlers ───────────────────────────────────────────────
+// Zoho fires a workflow on Contact / LLP / Allocation record deletion
+// that POSTs here with `operation=delete` and the original record id
+// in the payload. We `DELETE FROM` the corresponding Supabase row;
+// `ON DELETE CASCADE` on the FKs wipes dependents at the DB layer.
+//
+// Replaces the previous soft-delete (`deleted_at = now()`) behaviour
+// — ops wanted true hard delete so a Zoho cancellation leaves no
+// stray rows behind. Cascade maps per handler:
+//
+//   Contact → investors → CASCADE → bank_change_requests, documents
+//     (by investor_id), investor_units (→ exit_requests), kyc_resubmissions,
+//     notifications, payouts (by investor_id), support_tickets
+//   LLP → llps → CASCADE → projects (→ consultation_requests, crops,
+//     gallery_photos, investor_units, payouts, project_phases);
+//     documents.project_id and support_tickets.project_id are SET NULL.
+//   Allocation → investor_units → CASCADE → exit_requests;
+//     payouts.allocation_id is SET NULL.
+
+async function handleContactDelete(
+  supabase: ReturnType<typeof createClient>,
+  d: Record<string, unknown>,
+  logId: string,
+) {
+  const zohoId = (d.id ?? d.Id ?? d.record_id) as string | undefined;
+  if (!zohoId) {
+    throw new Error("missing Contact.id in delete payload");
+  }
+
+  // Look up the investor first: we need the id for the auth.users
+  // hard delete (which happens after the row is gone) and for the
+  // pre-delete cascade-count audit. PostgREST never surfaces the
+  // CASCADE-deleted children, so we count them up front.
+  const { data: investor, error: lookupErr } = await supabase
+    .from("investors")
+    .select("id")
+    .eq("zoho_contact_id", zohoId)
+    .maybeSingle();
+  if (lookupErr) {
+    throw new Error(`investors lookup failed: ${lookupErr.message}`);
+  }
+  if (!investor) {
+    // Nothing to delete — idempotent no-op (e.g. delete already replayed).
+    return;
+  }
+  const investorId = investor.id as string;
+
+  // Capture cascade counts BEFORE the delete so the audit log
+  // records how many child rows we wiped. These are sibling tables
+  // keyed by investor_id; investor_units' own CASCADE wipes
+  // exit_requests (keyed by investor_unit_id, not investor_id, so
+  // we count via an embedded filter on the parent).
+  const [
+    unitsRes,
+    payoutsRes,
+    docsRes,
+    notifsRes,
+    bankReqRes,
+    kycResubRes,
+    ticketsRes,
+    exitReqRes,
+  ] = await Promise.all([
+    supabase.from("investor_units").select("id", { count: "exact", head: true }).eq("investor_id", investorId),
+    supabase.from("payouts").select("id", { count: "exact", head: true }).eq("investor_id", investorId),
+    supabase.from("documents").select("id", { count: "exact", head: true }).eq("investor_id", investorId),
+    supabase.from("notifications").select("id", { count: "exact", head: true }).eq("investor_id", investorId),
+    supabase.from("bank_change_requests").select("id", { count: "exact", head: true }).eq("investor_id", investorId),
+    supabase.from("kyc_resubmissions").select("id", { count: "exact", head: true }).eq("investor_id", investorId),
+    supabase.from("support_tickets").select("id", { count: "exact", head: true }).eq("investor_id", investorId),
+    supabase.from("exit_requests").select("id, investor_units!inner(investor_id)", { count: "exact", head: true }).eq("investor_units.investor_id", investorId),
+  ]);
+
+  // Hard delete the investor row. CASCADE wipes the child tables
+  // counted above. We filter by zoho_contact_id (not id) to keep
+  // the delete predicate aligned with how the row was located.
+  const { data: deletedRows, error: delErr } = await supabase
+    .from("investors")
+    .delete()
+    .eq("zoho_contact_id", zohoId)
+    .select("id");
+  if (delErr) {
+    throw new Error(`investors hard-delete failed: ${delErr.message}`);
+  }
+
+  // Hard delete the auth.users row so the now-orphaned investor
+  // can't sign back in. Errors are logged but do NOT fail the
+  // function — the investors row going is the primary goal, and
+  // leaving an orphaned auth.users row is acceptable fallout.
+  if (deletedRows && deletedRows.length > 0) {
+    try {
+      const { error: authDelErr } = await supabase.auth.admin.deleteUser(investorId);
+      if (authDelErr) {
+        console.error(`auth.users hard-delete failed for ${investorId}: ${authDelErr.message}`);
+      }
+    } catch (authErr) {
+      const msg = authErr instanceof Error ? authErr.message : String(authErr);
+      console.error(`auth.users hard-delete threw for ${investorId}: ${msg}`);
+    }
+  }
+
+  // Audit: merge cascade counts into webhook_log.payload so a
+  // future reader can see exactly what got wiped. Fetch-then-update
+  // because PostgREST has no jsonb-merge primitive; the cost is
+  // one extra round-trip per delete, which is fine on this hot path.
+  const { data: logRow } = await supabase
+    .from("webhook_log")
+    .select("payload")
+    .eq("id", logId)
+    .maybeSingle();
+  const basePayload = (logRow && typeof logRow.payload === "object" && logRow.payload !== null)
+    ? (logRow.payload as Record<string, unknown>)
+    : {};
+  const cascadeAudit = {
+    deleted_investor_id: investorId,
+    cascade_counts: {
+      investor_units: unitsRes.count ?? 0,
+      payouts: payoutsRes.count ?? 0,
+      documents: docsRes.count ?? 0,
+      notifications: notifsRes.count ?? 0,
+      bank_change_requests: bankReqRes.count ?? 0,
+      kyc_resubmissions: kycResubRes.count ?? 0,
+      support_tickets: ticketsRes.count ?? 0,
+      exit_requests: exitReqRes.count ?? 0,
+    },
+  };
+  const { error: auditErr } = await supabase
+    .from("webhook_log")
+    .update({ payload: { ...basePayload, _cascade_audit: cascadeAudit } })
+    .eq("id", logId);
+  if (auditErr) {
+    console.error(`webhook_log cascade-audit update failed for ${logId}: ${auditErr.message}`);
+  }
+}
+
+// DEF-2026-05-15-10: hard-delete the matching investor_units row.
+// CASCADE wipes exit_requests; payouts.allocation_id is set to NULL
+// (per the existing FK rule) so historical payouts survive even
+// after the parent allocation goes — they remain tied to the
+// investor + project via their other FKs.
+async function handleAllocationDelete(
+  supabase: ReturnType<typeof createClient>,
+  d: Record<string, unknown>,
+) {
+  const zohoId = (d.id ?? d.Id ?? d.record_id) as string | undefined;
+  if (!zohoId) {
+    throw new Error("missing allocation.id in delete payload");
+  }
+  const { error } = await supabase
+    .from("investor_units")
+    .delete()
+    .eq("zoho_allocation_id", zohoId);
+  if (error) {
+    throw new Error(`investor_units hard-delete failed: ${error.message}`);
+  }
+  // Parent project's derived units recompute via the
+  // trg_recompute_project_units trigger from migration 046.
+}
+
+async function handleLLPDelete(
+  supabase: ReturnType<typeof createClient>,
+  d: Record<string, unknown>,
+) {
+  const zohoId = (d.id ?? d.Id ?? d.record_id) as string | undefined;
+  if (!zohoId) {
+    throw new Error("missing LLP.id in delete payload");
+  }
+  // Hard delete the llps row. ON DELETE CASCADE on projects.llp_id
+  // wipes the project row(s) under it, which in turn cascade to
+  // consultation_requests, crops, gallery_photos, investor_units,
+  // payouts, project_phases. documents.project_id and
+  // support_tickets.project_id are SET NULL so investor-side
+  // history doesn't break.
+  const { error } = await supabase
+    .from("llps")
+    .delete()
+    .eq("zoho_llp_id", zohoId);
+  if (error) {
+    throw new Error(`llps hard-delete failed: ${error.message}`);
+  }
+}

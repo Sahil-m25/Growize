@@ -79,6 +79,7 @@ abstract final class SupabaseConstants {
   static const String fnReplyTicket = 'reply-ticket';
   static const String fnBankChangeRequest = 'bank-change-request';
   static const String fnRequestAuthEmail = 'request-auth-email';
+  static const String fnLatestAppVersion = 'latest-app-version';
 
   /// Shared secret sent in the `x-arl-cron-secret` header when calling
   /// the `request-auth-email` Edge Function. Separate from CRON_SECRET

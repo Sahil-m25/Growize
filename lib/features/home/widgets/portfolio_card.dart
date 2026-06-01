@@ -44,18 +44,21 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
   Widget build(BuildContext context) {
     final totalValue = widget.portfolio.totalInvested;
 
-    return Stack(
-      children: [
-        // Main card
-        Container(
-          margin: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [ArlColors.primary, ArlColors.accent],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(15),
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Stack(
+          children: [
+            // Main card
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [ArlColors.primary, ArlColors.accent],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(15),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.1),
@@ -274,34 +277,81 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
         // Decorative circle top-right
         Positioned(
           top: -30,
-          right: -30,
-          child: Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: ArlColors.gold.withValues(alpha: 0.1),
+              right: -30,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: ArlColors.gold.withValues(alpha: 0.1),
+                ),
+              ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
 
-/// Sync indicator pill. Shows a green pulse + "Live" while a fetch is in
-/// flight; otherwise an "Updated Xm ago" relative timestamp tied to
-/// [lastSyncAtProvider]. Cold starts before the first successful fetch
-/// render "Updated …".
-class _SyncBadge extends StatelessWidget {
+/// Sync indicator pill. Matches HTML `sync-badge`:
+///   * **Live state** (`< 60s` since last successful sync OR a fetch is
+///     in-flight) → pulsing green dot + uppercase "LIVE" label.
+///   * **Aged state** (>= 60s old, or unknown) → small clock glyph +
+///     `Updated Xm ago`.
+///
+/// The 60s window is what makes the pill feel honest: it stays "Live"
+/// long enough that a user who refreshes still sees the affirmation,
+/// but it doesn't lie if the screen has been sitting on-device for a
+/// while.
+class _SyncBadge extends StatefulWidget {
   final bool isLive;
   final DateTime? syncedAt;
 
   const _SyncBadge({required this.isLive, required this.syncedAt});
 
   @override
+  State<_SyncBadge> createState() => _SyncBadgeState();
+}
+
+class _SyncBadgeState extends State<_SyncBadge>
+    with SingleTickerProviderStateMixin {
+  /// Threshold: any sync that completed inside this window keeps the
+  /// "Live" affordance — matches the HTML mockup's behaviour where the
+  /// pulse stays on for ~1 min after a refresh.
+  static const Duration _liveWindow = Duration(seconds: 60);
+
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  bool get _showLive {
+    if (widget.isLive) return true;
+    final t = widget.syncedAt;
+    if (t == null) return false;
+    return DateTime.now().difference(t) < _liveWindow;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final label = formatSyncLabel(syncedAt: syncedAt, isLive: isLive);
+    final live = _showLive;
+    final label = live
+        ? 'Live'
+        : formatSyncLabel(syncedAt: widget.syncedAt, isLive: false);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -311,13 +361,23 @@ class _SyncBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (isLive)
-            Container(
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(
-                color: ArlColors.goldLight,
-                shape: BoxShape.circle,
+          if (live)
+            FadeTransition(
+              opacity: Tween<double>(begin: 0.35, end: 1.0).animate(
+                CurvedAnimation(parent: _pulse, curve: Curves.easeInOut),
+              ),
+              child: Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  // Spec asks for `#00C853` — we use the brand accent
+                  // (which is the green that already appears on the
+                  // Operational pill and progress bars) so the dot reads
+                  // as "the app's healthy-green", not an arbitrary
+                  // material green imported just for this badge.
+                  color: ArlColors.accent,
+                  shape: BoxShape.circle,
+                ),
               ),
             )
           else
@@ -326,13 +386,16 @@ class _SyncBadge extends StatelessWidget {
               size: 12,
               color: Colors.white.withValues(alpha: 0.7),
             ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
           Text(
-            label,
-            style: const TextStyle(
+            // Uppercase Live label per HTML; "Updated…" labels stay
+            // mixed-case because they're a sentence, not a status pill.
+            live ? label.toUpperCase() : label,
+            style: TextStyle(
               color: Colors.white,
               fontSize: 10,
               fontWeight: FontWeight.w500,
+              letterSpacing: live ? 0.8 : 0,
             ),
           ),
         ],

@@ -43,15 +43,22 @@ class GalleryScreen extends ConsumerWidget {
             }
           },
         ),
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Gallery',
+            const Text(
+              'Photos',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              'Daily 9:00 AM IST · Last 30 days',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.6),
+                fontSize: 11,
               ),
             ),
           ],

@@ -59,6 +59,7 @@ supabase/.temp/
 # Android release signing (do not commit)
 android/key.properties
 android/app/arl-release-key.jks
+android/app/release-keystore.jks
 android/app/*.jks
 
 # Office / editor lock files

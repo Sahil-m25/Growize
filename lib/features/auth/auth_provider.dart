@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:arl_app/core/auth/app_lock_provider.dart';
+import 'package:arl_app/core/auth/app_lock_service.dart';
 import 'package:arl_app/core/auth/secure_session_store.dart';
 import 'package:arl_app/core/auth/session_manager.dart';
 import 'package:arl_app/core/constants/supabase_constants.dart';
@@ -79,6 +81,15 @@ final authStateProvider = StreamProvider<AuthState?>((ref) {
       }
       if (event.event == AuthChangeEvent.signedOut) {
         unawaited(secureStore.clearBiometric());
+        // Wipe the per-device app-lock state too — a different user
+        // signing in on this device should not inherit the previous
+        // user's PIN hash or biometric opt-in flag.
+        unawaited(AppLockService().clearAll().then((_) {
+          // Invalidate the settings cache so SecurityScreen / lock
+          // gate re-read the now-empty state instead of seeing stale
+          // pre-signout values.
+          ref.invalidate(appLockSettingsProvider);
+        }));
       }
     },
     onError: controller.addError,

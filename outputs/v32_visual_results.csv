@@ -1,0 +1,25 @@
+row_id,screen,action,expected,actual,status,screenshot,notes
+1,home,cold-load landing,Home dashboard with bottom nav,Blank white screen until manual $dartRunMain(); then /#/auth Sign In screen,SKIP,screenshot-1779175510790.jpg,Gated by DEF-V32-FINAL-01 and DEF-V32-FINAL-02
+2,projects-list,navigate Projects tab,List of project tiles,n/a — auth gate blocks,SKIP,,
+3,project-detail,tap project tile,Detail screen opens,n/a — auth gate blocks,SKIP,,
+4,view-area,tap View Area action,Area screen opens,n/a — auth gate blocks,SKIP,,
+5,photos,tap Photos action,Photos grid,n/a — auth gate blocks,SKIP,,
+6,photo-fullscreen,tap a photo,Fullscreen viewer,n/a — auth gate blocks,SKIP,,
+7,explore,navigate Explore tab,Explore list no New Projects subtitle,n/a — auth gate blocks,SKIP,,
+8,explore-detail,tap Explore tile,Detail screen,n/a — auth gate blocks,SKIP,,
+9,share-modal,tap Share,Share modal opens,n/a — auth gate blocks,SKIP,,
+10,financials,navigate Financials,Financials no 5yr chart,n/a — auth gate blocks,SKIP,,
+11,documents,navigate Documents,Documents list,n/a — auth gate blocks,SKIP,,
+12,activity,navigate Activity,Activity feed,n/a — auth gate blocks,SKIP,,
+13,profile,navigate Profile,Profile screen with preview tile,n/a — auth gate blocks,SKIP,,
+14,celebration,tap preview tile,Celebration animation,n/a — auth gate blocks,SKIP,,
+DEF-V32-VIS-01,projects tile detail,tile tap opens detail,Detail screen,n/a — auth gate,SKIP,,
+DEF-V32-VIS-02,explore tile detail,tile tap opens detail,Detail screen,n/a — auth gate,SKIP,,
+DEF-V32-VIS-03,financials sub-tab toggle,toggle changes content,Toggle works,n/a — auth gate,SKIP,,
+DEF-V32-VIS-04,explore filter pills,3 pills All / Open / Coming Soon,3 visible,n/a — auth gate,SKIP,,
+DEF-V32-VIS-05,explore tiles populated,image+name+location+chip+bar+price,Populated,n/a — auth gate,SKIP,,
+DEF-V32-VIS-06,project detail no RenderFlex,Console clean,n/a — auth gate,SKIP,,
+DEF-V32-VIS-07,detail body scrolls,wheel/PageDown scrolls,Works,n/a — auth gate,SKIP,,
+DEF-V32-VIS-08,auto-load without manual main,Page paints on cold load,Blank until $dartRunMain() invoked manually,FAIL,,Directly observed; STILL FAILING
+DEF-V32-FINAL-01,Flutter bootstrap auto-invoke,Cold-load paints UI within 10s,Body stays blank; needs manual $dartRunMain(),FAIL (NEW),,Critical blocker
+DEF-V32-FINAL-02,ARL_DEV_BYPASS lands on home,/#/home with bottom nav,Lands on /#/auth Sign In screen,FAIL (NEW),screenshot-1779175510790.jpg,Critical blocker

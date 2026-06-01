@@ -140,12 +140,34 @@ class _NotifView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (notifs.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'No notifications yet.',
-            style: TextStyle(color: ArlColors.muted, fontSize: 12),
+          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.notifications_none,
+                size: 36,
+                color: ArlColors.muted.withValues(alpha: 0.6),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'No notifications yet',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: ArlColors.charcoal,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Payout and operational alerts will appear here as your projects update.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: ArlColors.muted, fontSize: 12),
+              ),
+            ],
           ),
         ),
       );

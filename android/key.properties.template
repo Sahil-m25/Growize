@@ -1,0 +1,16 @@
+# Android release-signing credentials for the Growize keystore.
+#
+# Copy to `key.properties` (gitignored) and fill in the real password.
+# The Flutter Gradle build reads this file at configure time — see
+# android/app/build.gradle.kts. `storeFile` is resolved relative to
+# android/app/, so `release-keystore.jks` points at
+# android/app/release-keystore.jks.
+#
+# The keystore at android/app/release-keystore.jks was generated with
+# placeholder credentials — ROTATE BEFORE PRODUCTION RELEASE. See
+# docs/ops/keystore_setup.md for rotation + backup procedure.
+
+storePassword=<your-store-password>
+keyPassword=<your-key-password>
+keyAlias=growize-release
+storeFile=release-keystore.jks

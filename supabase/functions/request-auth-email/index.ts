@@ -1,179 +1,161 @@
-// request-auth-email — server-side gate for invite-only auth email flows
-// (password reset + magic link).
+// request-auth-email
+// OTP entry point for the Growize app. Looks up the investor in public.investors
+// (so randoms can't enumerate), then asks Supabase Auth to send a 6-digit code.
 //
-// The Supabase Auth client APIs `resetPasswordForEmail` and
-// `signInWithOtp` happily send an email to ANY address. That's fine
-// for self-signup products but wrong for an invite-only investor
-// portal: any visitor could discover that an email is registered
-// (account enumeration) or spam our SMTP quota.
+// Body shape:  { "email": "x@y.com" }   OR   { "phone": "+919876500001" }
 //
-// This function:
-//   1. Verifies the request came from our app (shared secret header)
-//   2. Looks up the email in `public.investors` AND `auth.users`
-//      (service role; bypasses RLS)
-//   3. If linked: triggers the matching Supabase Auth flow which
-//      sends the email via the Supabase built-in SMTP.
-//   4. If not linked: sleeps a small constant delay, then returns
-//      the same `{ok:true}` response as the happy path — no signal
-//      to the caller that the email is unregistered.
+// Returns the SAME generic response regardless of whether the contact exists,
+// so attackers can't tell which emails / phones are registered.
 //
-// Auth: `x-arl-cron-secret` header matching `ARL_AUTH_GATE_SECRET`
-//       env var. Separate from CRON_SECRET so the value shipped
-//       inside the Flutter binary can be rotated without breaking
-//       DB-trigger-fired functions.
+// Email is enabled today. Phone support is wired but no-ops until the project
+// has an SMS provider configured (Twilio / MSG91 / etc).
 //
-// Deploy:
-//   supabase functions deploy request-auth-email --no-verify-jwt
-// Secrets:
-//   supabase secrets set ARL_AUTH_GATE_SECRET=<random 32+ chars>
+// Version 5 (2026-05-25): Source-synced with deployed version. The Magic Link
+// email template must render `{{ .Token }}` (the 6-digit code), NOT
+// `{{ .ConfirmationURL }}` — that's a Dashboard-only setting under
+// Authentication → Email Templates → Magic Link. This function deliberately
+// omits `emailRedirectTo` / `redirect_to` so Supabase issues a pure-token
+// OTP rather than a magic-link URL.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let r = 0;
-  for (let i = 0; i < a.length; i++) {
-    r |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return r === 0;
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function genericReply(channel: "email" | "phone") {
+  const what = channel === "email" ? "email address" : "phone number";
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      message: `If this ${what} is registered, a 6-digit code will arrive shortly.`,
+    }),
+    {
+      status: 200,
+      headers: { ...CORS, "Content-Type": "application/json" },
+    },
+  );
 }
 
-function ok(): Response {
-  return new Response(JSON.stringify({ ok: true }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
+function jsonError(status: number, error: string) {
+  return new Response(JSON.stringify({ ok: false, error }), {
+    status,
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
-// Constant-time pad so the no-op branch takes roughly as long as the
-// happy path (which talks to GoTrue + SMTP). Without this, a caller
-// could distinguish "registered" from "unregistered" via response
-// latency alone.
-async function timingPad(): Promise<void> {
-  await new Promise((r) => setTimeout(r, 350));
-}
-
-interface ReqBody {
-  email?: unknown;
-  mode?: unknown;
-}
-
 Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: CORS });
+  }
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "method_not_allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonError(405, "Method not allowed");
   }
 
-  // ── Shared-secret gate ────────────────────────────────────────────
-  const expected = Deno.env.get("ARL_AUTH_GATE_SECRET");
-  const got = req.headers.get("x-arl-cron-secret") ?? "";
-  if (!expected || !timingSafeEqual(got, expected)) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  let body: ReqBody;
+  let body: { email?: string; phone?: string };
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: "invalid_body" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonError(400, "Invalid JSON body");
   }
 
-  const emailRaw = typeof body.email === "string" ? body.email : "";
-  const email = emailRaw.trim().toLowerCase();
-  const mode = body.mode;
-  if (mode !== "reset" && mode !== "magic_link") {
-    return new Response(JSON.stringify({ error: "invalid_mode" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+  const email = body.email?.toString().toLowerCase().trim() || null;
+  const phone = body.phone?.toString().trim() || null;
+
+  // Exactly one of email/phone must be present.
+  if ((!email && !phone) || (email && phone)) {
+    return jsonError(400, "Provide exactly one of email or phone");
   }
 
-  // Basic shape check — reject obviously malformed inputs before
-  // they hit the DB. Don't echo the email back in the error.
-  if (email.length < 3 || email.length > 254 || !email.includes("@")) {
-    // Still return 200 to match the no-op branch — don't reveal that
-    // the validator caught this either.
-    await timingPad();
-    return ok();
+  const channel: "email" | "phone" = email ? "email" : "phone";
+
+  // Service-role client for the investor lookup (bypasses RLS, safe inside fn).
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  // Lookup by email or phone (active investors only).
+  const lookup = email
+    ? admin
+        .from("investors")
+        .select("id, email, phone")
+        .ilike("email", email)
+        .is("deleted_at", null)
+        .limit(1)
+        .maybeSingle()
+    : admin
+        .from("investors")
+        .select("id, email, phone")
+        .eq("phone", phone!)
+        .is("deleted_at", null)
+        .limit(1)
+        .maybeSingle();
+
+  const { data: investor, error: lookupErr } = await lookup;
+
+  if (lookupErr) {
+    console.error("[request-auth-email] investor lookup failed", lookupErr);
+    // Still generic to the caller — don't leak DB errors.
+    return genericReply(channel);
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-  // ── Gate: must exist in investors with a linked auth user ────────
-  // Service role bypasses RLS. We deliberately do not log the email.
-  const { data: investor, error: invErr } = await supabase
-    .from("investors")
-    .select("user_id")
-    .eq("email", email)
-    .maybeSingle();
-
-  if (invErr) {
-    console.error("investor lookup failed", { code: invErr.code });
-    // Don't leak details — return 200 anyway, but log internally.
-    await timingPad();
-    return ok();
+  if (!investor) {
+    console.log(
+      `[request-auth-email] no investor found for ${channel}; returning generic reply`,
+    );
+    return genericReply(channel);
   }
 
-  const userId = investor?.user_id as string | undefined;
-  if (!userId) {
-    await timingPad();
-    return ok();
+  // Trigger Supabase Auth to send the OTP. We hit the REST endpoint with the
+  // anon key (same path the client SDK uses) so Supabase honors its own rate
+  // limits and email-template config.
+  //
+  // IMPORTANT: NO `redirect_to` / `email_redirect_to` is set here. Supabase
+  // only treats this as a pure-OTP request (rendering `{{ .Token }}`) when
+  // the redirect param is absent. Setting it forces a magic-link URL into
+  // the email even if the template tries to render the token.
+  const otpBody: Record<string, unknown> = { create_user: false };
+  if (channel === "email") {
+    otpBody.email = investor.email; // use canonical stored value
+  } else {
+    // Phone in Supabase auth is stored without leading '+'. The auth API
+    // accepts both; keep it as the canonical investors.phone value.
+    otpBody.phone = investor.phone;
   }
 
-  // Confirm the linked auth user actually exists. Catches the edge
-  // case where an investor row was created but the auth user was
-  // later deleted manually.
-  const { data: userResp, error: userErr } = await supabase.auth.admin
-    .getUserById(userId);
-  if (userErr || !userResp?.user) {
-    await timingPad();
-    return ok();
-  }
-
-  // ── Trigger the matching Supabase Auth flow ──────────────────────
-  // Both methods are available on the service-role client and will
-  // send via the configured SMTP. We swallow errors and still return
-  // 200 — surfacing them would let a caller distinguish failure
-  // modes (e.g. SMTP down vs rate-limit vs unknown email).
   try {
-    if (mode === "reset") {
-      const redirectTo = Deno.env.get("AUTH_RESET_REDIRECT_URL") || undefined;
-      const { error } = await supabase.auth.resetPasswordForEmail(
-        email,
-        redirectTo ? { redirectTo } : undefined,
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/otp`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: ANON_KEY,
+      },
+      body: JSON.stringify(otpBody),
+    });
+    if (!r.ok) {
+      const text = await r.text();
+      console.error(
+        `[request-auth-email] /auth/v1/otp returned ${r.status}: ${text}`,
       );
-      if (error) {
-        console.error("reset send failed", { code: error.status });
-      }
+      // Common cases:
+      //   429 = rate limit — caller will get generic reply, user should wait
+      //   422 = phone provider not configured (expected until SMS is set up)
     } else {
-      // magic_link
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          // Belt + braces: even if the email lookup above were
-          // somehow bypassed, refuse to create a brand-new user.
-          shouldCreateUser: false,
-        },
-      });
-      if (error) {
-        console.error("magic_link send failed", { code: error.status });
-      }
+      console.log(
+        `[request-auth-email] OTP dispatched via ${channel} for investor ${investor.id}`,
+      );
     }
   } catch (e) {
-    console.error("send threw", { name: (e as Error).name });
+    console.error("[request-auth-email] OTP fetch threw", e);
   }
 
-  return ok();
+  return genericReply(channel);
 });

@@ -1,21 +1,36 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import 'package:arl_app/core/auth/app_lock_provider.dart';
+import 'package:arl_app/core/auth/app_lock_service.dart';
 import 'package:arl_app/core/auth/secure_session_store.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/providers/repositories.dart';
 import 'package:arl_app/core/supabase/supabase_client.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 
+/// Profile → Security screen.
+///
+/// Surfaces three real toggles:
+///   • Biometric unlock — gates app launch / resume with the OS biometric
+///     prompt. Backed by [AppLockService] on-device + a mirror on the
+///     server (`user_settings.biometric_enabled`) for cross-device hints.
+///   • Require PIN — when on, app launch / resume requires the local PIN.
+///     Disabled until a PIN is actually set.
+///   • Set / Change / Remove PIN — writes a salted 100k-iter sha256 hash
+///     to flutter_secure_storage (and mirrors the hash to the server for
+///     parity with the legacy "change PIN" flow).
 class SecurityScreen extends ConsumerWidget {
   const SecurityScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settingsAsync = ref.watch(userSettingsProvider);
+    final lockSettingsAsync = ref.watch(appLockSettingsProvider);
     final loginsAsync = ref.watch(myLoginEventsProvider);
 
     return Scaffold(
@@ -57,11 +72,9 @@ class SecurityScreen extends ConsumerWidget {
           ),
         ),
         data: (settings) {
-          final biometricEnabled =
-              (settings?['biometric_enabled'] as bool?) ?? false;
+          final lock = lockSettingsAsync.asData?.value ?? AppLockSettings.empty;
           final notificationsEnabled =
               (settings?['notifications_enabled'] as bool?) ?? true;
-          final pinSet = settings?['app_pin_hash'] != null;
           return SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -78,16 +91,59 @@ class SecurityScreen extends ConsumerWidget {
                     ),
                     child: Column(
                       children: [
+                        // Biometric unlock row is platform-gated. On the web
+                        // build local_auth has no working backend, so the
+                        // toggle would be a dead control — hide the row
+                        // entirely rather than offering something that can't
+                        // succeed. The row is also disabled (greyed) until a
+                        // PIN is set, because the PIN is the only fallback
+                        // when biometric stops working.
+                        if (!kIsWeb) ...[
+                          _SecurityRow(
+                            icon: Icons.fingerprint,
+                            iconColor: ArlColors.accent,
+                            iconBg: ArlColors.accent.withValues(alpha: 0.15),
+                            title: 'Biometric unlock',
+                            subtitle: lock.biometricEnabled
+                                ? 'On — required to open the app'
+                                : !lock.hasPin
+                                    ? 'Set a PIN first to enable'
+                                    : 'Off',
+                            // Disabling is always allowed (escape hatch even
+                            // if the user got into a no-PIN-but-biometric-on
+                            // state in an earlier build). Enabling requires
+                            // a PIN as fallback — the row disables the
+                            // "enable" path by funnelling through
+                            // [_setBiometric], which surfaces the right
+                            // snackbar when hasPin is false.
+                            trailing: Switch(
+                              value: lock.biometricEnabled,
+                              onChanged: (lock.biometricEnabled || lock.hasPin)
+                                  ? (v) => _setBiometric(context, ref, v)
+                                  : null,
+                              activeThumbColor: ArlColors.accent,
+                              inactiveThumbColor: ArlColors.muted,
+                            ),
+                          ),
+                          const Divider(
+                              height: 1, color: ArlColors.sand, thickness: 1),
+                        ],
                         _SecurityRow(
-                          icon: Icons.fingerprint,
-                          iconColor: ArlColors.accent,
-                          iconBg: ArlColors.accent.withValues(alpha: 0.15),
-                          title: 'Biometric Login',
-                          subtitle: biometricEnabled ? 'Enabled' : 'Disabled',
+                          icon: Icons.password,
+                          iconColor: ArlColors.primary,
+                          iconBg: ArlColors.primary.withValues(alpha: 0.1),
+                          title: 'Require PIN',
+                          subtitle: !lock.hasPin
+                              ? 'Set a PIN first to enable'
+                              : lock.pinRequired
+                                  ? 'On — required to open the app'
+                                  : 'Off',
                           trailing: Switch(
-                            value: biometricEnabled,
-                            onChanged: (v) => _setBiometric(context, ref, v),
-                            activeThumbColor: ArlColors.accent,
+                            value: lock.pinRequired,
+                            onChanged: !lock.hasPin
+                                ? null
+                                : (v) => _setPinRequired(context, ref, v),
+                            activeThumbColor: ArlColors.primary,
                             inactiveThumbColor: ArlColors.muted,
                           ),
                         ),
@@ -97,9 +153,10 @@ class SecurityScreen extends ConsumerWidget {
                           icon: Icons.smartphone,
                           iconColor: ArlColors.primary,
                           iconBg: ArlColors.primary.withValues(alpha: 0.1),
-                          title: 'App PIN',
-                          subtitle: pinSet ? 'Set' : 'Not set',
-                          onTap: () => _openPinFlow(context, ref, pinSet),
+                          title: lock.hasPin ? 'App PIN' : 'Set App PIN',
+                          subtitle: lock.hasPin ? 'Set' : 'Not set',
+                          onTap: () =>
+                              _openPinFlow(context, ref, lock.hasPin),
                           trailing: const Icon(Icons.chevron_right,
                               color: ArlColors.primary, size: 18),
                         ),
@@ -122,6 +179,40 @@ class SecurityScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  if (lock.lockEnabled)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: ArlColors.gold.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: ArlColors.gold.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.shield_outlined,
+                              color: ArlColors.gold, size: 18),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              lock.biometricEnabled && lock.pinRequired
+                                  ? 'You will be asked to verify with biometrics or PIN every time you open Growize or return after 30 seconds.'
+                                  : lock.biometricEnabled
+                                      ? 'You will be asked to verify with biometrics every time you open Growize or return after 30 seconds.'
+                                      : 'You will be asked to enter your PIN every time you open Growize or return after 30 seconds.',
+                              style: const TextStyle(
+                                color: ArlColors.charcoal,
+                                fontSize: 11.5,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   _sectionTitle('Login History'),
                   Container(
                     margin: const EdgeInsets.only(bottom: 20),
@@ -196,29 +287,19 @@ class SecurityScreen extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Auto-lock after',
+                          'Auto-lock on background',
                           style: TextStyle(
                             color: ArlColors.charcoal,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        Row(
-                          children: [
-                            Text(
-                              '5 minutes',
-                              style: TextStyle(
-                                color: ArlColors.muted,
-                                fontSize: 12,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Icon(
-                              Icons.chevron_right,
-                              color: ArlColors.primary,
-                              size: 18,
-                            ),
-                          ],
+                        Text(
+                          '30 seconds',
+                          style: TextStyle(
+                            color: ArlColors.muted,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
@@ -329,23 +410,75 @@ class SecurityScreen extends ConsumerWidget {
   Future<void> _setBiometric(
       BuildContext context, WidgetRef ref, bool value) async {
     final messenger = ScaffoldMessenger.of(context);
-    // Enabling biometric login requires the user to pass a real
-    // biometric check first — gate via BiometricScreen which pops
-    // with true/false. Disabling does not need a fresh check.
+    final controller = ref.read(appLockControllerProvider);
+
     if (value) {
-      final ok = await context.push<bool>(RouteNames.biometric);
-      if (ok != true) {
-        // User cancelled or biometric failed — keep toggle off.
-        ref.invalidate(userSettingsProvider);
+      // Web has no working local_auth backend — short-circuit before we
+      // touch the platform layer. (The row itself is hidden on web, but
+      // belt-and-suspenders.)
+      if (kIsWeb) {
+        messenger.showSnackBar(const SnackBar(
+          content: Text(
+            'Biometric unlock is not supported on the web build. Use the mobile app.',
+          ),
+        ));
+        return;
+      }
+      // PIN must already be set so the user has a fallback if biometric
+      // ever fails. Without it a sensor problem or fingerprint removal
+      // would lock them out permanently. (Row UI also enforces this by
+      // disabling the switch — defensive double-check here in case the
+      // call comes from a different path.)
+      final current = await controller.current();
+      if (!current.hasPin) {
+        messenger.showSnackBar(const SnackBar(
+          content: Text(
+            'Set an app PIN first — it is required as a fallback for biometric unlock.',
+          ),
+        ));
+        return;
+      }
+      // Enabling biometric requires a successful biometric check first
+      // so the user proves their identity before the gate goes live.
+      final available = await controller.biometricAvailable();
+      if (!available) {
+        messenger.showSnackBar(const SnackBar(
+          content: Text(
+            'Biometric authentication is not available on this device.',
+          ),
+        ));
+        return;
+      }
+      final enrolled = await controller.biometricEnrolled();
+      if (!enrolled) {
+        messenger.showSnackBar(const SnackBar(
+          content: Text(
+            'No fingerprint or face is enrolled. Enroll one in your device settings, then try again.',
+          ),
+        ));
+        return;
+      }
+      final ok = await controller.authenticateBiometric(
+        reason: 'Confirm to enable biometric unlock',
+      );
+      if (!ok) {
+        messenger.showSnackBar(const SnackBar(
+          content: Text('Biometric check failed. Setting not changed.'),
+        ));
         return;
       }
     }
+
     try {
+      // Local — drives the lock-screen behaviour on this device.
+      await controller.setBiometricEnabled(value);
+      // Server mirror — purely informational so the login screen can
+      // hint "use biometric" without round-tripping the device.
       await ref
           .read(userSettingsRepositoryProvider)
           .updateToggles(biometricEnabled: value);
-      // Mirror the flag into secure storage so the login screen can
-      // show / hide the biometric button without round-tripping the DB.
+      // Keep the legacy SecureSessionStore flag in sync so the existing
+      // login-screen biometric shortcut continues to work.
       final store = SecureSessionStore();
       if (value) {
         final session = ArlSupabase.client?.auth.currentSession;
@@ -359,10 +492,39 @@ class SecurityScreen extends ConsumerWidget {
         await store.clearBiometric();
       }
       ref.invalidate(userSettingsProvider);
+    } on BiometricRequiresPinException catch (e) {
+      // Should be unreachable because of the up-front guards, but the
+      // controller throws this defensively too — surface its message
+      // cleanly rather than as a raw "Could not save".
+      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+    } on BiometricUnsupportedException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(content: Text('Could not save: $e')),
       );
+    }
+  }
+
+  Future<void> _setPinRequired(
+      BuildContext context, WidgetRef ref, bool value) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = ref.read(appLockControllerProvider);
+    // Turning off "Require PIN" doesn't need a fresh check — the user
+    // is already inside the app. Turning on without a PIN set would
+    // lock them out; the row guards against that by disabling the
+    // switch, but double-check defensively.
+    final current = await controller.current();
+    if (value && !current.hasPin) {
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Set a PIN first, then enable this.'),
+      ));
+      return;
+    }
+    try {
+      await controller.setPinRequired(value);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Could not save: $e')));
     }
   }
 
@@ -397,31 +559,44 @@ class SecurityScreen extends ConsumerWidget {
 
     final messenger = ScaffoldMessenger.of(context);
     final repo = ref.read(userSettingsRepositoryProvider);
+    final controller = ref.read(appLockControllerProvider);
 
     switch (action) {
       case _PinAction.set:
         final pin = await _promptNewPin(context);
         if (pin == null) return;
         try {
+          // Local first — the on-device PIN is what gates the lock screen.
+          await controller.setPin(pin);
+          // Server mirror — kept so the legacy "change PIN" change flow
+          // on other devices can still verify against a known hash.
           await repo.setPin(pin);
           ref.invalidate(userSettingsProvider);
-          messenger.showSnackBar(const SnackBar(content: Text('PIN set.')));
+          messenger.showSnackBar(const SnackBar(
+            content: Text('PIN set. App will now require it on launch.'),
+          ));
         } catch (e) {
-          messenger
-              .showSnackBar(SnackBar(content: Text('Could not set PIN: $e')));
+          messenger.showSnackBar(
+              SnackBar(content: Text('Could not set PIN: $e')));
         }
         return;
       case _PinAction.change:
         final current = await _promptPin(context, title: 'Enter current PIN');
         if (current == null) return;
+        final ok = await controller.verifyPin(current);
+        if (!ok) {
+          messenger.showSnackBar(
+              const SnackBar(content: Text('Current PIN incorrect.')));
+          return;
+        }
         if (!context.mounted) return;
         final next = await _promptNewPin(context);
         if (next == null) return;
         try {
-          final ok = await repo.changePin(currentPin: current, newPin: next);
+          await controller.setPin(next);
+          await repo.setPin(next);
           ref.invalidate(userSettingsProvider);
-          messenger.showSnackBar(SnackBar(
-              content: Text(ok ? 'PIN updated.' : 'Current PIN incorrect.')));
+          messenger.showSnackBar(const SnackBar(content: Text('PIN updated.')));
         } catch (e) {
           messenger.showSnackBar(
               SnackBar(content: Text('Could not change PIN: $e')));
@@ -430,13 +605,19 @@ class SecurityScreen extends ConsumerWidget {
       case _PinAction.remove:
         final current = await _promptPin(context, title: 'Enter current PIN');
         if (current == null) return;
-        final ok = await repo.verifyPin(current);
+        final ok = await controller.verifyPin(current);
         if (!ok) {
           messenger.showSnackBar(
               const SnackBar(content: Text('Current PIN incorrect.')));
           return;
         }
-        await repo.clearPin();
+        await controller.clearPin();
+        try {
+          await repo.clearPin();
+        } catch (_) {
+          // Server clear is best-effort — local state is the source of truth
+          // for the lock gate.
+        }
         ref.invalidate(userSettingsProvider);
         messenger.showSnackBar(const SnackBar(content: Text('PIN removed.')));
         return;

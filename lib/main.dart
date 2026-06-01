@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -6,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/auth/app_lock_provider.dart';
+import 'core/theme/arl_colors.dart';
 import 'core/observability/sentry_config.dart';
 import 'core/offline/hive_cache.dart';
 import 'core/supabase/supabase_client.dart';
@@ -14,6 +17,7 @@ import 'core/navigation/router.dart';
 import 'core/theme/arl_theme.dart';
 import 'core/constants/supabase_constants.dart';
 import 'core/widgets/demo_mode_banner.dart';
+import 'features/auth/lock_screen.dart';
 import 'features/gating/gating_provider.dart';
 import 'features/gating/force_update_screen.dart';
 import 'features/gating/maintenance_screen.dart';
@@ -26,6 +30,24 @@ import 'features/documents/documents_provider.dart';
 import 'features/gallery/gallery_provider.dart';
 
 late ProviderContainer _container;
+
+/// Web-friendly scroll behaviour — enables mouse drag and trackpad-pan
+/// gestures alongside touch. Without this, Flutter web's default
+/// ScrollBehavior only recognises touch input, so SingleChildScrollView /
+/// GridView / ListView feel unresponsive on desktop (only the scrollbar
+/// works, never click-and-drag on the body itself).
+class _AppScrollBehavior extends MaterialScrollBehavior {
+  const _AppScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+        PointerDeviceKind.invertedStylus,
+      };
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -150,11 +172,65 @@ class _ProviderObserver extends ProviderObserver {
   }
 }
 
-class ArlApp extends ConsumerWidget {
+class ArlApp extends ConsumerStatefulWidget {
   const ArlApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ArlApp> createState() => _ArlAppState();
+}
+
+class _ArlAppState extends ConsumerState<ArlApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Kick off the lock-settings load. The provider's side-effect flips
+    // `appLockedProvider` off when no gate is configured, so we don't
+    // strand users without any reason to be locked.
+    Future<void>.microtask(() {
+      ref.read(lockBootProvider);
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // App lock is not supported on web.
+    if (kIsWeb) return;
+    final controller = ref.read(appLockControllerProvider);
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+        // Note the backgrounding instant. We don't re-lock immediately —
+        // brief OS overlays (notification shade, app switcher) would
+        // otherwise nag the user on every flip back. The grace window in
+        // [AppLockService.resumeGrace] decides whether to actually lock.
+        controller.noteBackgrounded();
+        break;
+      case AppLifecycleState.resumed:
+        // Read current settings synchronously where possible — if the
+        // FutureProvider has resolved we already have the answer; if
+        // not, default to "lock" out of caution.
+        final settings = ref.read(appLockSettingsProvider).asData?.value;
+        if (settings != null && settings.lockEnabled) {
+          if (controller.shouldChallengeOnResume()) {
+            controller.lock();
+          }
+        }
+        break;
+      case AppLifecycleState.detached:
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // B.T7: Check app_config gates before showing the main app.
     final gateAsync = ref.watch(gateStatusProvider);
 
@@ -193,11 +269,16 @@ class ArlApp extends ConsumerWidget {
           theme: arlTheme,
           routerConfig: router,
           debugShowCheckedModeBanner: false,
+          scrollBehavior: const _AppScrollBehavior(),
           builder: (context, child) {
             return Column(
               children: [
                 const AppDemoModeBanner(),
-                Expanded(child: child ?? const SizedBox.shrink()),
+                Expanded(
+                  child: _LockGate(
+                    child: child ?? const SizedBox.shrink(),
+                  ),
+                ),
               ],
             );
           },
@@ -224,16 +305,95 @@ class ArlApp extends ConsumerWidget {
           theme: arlTheme,
           routerConfig: router,
           debugShowCheckedModeBanner: false,
+          scrollBehavior: const _AppScrollBehavior(),
           builder: (context, child) {
             return Column(
               children: [
                 const AppDemoModeBanner(),
-                Expanded(child: child ?? const SizedBox.shrink()),
+                Expanded(
+                  child: _LockGate(
+                    child: child ?? const SizedBox.shrink(),
+                  ),
+                ),
               ],
             );
           },
         );
       },
+    );
+  }
+}
+
+/// Renders the lock screen on top of the router when (a) the user is
+/// signed in, (b) at least one lock option is configured, and (c) the
+/// runtime "locked" flag is on. Listens to the boot provider so the
+/// initial settings load triggers a rebuild as soon as it resolves.
+class _LockGate extends ConsumerWidget {
+  final Widget child;
+  const _LockGate({required this.child});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Trigger initial settings load. The boot provider flips
+    // `appLockedProvider` off when no lock is configured.
+    ref.watch(lockBootProvider);
+
+    final isLoggedIn = ref.watch(isLoggedInProvider);
+    final settingsAsync = ref.watch(appLockSettingsProvider);
+    final locked = ref.watch(appLockedProvider);
+    final settings = settingsAsync.asData?.value;
+
+    // Web has no biometric / PIN support — lock gate is a no-op.
+    if (kIsWeb) return child;
+    // Signed-out users never see the lock — sign-in screens own that flow.
+    if (!isLoggedIn) return child;
+    // Explicitly unlocked? Pass through.
+    if (!locked) return child;
+    // Settings haven't resolved yet — show a neutral splash instead of
+    // leaking authenticated content while we read secure storage. Wrap
+    // in SizedBox.expand so the splash claims the full pane even when
+    // the parent gives us loose constraints.
+    if (settings == null) {
+      return const SizedBox.expand(
+        child: ColoredBox(
+          color: ArlColors.primary,
+          child: Center(
+            child: CircularProgressIndicator(color: ArlColors.gold),
+          ),
+        ),
+      );
+    }
+    // No lock configured — pass through.
+    if (!settings.lockEnabled) return child;
+
+    // Keep the underlying app alive in the tree (so its state survives)
+    // but render the LockScreen above it.
+    //
+    // IMPORTANT: `Stack(fit: StackFit.expand)` is load-bearing. A bare
+    // Stack sizes itself to fit its non-positioned children — and the
+    // only non-positioned child here is `Offstage(offstage: true, ...)`,
+    // which collapses to 0x0. The previous implementation produced a
+    // 0x0 Stack and a `Positioned.fill` that filled nothing, leaving a
+    // BLANK SCREEN. `StackFit.expand` makes the Stack grow to its parent
+    // constraints (Expanded), so the LockScreen has somewhere to draw.
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // The router content is offstage during lock so its inputs
+        // can't be touched, but the widget tree is preserved.
+        Offstage(offstage: true, child: child),
+        // LockScreen is a full Scaffold — no need to wrap it in Material
+        // (that produced a redundant ink-well overlay). Painting the
+        // brand background here is still useful as a defensive backstop
+        // in case LockScreen ever returns SizedBox.shrink during a
+        // transient state.
+        const Positioned.fill(
+          child: ColoredBox(
+            color: ArlColors.primary,
+            child: LockScreen(),
+          ),
+        ),
+      ],
     );
   }
 }
