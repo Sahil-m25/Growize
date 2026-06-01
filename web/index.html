@@ -115,14 +115,24 @@
   <script src="flutter_bootstrap.js" async></script>
 
   <script>
-    // Hide the splash once Flutter has painted its first frame.
-    window.addEventListener('flutter-first-frame', function () {
+    function hideSplash() {
       var splash = document.getElementById('splash');
       if (splash) {
         splash.classList.add('hidden');
-        // Remove from DOM after transition ends so it doesn't block touches.
-        setTimeout(function () { splash.remove(); }, 450);
+        setTimeout(function () {
+          if (splash.parentNode) splash.parentNode.removeChild(splash);
+        }, 450);
       }
+    }
+
+    // Flutter 3.x fires 'flutter-first-frame' after the first rendered frame.
+    window.addEventListener('flutter-first-frame', hideSplash);
+
+    // Fallback: some Flutter web builds use a different signal.
+    // Also hide after 6 seconds regardless, so a startup error doesn't
+    // trap users behind the splash permanently.
+    window.addEventListener('load', function () {
+      setTimeout(hideSplash, 6000);
     });
   </script>
 </body>
