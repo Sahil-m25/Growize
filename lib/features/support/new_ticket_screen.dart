@@ -168,7 +168,7 @@ class _NewTicketScreenState extends ConsumerState<NewTicketScreen> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                initialValue: _selectedCategory,
+                value: _selectedCategory,
                 items: [
                   'Payout Issue',
                   'Document Request',

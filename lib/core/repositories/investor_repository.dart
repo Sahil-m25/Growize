@@ -62,10 +62,15 @@ class InvestorRepository {
     } on PostgrestException {
       // Real backend / RLS / schema error — surface it.
       rethrow;
-    } on SocketException {
-      return _readCache();
     } on TimeoutException {
       return _readCache();
+    } catch (e) {
+      // SocketException (dart:io, unavailable on web) and any other
+      // network error — fall back to cache silently.
+      if (e.runtimeType.toString().contains('SocketException')) {
+        return _readCache();
+      }
+      rethrow;
     }
   }
 

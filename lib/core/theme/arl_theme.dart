@@ -38,11 +38,11 @@ final ThemeData arlTheme = ThemeData(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
     ),
   ),
-  cardTheme: CardThemeData(
+  cardTheme: const CardTheme(
     color: Colors.white,
     elevation: 0,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(15))),
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
   ),
   inputDecorationTheme: InputDecorationTheme(
     filled: true,

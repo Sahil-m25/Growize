@@ -121,8 +121,10 @@ class SecurityScreen extends ConsumerWidget {
                               onChanged: (lock.biometricEnabled || lock.hasPin)
                                   ? (v) => _setBiometric(context, ref, v)
                                   : null,
-                              activeThumbColor: ArlColors.accent,
-                              inactiveThumbColor: ArlColors.muted,
+                              thumbColor: WidgetStateProperty.resolveWith((s) =>
+                                  s.contains(WidgetState.selected)
+                                      ? ArlColors.accent
+                                      : ArlColors.muted),
                             ),
                           ),
                           const Divider(
@@ -143,8 +145,10 @@ class SecurityScreen extends ConsumerWidget {
                             onChanged: !lock.hasPin
                                 ? null
                                 : (v) => _setPinRequired(context, ref, v),
-                            activeThumbColor: ArlColors.primary,
-                            inactiveThumbColor: ArlColors.muted,
+                            thumbColor: WidgetStateProperty.resolveWith((s) =>
+                                s.contains(WidgetState.selected)
+                                    ? ArlColors.primary
+                                    : ArlColors.muted),
                           ),
                         ),
                         const Divider(
@@ -172,8 +176,10 @@ class SecurityScreen extends ConsumerWidget {
                             value: notificationsEnabled,
                             onChanged: (v) =>
                                 _setNotifications(context, ref, v),
-                            activeThumbColor: ArlColors.gold,
-                            inactiveThumbColor: ArlColors.muted,
+                            thumbColor: WidgetStateProperty.resolveWith((s) =>
+                                s.contains(WidgetState.selected)
+                                    ? ArlColors.gold
+                                    : ArlColors.muted),
                           ),
                         ),
                       ],
