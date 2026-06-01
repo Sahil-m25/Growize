@@ -103,21 +103,17 @@ void main() async {
     );
   }
 
-  if (sentryDsn.isNotEmpty) {
+  // SentryFlutter.init has known issues on some Flutter web builds.
+  // Use it on native only; on web run the app directly.
+  if (sentryDsn.isNotEmpty && !kIsWeb) {
     await SentryFlutter.init(
       (options) {
         options.dsn = sentryDsn;
         options.environment = sentryEnvironment;
         options.release = sentryRelease;
-        // Performance monitoring off for v1 — crash reporting only.
         options.tracesSampleRate = 0.0;
-        // Privacy hardening — see sentry_config.dart for the full
-        // rationale. Do NOT flip any of these without a privacy review.
         options.sendDefaultPii = false;
         options.attachScreenshot = false;
-        // Sentry 9.x marks attachViewHierarchy experimental, but we want
-        // it pinned to false explicitly so a future default flip can't
-        // silently start sending the widget tree.
         // ignore: experimental_member_use
         options.attachViewHierarchy = false;
         options.maxBreadcrumbs = 50;
