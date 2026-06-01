@@ -53,14 +53,17 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-  // B.T1: Hard-fail dotenv in release mode.
-  // In debug, tolerate missing .env (design previews).
-  // In release, require it and assert config is valid.
-  try {
-    await dotenv.load(fileName: '.env');
-  } catch (e) {
-    if (kReleaseMode) {
-      throw StateError('Failed to load .env in release mode: $e');
+  // B.T1: Load dotenv on native only.
+  // On web, all config is baked in at compile time via
+  // --dart-define-from-file, so there is no .env asset to load.
+  // Netlify also blocks dotfiles (HTTP 404), which would crash the app.
+  if (!kIsWeb) {
+    try {
+      await dotenv.load(fileName: '.env');
+    } catch (e) {
+      if (kReleaseMode) {
+        throw StateError('Failed to load .env in release mode: $e');
+      }
     }
   }
 
