@@ -1,7 +1,7 @@
-// Conditional import: native builds get real dart:io types,
-// web builds get no-op stubs (usages are already guarded by kIsWeb).
-import 'package:arl_app/core/utils/io_types.dart'
-    if (dart.library.html) 'package:arl_app/core/utils/io_types_web.dart';
+// Conditional import: dart.library.io is true on native (Android/iOS/desktop),
+// false on web. Web gets no-op stubs; all usages are already guarded by kIsWeb.
+import 'package:arl_app/core/utils/io_types_web.dart'
+    if (dart.library.io) 'package:arl_app/core/utils/io_types.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
