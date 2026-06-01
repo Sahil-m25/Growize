@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:arl_app/core/offline/hive_cache.dart';

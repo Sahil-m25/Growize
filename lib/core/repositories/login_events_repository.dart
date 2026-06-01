@@ -1,6 +1,5 @@
-import 'dart:io' show Platform;
-
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:arl_app/core/supabase/supabase_client.dart';
@@ -49,12 +48,14 @@ class LoginEventsRepository {
 
   String _platformLabel() {
     if (kIsWeb) return 'web';
-    if (Platform.isIOS) return 'ios';
-    if (Platform.isAndroid) return 'android';
-    if (Platform.isMacOS) return 'macos';
-    if (Platform.isWindows) return 'windows';
-    if (Platform.isLinux) return 'linux';
-    return 'unknown';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:     return 'ios';
+      case TargetPlatform.android: return 'android';
+      case TargetPlatform.macOS:   return 'macos';
+      case TargetPlatform.windows: return 'windows';
+      case TargetPlatform.linux:   return 'linux';
+      default:                     return 'unknown';
+    }
   }
 
   String _deviceLabel(String platform) {
