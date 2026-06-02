@@ -38,7 +38,7 @@ final ThemeData arlTheme = ThemeData(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
     ),
   ),
-  cardTheme: const CardTheme(
+  cardTheme: const CardThemeData(
     color: Colors.white,
     elevation: 0,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(15))),

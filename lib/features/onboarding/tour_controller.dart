@@ -6,6 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'package:arl_app/core/navigation/route_names.dart';
+import 'package:arl_app/core/utils/tour_storage_native.dart'
+    if (dart.library.js_interop) 'package:arl_app/core/utils/tour_storage_web.dart'
+    as webStorage;
 import 'package:arl_app/features/onboarding/tour_keys.dart';
 
 /// Persisted "tour seen" flag. Survives app reinstalls on iOS (Keychain
@@ -408,14 +411,23 @@ final tourSeenProvider = StateProvider<bool>((ref) {
 });
 
 Future<void> _loadSeenFlag(Ref ref) async {
-  try {
-    final raw = await _storage.read(key: _kTourSeenKey);
-    if (raw == 'true') {
-      ref.read(tourSeenProvider.notifier).state = true;
+  bool seen = false;
+  // On web: also check plain localStorage (reliable across incognito/sessions).
+  if (kIsWeb) {
+    try {
+      seen = await webStorage.readTourSeen();
+    } catch (_) {}
+  }
+  if (!seen) {
+    try {
+      final raw = await _storage.read(key: _kTourSeenKey);
+      seen = raw == 'true';
+    } catch (_) {
+      // Storage unavailable (e.g. unit tests) — fall back to "unseen".
     }
-  } catch (_) {
-    // Storage unavailable (e.g. unit tests) — fall back to "unseen" so
-    // the tour can still run if asked.
+  }
+  if (seen) {
+    ref.read(tourSeenProvider.notifier).state = true;
   }
 }
 
@@ -443,19 +455,23 @@ final tourStepProvider = StateProvider<int>((ref) => 0);
 final tourShouldAutoStartProvider = FutureProvider<bool>((ref) async {
   final active = ref.watch(tourActiveProvider);
   bool seen = false;
-  try {
-    final raw = await _storage.read(key: _kTourSeenKey);
-    seen = raw == 'true';
-    // Keep the in-memory mirror in sync so any other consumer reading
-    // [tourSeenProvider] sees the persisted value.
-    if (seen && !ref.read(tourSeenProvider)) {
-      ref.read(tourSeenProvider.notifier).state = true;
+  // Web: check plain localStorage first (survives incognito + all browsers).
+  if (kIsWeb) {
+    try {
+      seen = await webStorage.readTourSeen();
+    } catch (_) {}
+  }
+  if (!seen) {
+    try {
+      final raw = await _storage.read(key: _kTourSeenKey);
+      seen = raw == 'true';
+    } catch (_) {
+      seen = false;
     }
-  } catch (_) {
-    // Secure storage unavailable (unit tests, denied keychain access).
-    // Treat as unseen — replay flow can still toggle the tour, and
-    // we'd rather show it once than never.
-    seen = false;
+  }
+  // Keep in-memory mirror in sync.
+  if (seen && !ref.read(tourSeenProvider)) {
+    ref.read(tourSeenProvider.notifier).state = true;
   }
   return !seen && !active;
 });
@@ -498,6 +514,10 @@ Future<void> dismissTour(WidgetRef ref) async {
   ref.read(tourActiveProvider.notifier).state = false;
   ref.read(tourStepProvider.notifier).state = 0;
   ref.read(tourSeenProvider.notifier).state = true;
+  // Write to both stores — web uses plain localStorage for reliability.
+  if (kIsWeb) {
+    try { await webStorage.writeTourSeen(); } catch (_) {}
+  }
   try {
     await _storage.write(key: _kTourSeenKey, value: 'true');
   } catch (_) {
