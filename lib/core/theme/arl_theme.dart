@@ -38,12 +38,9 @@ final ThemeData arlTheme = ThemeData(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
     ),
   ),
-  cardTheme: const CardThemeData(
-    color: Colors.white,
-    elevation: 0,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(15))),
-    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-  ),
+  // cardTheme omitted — Material3 defaults to white/surface with no elevation,
+  // which matches our design. CardTheme/CardThemeData API varies across
+  // Flutter stable versions so we avoid it entirely.
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
     fillColor: Colors.white,
