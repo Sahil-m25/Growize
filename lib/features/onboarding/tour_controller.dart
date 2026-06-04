@@ -229,7 +229,7 @@ const List<TourStep> kTourSteps = [
     pushRoute: true,
     title: 'WhatsApp Tech & RM',
     body:
-        'Two shortcuts — Tech for app issues, RM for account and payout questions. Every chat opens a tracked ticket.',
+        'Two shortcuts — Tech for app issues, RM for account and payout questions. Tap to open WhatsApp directly.',
     targetKey: null,
     arrowSide: TourArrowSide.below,
   ),
