@@ -25,22 +25,16 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      # Write .env.production (compile-time dart-defines)
-      # and .env (runtime asset loaded by flutter_dotenv at startup).
-      # Uses printf + env vars to avoid heredoc leading-space corruption
-      # that happens when YAML indents the block scalar content.
       - name: Write env files
         run: |
-          printf 'SUPABASE_URL=%s\n'          "$SUPABASE_URL"          > .env.production
-          printf 'SUPABASE_ANON_KEY=%s\n'     "$SUPABASE_ANON_KEY"    >> .env.production
-          printf 'ARL_APP_MODE=live\n'                                 >> .env.production
-          printf 'ARL_DEV_BYPASS=false\n'                              >> .env.production
-          printf 'SENTRY_DSN=%s\n'            "$SENTRY_DSN"           >> .env.production
-          printf 'SENTRY_ENVIRONMENT=production\n'                     >> .env.production
-          printf 'SENTRY_RELEASE=growize@%s\n' "$GITHUB_SHA"          >> .env.production
-          printf 'ARL_AUTH_GATE_SECRET=%s\n'  "$ARL_AUTH_GATE_SECRET" >> .env.production
-          # .env is declared as a Flutter asset in pubspec.yaml and loaded
-          # by flutter_dotenv at runtime — must exist or release build crashes.
+          printf 'SUPABASE_URL=%s\n' "$SUPABASE_URL" > .env.production
+          printf 'SUPABASE_ANON_KEY=%s\n' "$SUPABASE_ANON_KEY" >> .env.production
+          printf 'ARL_APP_MODE=live\n' >> .env.production
+          printf 'ARL_DEV_BYPASS=false\n' >> .env.production
+          printf 'SENTRY_DSN=%s\n' "$SENTRY_DSN" >> .env.production
+          printf 'SENTRY_ENVIRONMENT=production\n' >> .env.production
+          printf 'SENTRY_RELEASE=growize@%s\n' "$GITHUB_SHA" >> .env.production
+          printf 'ARL_AUTH_GATE_SECRET=%s\n' "$ARL_AUTH_GATE_SECRET" >> .env.production
           cp .env.production .env
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -49,18 +43,7 @@ jobs:
           ARL_AUTH_GATE_SECRET: ${{ secrets.ARL_AUTH_GATE_SECRET }}
 
       - name: Build Flutter web
-        run: |
-          flutter build web \
-            --release \
-            --dart-define-from-file=.env.production \
-            --web-renderer html \
-            --pwa-strategy offline-first \
-            --no-source-maps \
-            --verbose 2>&1 | tee /tmp/flutter_build.log; exit ${PIPESTATUS[0]}
-
-      - name: Show last 100 lines on failure
-        if: failure()
-        run: tail -100 /tmp/flutter_build.log
+        run: flutter build web --release --dart-define-from-file=.env.production --web-renderer html --pwa-strategy offline-first --no-source-maps
 
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3.0
