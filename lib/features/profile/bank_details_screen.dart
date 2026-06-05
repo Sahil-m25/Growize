@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
+import 'package:arl_app/core/supabase/supabase_client.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/core/widgets/skel_box.dart';
 import 'package:arl_app/core/providers/repositories.dart';
@@ -75,7 +76,7 @@ class BankDetailsScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   // Single rounded-15 white card with sand dividers between
-                  // fields — matches HTML pattern. Each field is a label
+                  // fields ï¿½ matches HTML pattern. Each field is a label
                   // + value row inside one card, NOT individually bordered.
                   Container(
                     width: double.infinity,
@@ -132,7 +133,7 @@ class BankDetailsScreen extends ConsumerWidget {
                     ),
                   if (hasPendingRequest) ...[
                     const SizedBox(height: 20),
-                    // Pending request banner — sand tint per HTML
+                    // Pending request banner ï¿½ sand tint per HTML
                     // pattern (NOT generic warning orange).
                     Container(
                       width: double.infinity,
@@ -163,7 +164,7 @@ class BankDetailsScreen extends ConsumerWidget {
                     ),
                   ],
                   const SizedBox(height: 24),
-                  // Gradient-primary CTA — primary?accent rounded-15 card
+                  // Gradient-primary CTA ï¿½ primary?accent rounded-15 card
                   // wrapping InkWell. Matches HTML "gradient-primary"
                   // button styling used across the app.
                   Material(
@@ -367,6 +368,21 @@ class BankDetailsScreen extends ConsumerWidget {
             ifsc: ifsc,
             holderName: holderName,
           );
+
+      // Fire-and-forget email notification to ops â€” non-fatal if it fails.
+      final investor = await ref.read(currentInvestorProvider.future);
+      ArlSupabase.client?.functions.invoke(
+        'notify-bank-update',
+        body: {
+          'investorName': investor?['name'] ?? '',
+          'investorEmail': investor?['email'] ?? '',
+          'bankName': bankName,
+          'bankIfsc': ifsc,
+          'bankAccountMasked': accountMasked,
+          'bankHolderName': holderName,
+        },
+      );
+
       if (!sheetContext.mounted) return;
       Navigator.pop(sheetContext);
       ScaffoldMessenger.of(sheetContext).showSnackBar(

@@ -1,5 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 
@@ -79,12 +81,42 @@ class AuthScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  const Text(
-                    'By continuing, you agree to our Terms of Service',
+                  RichText(
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: ArlColors.muted,
-                      fontSize: 10,
+                    text: TextSpan(
+                      style: const TextStyle(
+                          color: ArlColors.muted, fontSize: 10),
+                      children: [
+                        const TextSpan(
+                            text: 'By continuing, you agree to our '),
+                        TextSpan(
+                          text: 'Terms of Service',
+                          style: const TextStyle(
+                            color: ArlColors.primary,
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () => launchUrl(
+                                  Uri.parse(
+                                      'https://growize-investor-portal.netlify.app/terms.html'),
+                                  mode: LaunchMode.externalApplication,
+                                ),
+                        ),
+                        const TextSpan(text: ' and '),
+                        TextSpan(
+                          text: 'Privacy Policy',
+                          style: const TextStyle(
+                            color: ArlColors.primary,
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () => launchUrl(
+                                  Uri.parse(
+                                      'https://growize-investor-portal.netlify.app/privacy.html'),
+                                  mode: LaunchMode.externalApplication,
+                                ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

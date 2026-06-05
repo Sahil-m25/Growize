@@ -21,7 +21,7 @@ class ProjectsRepository {
   // v2 — old `my_projects` key was poisoned by an empty-list write that
   // ran before the JWT was attached on web. Bumping the key lets every
   // existing client re-fetch from the network on next launch.
-  static const _kMyProjects = 'my_projects_v2';
+  static const _kMyProjects = 'my_projects_v3'; // v3: forces re-fetch after progressPercent fix
   static const _kMarketplace = 'marketplace';
   static const _kProjectById = 'project_by_id_';
   static const _kPhases = 'phases_';
