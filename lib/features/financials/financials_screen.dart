@@ -10,6 +10,7 @@ import 'package:arl_app/core/widgets/skel_box.dart';
 import 'financials_provider.dart';
 import 'package:arl_app/features/onboarding/tour_keys.dart';
 import 'package:arl_app/features/projects/projects_provider.dart';
+import 'package:arl_app/features/projects/models/investor_unit.dart';
 
 class FinancialsScreen extends ConsumerWidget {
   const FinancialsScreen({super.key});
@@ -146,99 +147,137 @@ class FinancialsScreen extends ConsumerWidget {
                                   px.date.isAfter(fyStart))
                               .fold<double>(
                                   0, (sum, px) => sum + px.amount);
-                          return Row(
+                          return Column(
                             children: [
-                              Expanded(
-                                child: Container(
+                              // Invested amount — full width, always visible
+                              if (p.totalInvested > 0)
+                                Container(
+                                  width: double.infinity,
                                   padding: const EdgeInsets.all(12),
+                                  margin: const EdgeInsets.only(bottom: 12),
                                   decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        ArlColors.primary,
-                                        ArlColors.accent,
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'TOTAL EARNED',
-                                        style: TextStyle(
-                                          color: Colors.white
-                                              .withOpacity(0.7),
-                                          fontSize: 10,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        Money.inr(p.totalReceived),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                        'Since inception',
-                                        style: TextStyle(
-                                          color: ArlColors.goldLight,
-                                          fontSize: 10,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: ArlColors.gold
-                                        .withOpacity(0.15),
+                                    color: ArlColors.primary.withOpacity(0.07),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: ArlColors.gold
-                                          .withOpacity(0.3),
+                                      color: ArlColors.primary.withOpacity(0.15),
                                     ),
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        'THIS FY',
+                                      const Text(
+                                        'TOTAL INVESTED',
                                         style: TextStyle(
-                                          color: ArlColors.charcoal
-                                              .withOpacity(0.6),
-                                          fontSize: 10,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        Money.inr(thisFy),
-                                        style: const TextStyle(
-                                          color: ArlColors.charcoal,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'FY ${fyStart.year}–${(fyStart.year + 1) % 100}',
-                                        style: const TextStyle(
                                           color: ArlColors.primary,
                                           fontSize: 10,
-                                          fontWeight: FontWeight.w600,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.4,
+                                        ),
+                                      ),
+                                      Text(
+                                        Money.inr(p.totalInvested),
+                                        style: const TextStyle(
+                                          color: ArlColors.primary,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            ArlColors.primary,
+                                            ArlColors.accent,
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'TOTAL EARNED',
+                                            style: TextStyle(
+                                              color: Colors.white
+                                                  .withOpacity(0.7),
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            Money.inr(p.totalReceived),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          const Text(
+                                            'Since inception',
+                                            style: TextStyle(
+                                              color: ArlColors.goldLight,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: ArlColors.gold.withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: ArlColors.gold.withOpacity(0.3),
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'THIS FY',
+                                            style: TextStyle(
+                                              color: ArlColors.charcoal
+                                                  .withOpacity(0.6),
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            Money.inr(thisFy),
+                                            style: const TextStyle(
+                                              color: ArlColors.charcoal,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'FY ${fyStart.year}–${(fyStart.year + 1) % 100}',
+                                            style: const TextStyle(
+                                              color: ArlColors.primary,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           );
@@ -266,7 +305,13 @@ class FinancialsScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 8),
                           payoutsData.when(
-                            data: (payouts) => Column(
+                            data: (payouts) {
+                              if (payouts.isEmpty) {
+                                return _EmptyLedger(
+                                  unitsAsync: ref.watch(investorUnitsListProvider),
+                                );
+                              }
+                              return Column(
                               children: payouts.map((payout) {
                                 final palette = <Color>[
                                   ArlColors.accent,
@@ -367,7 +412,7 @@ class FinancialsScreen extends ConsumerWidget {
                                   ),
                                 );
                               }).toList(),
-                            ),
+                            );},
                             loading: () => Column(
                               children: List.generate(
                                   3,
@@ -395,5 +440,83 @@ class FinancialsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+/// Shown in the Transaction Ledger when there are no payouts yet.
+/// Calculates the expected first payout month from the investor's
+/// oldest investmentDate + 6 months, so the screen never looks broken.
+class _EmptyLedger extends StatelessWidget {
+  final AsyncValue<List<InvestorUnit>> unitsAsync;
+  const _EmptyLedger({required this.unitsAsync});
+
+  @override
+  Widget build(BuildContext context) {
+    final expectedLabel = _expectedPayoutLabel();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ArlColors.primary.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ArlColors.primary.withOpacity(0.1)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(Icons.schedule_outlined,
+                size: 18, color: ArlColors.primary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'No transactions yet',
+                  style: TextStyle(
+                    color: ArlColors.charcoal,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  expectedLabel,
+                  style: const TextStyle(
+                    color: ArlColors.muted,
+                    fontSize: 12,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _expectedPayoutLabel() {
+    final units = unitsAsync.valueOrNull ?? [];
+    final dates = units
+        .map((u) => u.investmentDate)
+        .whereType<DateTime>()
+        .toList()
+      ..sort();
+    if (dates.isEmpty) {
+      return 'Your payments and transaction history will appear here '
+          'once your first payout is processed.';
+    }
+    // Payouts begin 6 months after allocation date.
+    final allocationDate = dates.first;
+    final firstPayoutMonth = DateTime(
+        allocationDate.year, allocationDate.month + 6, 1);
+    final label = DateFormat('MMMM yyyy').format(firstPayoutMonth);
+    return 'Payments and transactions will start from $label '
+        '(6 months from your allocation date of '
+        '${DateFormat('d MMM yyyy').format(allocationDate)}). '
+        'Your ledger will populate automatically from then.';
   }
 }

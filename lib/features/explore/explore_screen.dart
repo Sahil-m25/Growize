@@ -34,11 +34,15 @@ class ExploreScreen extends ConsumerStatefulWidget {
 class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   String _statusFilter = 'all'; // all | open | not_started | closed
 
+  // Set to true once marketplace listings are ready to show.
+  // Everything is wired up behind this flag — flip it to re-enable.
+  static const bool _marketplaceEnabled = false;
+
   @override
   Widget build(BuildContext context) {
     final marketplaceAsync = ref.watch(marketplaceProjectsProvider);
 
-    return Scaffold(
+    final content = Scaffold(
       backgroundColor: ArlColors.cream,
       body: SafeArea(
         child: Padding(
@@ -67,6 +71,65 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           ),
         ),
       ),
+    );
+
+    if (_marketplaceEnabled) return content;
+
+    // Marketplace not yet live — show a Coming Soon overlay.
+    // The full implementation is active behind the flag so there's
+    // nothing to rebuild when we flip it on.
+    return Stack(
+      children: [
+        content,
+        Positioned.fill(
+          child: Container(
+            color: ArlColors.cream,
+            child: SafeArea(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: ArlColors.primary.withOpacity(0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.storefront_outlined,
+                      color: ArlColors.primary,
+                      size: 34,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Coming Soon',
+                    style: TextStyle(
+                      color: ArlColors.charcoal,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 40),
+                    child: Text(
+                      'New investment opportunities will appear here. '
+                      'Stay tuned for upcoming offerings from ARL.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: ArlColors.muted,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
