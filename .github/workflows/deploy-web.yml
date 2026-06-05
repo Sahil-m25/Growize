@@ -55,7 +55,12 @@ jobs:
             --dart-define-from-file=.env.production \
             --web-renderer html \
             --pwa-strategy offline-first \
-            --no-source-maps
+            --no-source-maps \
+            --verbose 2>&1 | tee /tmp/flutter_build.log; exit ${PIPESTATUS[0]}
+
+      - name: Show last 100 lines on failure
+        if: failure()
+        run: tail -100 /tmp/flutter_build.log
 
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3.0

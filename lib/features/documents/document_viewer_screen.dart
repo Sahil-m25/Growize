@@ -8,8 +8,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:screen_protector/screen_protector.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
@@ -52,7 +50,7 @@ class DocumentViewerScreen extends ConsumerStatefulWidget {
 }
 
 class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
-  bool _downloading = false;
+  bool _refreshing = false;
 
   @override
   void initState() {
@@ -124,35 +122,19 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
 
   bool _isPdf(String ext) => ext == 'pdf';
 
-  Future<void> _download(InvestorDocument doc) async {
-    if (_downloading) return;
-    if (doc.signedUrl.isEmpty) {
-      _toast('Document URL unavailable');
-      return;
-    }
-    setState(() => _downloading = true);
+  /// Refreshes the signed URL and reloads the document in-app.
+  /// Documents stay inside the viewer — no download to device.
+  Future<void> _refreshDoc(InvestorDocument doc) async {
+    if (_refreshing) return;
+    setState(() => _refreshing = true);
     try {
-      final res = await http.get(Uri.parse(doc.signedUrl));
-      if (res.statusCode != 200) {
-        _toast('Download failed (${res.statusCode})');
-        return;
-      }
-      if (kIsWeb) {
-        // On web we can't write to disk silently — keep the bytes in
-        // memory for now and just confirm. A future enhancement could
-        // wire an HTML anchor with a blob URL for browser download.
-        _toast('Document loaded (${(res.bodyBytes.length / 1024).round()} KB)');
-        return;
-      }
-      final dir = await getApplicationDocumentsDirectory();
-      final safeName = doc.name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
-      final file = File('${dir.path}${Platform.pathSeparator}$safeName');
-      await file.writeAsBytes(res.bodyBytes, flush: true);
-      _toast('Saved to in-app library');
-    } catch (e) {
-      _toast('Download error');
+      ref.invalidate(documentsProvider);
+      await ref.read(documentsProvider.future);
+      _toast('Document refreshed');
+    } catch (_) {
+      _toast('Could not refresh — check connectivity');
     } finally {
-      if (mounted) setState(() => _downloading = false);
+      if (mounted) setState(() => _refreshing = false);
     }
   }
 
@@ -189,21 +171,22 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
           ),
         ),
         actions: [
+          // Refresh — renews the signed URL and reloads the viewer in-app.
+          // No download / save-to-disk option; documents stay inside the app.
           if (doc != null)
             IconButton(
-              icon: _downloading
+              icon: _refreshing
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
-                  : const Icon(Icons.download_outlined, size: 20),
-              tooltip: 'Save to in-app library',
-              onPressed: _downloading ? null : () => _download(doc),
+                  : const Icon(Icons.refresh, size: 20),
+              tooltip: 'Refresh document',
+              onPressed: _refreshing ? null : () => _refreshDoc(doc),
             ),
         ],
       ),
