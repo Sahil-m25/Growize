@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:arl_app/core/auth/web_session_native.dart'
+    if (dart.library.js_interop) 'package:arl_app/core/auth/web_session_web.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -169,6 +171,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       settings = null;
     }
     if (!mounted) return;
+    // Seed the web idle timer on successful login.
+    if (kIsWeb) refreshWebSession();
     // Web has no biometric support — skip setup screen entirely.
     if (kIsWeb || settings?['biometric_enabled'] == true) {
       context.go(RouteNames.home);

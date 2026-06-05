@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:arl_app/core/auth/web_session_native.dart'
+    if (dart.library.js_interop) 'package:arl_app/core/auth/web_session_web.dart';
 import 'package:arl_app/core/constants/supabase_constants.dart';
 import 'package:arl_app/core/supabase/supabase_client.dart';
 
@@ -83,6 +86,7 @@ class SessionManager {
   static Future<void> signOut() async {
     final c = ArlSupabase.client;
     if (c == null) return;
+    if (kIsWeb) clearWebSession();
     await c.auth.signOut();
   }
 

@@ -8,6 +8,8 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/auth/app_lock_provider.dart';
+import 'core/auth/web_session_native.dart'
+    if (dart.library.js_interop) 'core/auth/web_session_web.dart';
 import 'core/theme/arl_colors.dart';
 import 'core/observability/sentry_config.dart';
 import 'core/offline/hive_cache.dart';
@@ -199,6 +201,16 @@ class _ArlAppState extends ConsumerState<ArlApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && kIsWeb) {
+      // Web / PWA: sign out if the user has been idle for too long.
+      if (isWebSessionExpired()) {
+        ArlSupabase.client?.auth.signOut();
+        clearWebSession();
+      } else {
+        refreshWebSession();
+      }
+      return;
+    }
     // App lock is not supported on web.
     if (kIsWeb) return;
     final controller = ref.read(appLockControllerProvider);
@@ -270,7 +282,7 @@ class _ArlAppState extends ConsumerState<ArlApp> with WidgetsBindingObserver {
           debugShowCheckedModeBanner: false,
           scrollBehavior: const _AppScrollBehavior(),
           builder: (context, child) {
-            return Column(
+            Widget body = Column(
               children: [
                 const AppDemoModeBanner(),
                 Expanded(
@@ -280,6 +292,16 @@ class _ArlAppState extends ConsumerState<ArlApp> with WidgetsBindingObserver {
                 ),
               ],
             );
+            // Web/PWA: wrap in a Listener so every tap refreshes the
+            // idle timer. No-op on native (refreshWebSession is a stub).
+            if (kIsWeb) {
+              body = Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (_) => refreshWebSession(),
+                child: body,
+              );
+            }
+            return body;
           },
         );
       },
