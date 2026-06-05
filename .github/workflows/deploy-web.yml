@@ -42,6 +42,9 @@ jobs:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           ARL_AUTH_GATE_SECRET: ${{ secrets.ARL_AUTH_GATE_SECRET }}
 
+      - name: Flutter clean
+        run: flutter clean
+
       - name: Build Flutter web
         run: flutter build web --release --dart-define-from-file=.env.production --web-renderer html --pwa-strategy offline-first --no-source-maps
 
