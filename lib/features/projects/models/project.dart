@@ -89,7 +89,9 @@ class Project {
       endDate: endDate,
       totalUnits: (r['total_units'] as int?) ?? 0,
       investedAmount: (r['total_ticket_size'] as num?)?.toDouble() ?? 0.0,
-      progressPercent: 0, // derived from project_phases if needed
+      progressPercent: months > 0
+          ? (monthsElapsed / months * 100).clamp(0.0, 100.0)
+          : 0.0,
       monthOfContract: monthsElapsed,
       totalMonths: months > 0 ? months : 60,
       colorHex: (r['color_hex'] ?? '#3C5152') as String,
