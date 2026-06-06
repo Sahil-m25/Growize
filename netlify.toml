@@ -32,14 +32,10 @@
     # Allows Supabase API calls and Google Fonts / CDN assets Flutter may load
     Content-Security-Policy = "default-src 'self' https://*.supabase.co wss://*.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://o4511383323869184.ingest.de.sentry.io;"
 
-# ── Aggressive caching for hashed Flutter assets ────────────────────────
+# ── Caching strategy ────────────────────────────────────────────────────
+# Flutter hashed assets (content-addressed, safe to cache forever)
 [[headers]]
   for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.js"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
@@ -48,7 +44,19 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# index.html must never be cached — it's the entry point Flutter checks for updates
+# main.dart.js and flutter_bootstrap.js change every build but have no
+# hash in their filename — must NOT be immutable or browsers serve stale code.
+[[headers]]
+  for = "/main.dart.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/flutter_bootstrap.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# index.html must never be cached — entry point Flutter checks for updates
 [[headers]]
   for = "/index.html"
   [headers.values]
