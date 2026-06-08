@@ -36,7 +36,7 @@ class AsyncValueWidget<T> extends StatelessWidget {
       // Repos return cached data on failure, so this branch should
       // rarely fire. When it does, show a calm "offline" placeholder
       // instead of dumping the exception string.
-      error: (_, __) => _ErrorBox(
+      error: (_, __) => ErrorRetryView(
         message: 'Tap retry once you\'re back online.',
         onRetry: onRetry,
       ),
@@ -44,11 +44,20 @@ class AsyncValueWidget<T> extends StatelessWidget {
   }
 }
 
-class _ErrorBox extends StatelessWidget {
+/// Calm, branded "could not load" placeholder with an optional Retry
+/// action. Public so individual screens can drop it into an error
+/// branch directly (e.g. inside a scroll view) without re-implementing
+/// the copy + styling. Pair the [onRetry] callback with
+/// `ref.invalidate(theProvider)`.
+class ErrorRetryView extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
 
-  const _ErrorBox({required this.message, this.onRetry});
+  const ErrorRetryView({
+    super.key,
+    this.message = "Tap retry once you're back online.",
+    this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {

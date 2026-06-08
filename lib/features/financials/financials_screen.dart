@@ -7,6 +7,7 @@ import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/core/utils/money.dart';
 import 'package:arl_app/core/widgets/demo_badge.dart';
 import 'package:arl_app/core/widgets/skel_box.dart';
+import 'package:arl_app/core/widgets/async_value_widget.dart';
 import 'financials_provider.dart';
 import 'package:arl_app/features/onboarding/tour_keys.dart';
 import 'package:arl_app/features/projects/projects_provider.dart';
@@ -284,7 +285,12 @@ class FinancialsScreen extends ConsumerWidget {
                         },
                         loading: () => const Center(
                             child: CircularProgressIndicator()),
-                        error: (_, __) => const SkelBox(height: 80),
+                        error: (_, __) => ErrorRetryView(
+                          message: 'We could not load your portfolio. '
+                              "Tap retry once you're back online.",
+                          onRetry: () =>
+                              ref.invalidate(scopedPortfolioProvider),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -420,12 +426,10 @@ class FinancialsScreen extends ConsumerWidget {
                                       height: 60,
                                       margin: EdgeInsets.only(bottom: 8))),
                             ),
-                            error: (_, __) => Column(
-                              children: List.generate(
-                                  3,
-                                  (_) => const SkelBox(
-                                      height: 60,
-                                      margin: EdgeInsets.only(bottom: 8))),
+                            error: (_, __) => ErrorRetryView(
+                              message: 'We could not load your transactions. '
+                                  "Tap retry once you're back online.",
+                              onRetry: () => ref.invalidate(payoutsProvider),
                             ),
                           ),
                         ],

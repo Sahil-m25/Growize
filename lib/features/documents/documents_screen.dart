@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
+import 'package:arl_app/core/widgets/async_value_widget.dart';
 import 'package:arl_app/features/documents/document_viewer_screen.dart';
 import 'package:arl_app/features/documents/documents_provider.dart';
 import 'package:arl_app/features/documents/models/document.dart';
@@ -141,7 +142,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
               style: TextStyle(color: ArlColors.muted, fontSize: 11),
             ),
             const SizedBox(height: 12),
-            if (personalAsync.valueOrNull == null)
+            if (personalAsync.hasError && personalAsync.valueOrNull == null)
+              ErrorRetryView(
+                message: 'We could not load your documents. '
+                    "Tap retry once you're back online.",
+                onRetry: () => ref.invalidate(documentsProvider),
+              )
+            else if (personalAsync.valueOrNull == null)
               ..._skeletonRows()
             else
               ..._personalRows(personalAsync.value!),
@@ -434,10 +441,17 @@ class _ProjectDocRow extends StatelessWidget {
   final ProjectDocument doc;
   const _ProjectDocRow({required this.doc});
 
+  bool get _available => doc.signedUrl.isNotEmpty;
+
   void _open(BuildContext context) {
-    if (doc.signedUrl.isEmpty) {
+    if (!_available) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Document URL unavailable')),
+        const SnackBar(
+          content: Text(
+            "This document isn't available yet — it'll appear here once "
+            'uploaded.',
+          ),
+        ),
       );
       return;
     }
@@ -467,74 +481,83 @@ class _ProjectDocRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateStr = DateFormat('MMM dd, yyyy').format(doc.uploadedAt);
-    return InkWell(
-      onTap: () => _open(context),
-      borderRadius: BorderRadius.circular(15),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: ArlColors.sand, width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: ArlColors.accent.withOpacity(0.12),
-                shape: BoxShape.circle,
+    return Opacity(
+      opacity: _available ? 1.0 : 0.65,
+      child: InkWell(
+        onTap: () => _open(context),
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: ArlColors.sand, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
               ),
-              child: const Icon(Icons.description_outlined,
-                  color: ArlColors.accent, size: 16),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    doc.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: ArlColors.charcoal,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      _CategoryPill(category: doc.category),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          dateStr,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: ArlColors.muted,
-                            fontSize: 10,
-                          ),
-                        ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: ArlColors.accent.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.description_outlined,
+                    color: ArlColors.accent, size: 16),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      doc.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: ArlColors.charcoal,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        _CategoryPill(category: doc.category),
+                        const SizedBox(width: 8),
+                        if (_available)
+                          Flexible(
+                            child: Text(
+                              dateStr,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: ArlColors.muted,
+                                fontSize: 10,
+                              ),
+                            ),
+                          )
+                        else
+                          const _UnavailableLabel(),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Icon(Icons.visibility_outlined,
-                color: ArlColors.accent, size: 16),
-          ],
+              Icon(
+                _available ? Icons.visibility_outlined : Icons.schedule,
+                color: _available ? ArlColors.accent : ArlColors.muted,
+                size: 16,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -692,10 +715,20 @@ class _DocRow extends StatelessWidget {
     return parts.isEmpty ? '—' : parts.join(' · ');
   }
 
+  /// A document is openable only once its file has been uploaded and a
+  /// signed URL could be generated. When the metadata row exists but the
+  /// file isn't in storage yet, `signedUrl` is empty.
+  bool get _available => item.signedUrl.isNotEmpty;
+
   Future<void> _open(BuildContext context) async {
-    if (item.signedUrl.isEmpty) {
+    if (!_available) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Document URL unavailable')),
+        const SnackBar(
+          content: Text(
+            "This document isn't available yet — it'll appear here once "
+            'uploaded.',
+          ),
+        ),
       );
       return;
     }
@@ -718,56 +751,93 @@ class _DocRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: ArlColors.sand, width: 1),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              shape: BoxShape.circle,
+    return Opacity(
+      // De-emphasise rows whose file isn't ready yet so the list reads
+      // as "this exists but isn't downloadable" rather than broken.
+      opacity: _available ? 1.0 : 0.65,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: ArlColors.sand, width: 1),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.description, color: color, size: 14),
             ),
-            child: Icon(Icons.description, color: color, size: 14),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: const TextStyle(
-                    color: ArlColors.charcoal,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: const TextStyle(
+                      color: ArlColors.charcoal,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _formatMeta(),
-                  style: const TextStyle(
-                    color: ArlColors.muted,
-                    fontSize: 10,
-                  ),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  if (_available)
+                    Text(
+                      _formatMeta(),
+                      style: const TextStyle(
+                        color: ArlColors.muted,
+                        fontSize: 10,
+                      ),
+                    )
+                  else
+                    const _UnavailableLabel(),
+                ],
+              ),
             ),
-          ),
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: Icon(Icons.visibility_outlined, color: color, size: 16),
-            onPressed: () => _open(context),
-          ),
-        ],
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: Icon(
+                _available ? Icons.visibility_outlined : Icons.schedule,
+                color: _available ? color : ArlColors.muted,
+                size: 16,
+              ),
+              onPressed: () => _open(context),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+/// Shared "file not uploaded yet" caption used by both the personal and
+/// project document rows. Keeps the copy + styling in one place.
+class _UnavailableLabel extends StatelessWidget {
+  const _UnavailableLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: const [
+        Icon(Icons.schedule, color: ArlColors.earth, size: 11),
+        SizedBox(width: 4),
+        Text(
+          'Not available yet',
+          style: TextStyle(
+            color: ArlColors.earth,
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }

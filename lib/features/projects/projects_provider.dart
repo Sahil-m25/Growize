@@ -42,29 +42,20 @@ final projectsProvider = FutureProvider<List<Project>>((ref) async {
       final projects = await trackedFetch(ref, () => repo.myProjects());
       if (projects.isEmpty) return const <Project>[];
 
-      // Fetch phases in parallel — sequential awaits used to push the
-      // total time past the trackedFetch timeout when there were 3+
-      // projects, which collapsed the whole list back to empty.
-      // A failed phase query for one project just leaves its progress
-      // at 0 instead of dropping every project.
-      final phaseLists = await Future.wait(
-        projects.map(
-          (p) => repo.phasesFor(p.id).catchError((_) => <ProjectPhase>[]),
-        ),
-        eagerError: false,
-      );
-
-      final enriched = <Project>[];
-      for (var i = 0; i < projects.length; i++) {
-        final phases = phaseLists[i];
-        double progress = 0;
-        if (phases.isNotEmpty) {
-          final done = phases.where((ph) => ph.status == 'done').length;
-          progress = (done / phases.length) * 100;
-        }
-        enriched.add(projects[i].copyWith(progressPercent: progress));
-      }
-      return enriched;
+      // `Project.fromSupabase` already derives `progressPercent` from the
+      // elapsed-vs-total months of the contract. That is exactly what the
+      // home "Contract Progress" card represents — the percentage, the
+      // gradient bar fill, and the "Month X of Y" label all read off the
+      // same month-based value, so they stay in sync. The design spec ties
+      // the percentage to the contract timeline too (e.g. Month 9 of 60 =>
+      // 15%, Month 27 of 60 => 45%).
+      //
+      // We deliberately do NOT overwrite `progressPercent` with a
+      // phase-completion ratio here. Doing so (a) decoupled the bar/percent
+      // from the "Month X of Y" label and (b) forced 0% for every project
+      // that has no `project_phases` rows yet — which is why the bar showed
+      // empty while the label still read e.g. "Month 9 of 60".
+      return projects;
     } catch (_) {
       // Timeout / network hang on the project list itself → empty
       // (header still renders).
@@ -99,7 +90,13 @@ final projectByIdProvider =
   }
   // Real ID not in list (rare race) — query directly.
   if (!id.startsWith(demoIdPrefix)) {
-    return ref.read(projectsRepositoryProvider).projectById(id);
+    try {
+      return ref.read(projectsRepositoryProvider).projectById(id);
+    } catch (_) {
+      // Let the detail screen render its "Project not found / couldn't
+      // load" state rather than surfacing a raw error.
+      return null;
+    }
   }
   return null;
 });
@@ -141,9 +138,15 @@ final investorAllocationProvider =
     FutureProvider.family<InvestorUnit?, String>((ref, projectId) async {
   ref.watch(authStateProvider);
   final repo = ref.watch(projectsRepositoryProvider);
-  final row = await repo.myUnitsForProject(projectId);
-  if (row == null) return null;
-  return InvestorUnit.fromJson(row);
+  try {
+    final row = await repo.myUnitsForProject(projectId);
+    if (row == null) return null;
+    return InvestorUnit.fromJson(row);
+  } catch (_) {
+    // Network/RLS hiccup — resolve to "no allocation" rather than leaving
+    // the consuming card stuck on a skeleton forever.
+    return null;
+  }
 });
 
 /// All `investor_units` rows for the signed-in investor.
@@ -157,8 +160,14 @@ final investorUnitsListProvider =
     FutureProvider<List<InvestorUnit>>((ref) async {
   ref.watch(authStateProvider);
   final repo = ref.watch(projectsRepositoryProvider);
-  final rows = await repo.myAllUnits();
-  return rows.map(InvestorUnit.fromJson).toList();
+  try {
+    final rows = await repo.myAllUnits();
+    return rows.map(InvestorUnit.fromJson).toList();
+  } catch (_) {
+    // Resolve to empty so list/detail cards fall back to their empty
+    // state instead of an endless skeleton on a transient failure.
+    return const <InvestorUnit>[];
+  }
 });
 
 /// Marketplace listings shown on the Explore tab. Driven by the

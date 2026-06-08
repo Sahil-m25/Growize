@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:arl_app/core/theme/arl_colors.dart';
+import 'package:arl_app/core/widgets/async_value_widget.dart';
 import 'package:arl_app/features/explore/widgets/project_tile.dart';
 import 'package:arl_app/features/onboarding/tour_keys.dart';
 import 'package:arl_app/features/projects/models/marketplace_project.dart';
@@ -193,6 +194,17 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       final filtered = _applyFilter(cached, _statusFilter);
       if (filtered.isEmpty) return _emptyState();
       return _grid(filtered);
+    }
+    // No data + error → friendly retry card instead of an endless skeleton.
+    if (async.hasError) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: ErrorRetryView(
+          message: 'We could not load opportunities. '
+              "Tap retry once you're back online.",
+          onRetry: () => ref.invalidate(marketplaceProjectsProvider),
+        ),
+      );
     }
     return _skeleton();
   }

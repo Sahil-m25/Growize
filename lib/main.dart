@@ -19,6 +19,7 @@ import 'core/navigation/router.dart';
 import 'core/theme/arl_theme.dart';
 import 'core/constants/supabase_constants.dart';
 import 'core/widgets/demo_mode_banner.dart';
+import 'core/widgets/app_error_view.dart';
 import 'features/auth/lock_screen.dart';
 import 'features/gating/gating_provider.dart';
 import 'features/gating/force_update_screen.dart';
@@ -54,6 +55,12 @@ class _AppScrollBehavior extends MaterialScrollBehavior {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  // Global safety net: if any widget throws during build, show a calm
+  // branded card instead of Flutter's red/grey error box. Sentry still
+  // captures the underlying exception via FlutterError.onError.
+  ErrorWidget.builder =
+      (FlutterErrorDetails details) => AppErrorView.forFlutterError(details);
 
   // B.T1: Load dotenv on native only.
   // On web, all config is baked in at compile time via

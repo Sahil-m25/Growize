@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/core/utils/money.dart';
+import 'package:arl_app/core/widgets/async_value_widget.dart';
 import 'package:arl_app/features/documents/document_viewer_screen.dart';
 import 'package:arl_app/features/documents/documents_provider.dart';
 import 'package:arl_app/features/documents/models/document.dart';
@@ -179,11 +180,18 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
         body: Center(child: CircularProgressIndicator()),
       ),
       // Repository falls back to cached data on errors; this branch is a
-      // final safety net. Show the same loader so we never surface a raw
-      // exception string.
-      error: (_, __) => const Scaffold(
+      // final safety net. Show a friendly retry card rather than a spinner
+      // that would otherwise look like it's loading forever.
+      error: (_, __) => Scaffold(
         backgroundColor: ArlColors.cream,
-        body: Center(child: CircularProgressIndicator()),
+        body: SafeArea(
+          child: ErrorRetryView(
+            message: 'We could not load this project. '
+                "Tap retry once you're back online.",
+            onRetry: () =>
+                ref.invalidate(projectByIdProvider(widget.projectId)),
+          ),
+        ),
       ),
       data: (project) {
         if (project == null) {

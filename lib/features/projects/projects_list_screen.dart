@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/core/utils/money.dart';
 import 'package:arl_app/core/widgets/skel_box.dart';
+import 'package:arl_app/core/widgets/async_value_widget.dart';
 import 'package:arl_app/features/home/home_provider.dart';
 import 'package:arl_app/features/onboarding/tour_keys.dart';
 import 'package:arl_app/features/projects/models/investor_unit.dart';
@@ -86,7 +87,16 @@ class ProjectsListScreen extends ConsumerWidget {
               // duplicate-noisy on this screen.
 
               // 2-col tile grid
-              if (projects == null)
+              if (projectsData.hasError && projects == null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 32),
+                  child: ErrorRetryView(
+                    message: 'We could not load your projects. '
+                        "Tap retry once you're back online.",
+                    onRetry: () => ref.invalidate(projectsProvider),
+                  ),
+                )
+              else if (projects == null)
                 const Column(
                   children: [
                     SkelBox(height: 230, margin: EdgeInsets.only(bottom: 12)),

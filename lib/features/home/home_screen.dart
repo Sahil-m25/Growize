@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/core/widgets/skel_box.dart';
+import 'package:arl_app/core/widgets/async_value_widget.dart';
 import 'package:arl_app/features/financials/financials_provider.dart';
 import 'package:arl_app/features/home/home_provider.dart';
 import 'package:arl_app/features/home/models/portfolio_summary.dart';
@@ -127,7 +128,7 @@ class HomeScreen extends ConsumerWidget {
               // refetch is in flight. Repos already return cached data
               // on failure; if even that's empty we fall back to a
               // zero-state PortfolioSummary, never a raw error.
-              _buildPortfolioCluster(portfolioData),
+              _buildPortfolioCluster(portfolioData, ref),
             ],
           ),
         ),
@@ -138,7 +139,8 @@ class HomeScreen extends ConsumerWidget {
   /// Renders the portfolio + progress + stats cluster. Pulls cached
   /// data through reloads + errors so the screen never blanks once we
   /// have a value. Falls back to skeleton only on cold start.
-  Widget _buildPortfolioCluster(AsyncValue<PortfolioSummary> async) {
+  Widget _buildPortfolioCluster(
+      AsyncValue<PortfolioSummary> async, WidgetRef ref) {
     final cached = async.valueOrNull;
     if (cached != null) {
       return Column(
@@ -150,6 +152,21 @@ class HomeScreen extends ConsumerWidget {
           QuickStatsRow(key: TourKeys.quickStatsRow, portfolio: cached),
           const SizedBox(height: 24),
         ],
+      );
+    }
+    // Defensive: the portfolio providers swallow failures into a
+    // zero-state summary, so this rarely fires — but if an error ever
+    // surfaces with no cached value, show a friendly retry card rather
+    // than an endless skeleton.
+    if (async.hasError) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: ErrorRetryView(
+          onRetry: () {
+            ref.invalidate(portfolioSummaryProvider);
+            ref.invalidate(scopedPortfolioProvider);
+          },
+        ),
       );
     }
     return const _HomeSkeleton();
