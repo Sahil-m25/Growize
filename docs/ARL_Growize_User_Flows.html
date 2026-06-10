@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ARL Growize — User Flows</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<style>
+  :root{--primary:#3C5152;--accent:#2E7D6E;--gold:#D4AF37;--cream:#FAFAF7;--sand:#E1DFC6;--earth:#C05640;--charcoal:#0F1A15;--muted:#6B7280;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--charcoal);font-family:Inter,Arial,Helvetica,sans-serif;line-height:1.5}
+  header{background:var(--primary);color:#fff;padding:22px 28px}
+  header h1{margin:0;font-size:22px}
+  header p{margin:6px 0 0;color:#dfe7e4;font-size:13px}
+  main{max-width:1100px;margin:0 auto;padding:24px 18px 60px}
+  section{background:#fff;border:1px solid var(--sand);border-radius:14px;padding:18px 20px;margin:18px 0;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+  h2{font-size:16px;margin:0 0 4px;color:var(--primary)}
+  .sub{color:var(--muted);font-size:12px;margin:0 0 14px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--charcoal)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:13px;height:13px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,.15)}
+  .mermaid{overflow-x:auto}
+  footer{max-width:1100px;margin:0 auto;padding:0 18px 50px;color:var(--muted);font-size:12px}
+  code{background:var(--sand);padding:1px 5px;border-radius:4px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>ARL Growize — Investor Portal User Flows</h1>
+  <p>End-to-end journeys across the Flutter app (mobile + web) and the Supabase backend. Pair with <code>ARL_Growize_Test_Cases.xlsx</code> — the linked Test IDs live on its “User Flows” sheet.</p>
+</header>
+<main>
+  <section>
+    <div class="legend">
+      <span><span class="dot" style="background:#3C5152"></span> Screen / surface</span>
+      <span><span class="dot" style="background:#2E7D6E"></span> Edge function / backend</span>
+      <span><span class="dot" style="background:#D4AF37"></span> Decision</span>
+      <span><span class="dot" style="background:#C05640"></span> Error / empty / blocked</span>
+      <span><span class="dot" style="background:#E1DFC6"></span> Data store</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>1 · App entry, gating &amp; authentication</h2>
+    <p class="sub">Launch → version/maintenance gate → app lock → demo browsing or sign-in. (AUTH-001…012, XC-006/007)</p>
+    <pre class="mermaid">
+flowchart TD
+  L["App launch"] --> B["Boot: Supabase + Hive cache"]
+  B --> G{"Gate check<br/>latest-app-version"}
+  G -->|"version &lt; min"| FU["Force-update screen"]:::err
+  G -->|"maintenance on"| MN["Maintenance screen"]:::err
+  G -->|"ok"| LK{"App lock enabled?"}:::dec
+  LK -->|"yes"| LOCK["Lock screen<br/>biometric / PIN"]:::scr
+  LK -->|"no"| AQ{"Signed in?"}:::dec
+  LOCK --> AQ
+  AQ -->|"no"| DEMO["Demo browsing<br/>Sample data"]:::scr
+  AQ -->|"yes"| HOME["Home"]:::scr
+  DEMO --> SI["Sign In — enter email"]:::scr
+  SI --> RAE[["request-auth-email"]]:::fn
+  RAE --> OTP["Enter OTP / magic link"]:::scr
+  OTP -->|"valid"| INV["Providers invalidate → real data"]:::fn
+  INV --> HOME
+  OTP -->|"invalid"| OTP
+  classDef scr fill:#3C5152,color:#fff,stroke:#2b3c3d;
+  classDef fn fill:#2E7D6E,color:#fff,stroke:#246055;
+  classDef dec fill:#D4AF37,color:#1a1a1a,stroke:#b9952b;
+  classDef err fill:#C05640,color:#fff,stroke:#9e4533;
+    </pre>
+  </section>
+
+  <section>
+    <h2>2 · Core navigation &amp; read journeys</h2>
+    <p class="sub">Read-heavy hub-and-spoke from Home. Project selection rescopes portfolio &amp; financials. (HOME-*, PROJ-*, FIN-*, DOC-*)</p>
+    <pre class="mermaid">
+flowchart TD
+  HOME["Home<br/>portfolio + contract progress"]:::scr
+  HOME --> SEL{"Project selected?"}:::dec
+  SEL -->|"rescope totals + progress"| HOME
+  HOME --> PROJ["Projects list (grid)"]:::scr
+  PROJ --> PD["Project detail<br/>phases · updates · allocation · docs"]:::scr
+  PD --> DV["Document viewer"]:::scr
+  HOME --> FIN["Financials<br/>summary + payouts ledger"]:::scr
+  HOME --> DOCS["Documents<br/>Common · My Projects · Personal"]:::scr
+  DOCS --> AV{"File uploaded?"}:::dec
+  AV -->|"yes"| DV
+  AV -->|"no"| NA["Not available yet"]:::err
+  HOME --> ACT["Activity / notifications"]:::scr
+  HOME --> GAL["Gallery"]:::scr
+  HOME --> EXP["Explore (Coming Soon)"]:::scr
+  HOME --> EXIT["Exit eligibility"]:::scr
+  HOME --> PROF["Profile / Settings"]:::scr
+  HOME --> SUP["Support"]:::scr
+  classDef scr fill:#3C5152,color:#fff,stroke:#2b3c3d;
+  classDef dec fill:#D4AF37,color:#1a1a1a,stroke:#b9952b;
+  classDef err fill:#C05640,color:#fff,stroke:#9e4533;
+    </pre>
+  </section>
+
+  <section>
+    <h2>3 · Dynamic-screen state pattern (applies to every data-backed screen)</h2>
+    <p class="sub">How each screen resolves a provider — and the safety nets added this cycle. (XC-001, *-error fallbacks)</p>
+    <pre class="mermaid">
+flowchart LR
+  W["Screen watches provider"]:::scr --> S{"AsyncValue"}:::dec
+  S -->|"loading"| SK["Skeleton / spinner"]:::scr
+  S -->|"data + rows"| OK["Render content"]:::scr
+  S -->|"data + empty"| EM["Friendly empty state"]:::err
+  S -->|"error, no cache"| ER["“Couldn’t load” + Retry"]:::err
+  ER -->|"Retry"| W
+  C["Unexpected widget crash"]:::err --> GB["Global branded error card<br/>+ Sentry (PII scrubbed)"]:::fn
+  classDef scr fill:#3C5152,color:#fff,stroke:#2b3c3d;
+  classDef fn fill:#2E7D6E,color:#fff,stroke:#246055;
+  classDef dec fill:#D4AF37,color:#1a1a1a,stroke:#b9952b;
+  classDef err fill:#C05640,color:#fff,stroke:#9e4533;
+    </pre>
+  </section>
+
+  <section>
+    <h2>4 · Documents data-sync flow (Zoho → backend → app)</h2>
+    <p class="sub">How a file uploaded in Zoho becomes visible in the app. (DOC-011, BE-FN-002…006, BE-DB-001…004)</p>
+    <pre class="mermaid">
+flowchart TD
+  Z["Zoho CRM<br/>LLP attachment / Contact attachment"]:::scr --> CR{"cron 06:15 IST<br/>or manual invoke"}:::dec
+  CR --> DS[["documents-sync edge fn<br/>(shared-secret auth)"]]:::fn
+  DS -->|"project docs"| ST1[("arl-documents/project/&lt;id&gt;")]:::ds
+  DS -->|"personal docs"| ST2[("arl-documents/investor/&lt;id&gt;")]:::ds
+  DS --> PDT[("project_documents")]:::ds
+  DS --> DOCT[("documents — visibility=investor")]:::ds
+  DS --> LOG[("webhook_log — processed")]:::ds
+  DS --> NT["Investor notification"]:::scr
+  PDT --> APP["App lists doc + signed URL"]:::scr
+  DOCT --> APP
+  ST1 --> APP
+  ST2 --> APP
+  APP --> U{"Signed URL valid?"}:::dec
+  U -->|"yes"| OPEN["Opens in viewer"]:::scr
+  U -->|"no / missing file"| NA["Not available yet"]:::err
+  classDef scr fill:#3C5152,color:#fff,stroke:#2b3c3d;
+  classDef fn fill:#2E7D6E,color:#fff,stroke:#246055;
+  classDef dec fill:#D4AF37,color:#1a1a1a,stroke:#b9952b;
+  classDef err fill:#C05640,color:#fff,stroke:#9e4533;
+  classDef ds fill:#E1DFC6,color:#1a1a1a,stroke:#c7c5a6;
+    </pre>
+  </section>
+
+  <section>
+    <h2>5 · Action flows (writes go through edge functions, never the client)</h2>
+    <p class="sub">Exit, Support and Bank changes. (EXIT-*, SUP-*, PROF-003)</p>
+    <pre class="mermaid">
+flowchart TD
+  subgraph Bank
+    BK["Bank details — submit change"]:::scr --> BFN[["bank-change-request"]]:::fn --> BN[["notify-bank-update"]]:::fn --> BOK["Confirmation + notification<br/>(reflects after CRM sync)"]:::scr
+  end
+  subgraph Support
+    TK["New ticket"]:::scr --> CFN[["create-ticket (JWT)"]]:::fn --> TL["Ticket listed + first-msg notification"]:::scr
+    RP["Reply"]:::scr --> RFN[["reply-ticket (JWT)"]]:::fn --> TU["Thread updates"]:::scr
+  end
+  subgraph Exit
+    EX["Request exit"]:::scr --> EXF[("exit_requests")]:::ds --> EP["Pending"]:::scr --> ES["Settled → notification"]:::scr
+  end
+  classDef scr fill:#3C5152,color:#fff,stroke:#2b3c3d;
+  classDef fn fill:#2E7D6E,color:#fff,stroke:#246055;
+  classDef ds fill:#E1DFC6,color:#1a1a1a,stroke:#c7c5a6;
+    </pre>
+  </section>
+</main>
+<footer>
+  Generated for QA regression. Demo-mode (unauthenticated) mirrors flows 2–5 with sample data and “Sample” badges; no real investor data is ever shown. RLS enforces document/unit isolation per investor at the data layer.
+</footer>
+<script>
+  mermaid.initialize({startOnLoad:true,securityLevel:'loose',theme:'base',
+    themeVariables:{fontFamily:'Inter,Arial,sans-serif',fontSize:'13px',lineColor:'#6B7280',primaryColor:'#3C5152',primaryTextColor:'#fff'}});
+</script>
+</body>
+</html>

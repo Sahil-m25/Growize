@@ -34,6 +34,9 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
   // until this is true. Persisted via UserSettingsRepository.recordLegalConsent
   // immediately after the investor row upsert.
   bool _consentChecked = false;
+  // Optional, unbundled marketing consent. Does NOT gate submit — DPDP
+  // requires optional consent to be separate from required acceptance.
+  bool _marketingChecked = false;
 
   final _formKeys = List.generate(3, (_) => GlobalKey<FormState>());
 
@@ -118,7 +121,10 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
       // onboarding completion, and the consent stamp can be back-filled
       // on next sign-in if it failed.
       try {
-        await ref.read(userSettingsRepositoryProvider).recordLegalConsent();
+        await ref.read(userSettingsRepositoryProvider).recordOnboardingConsents(
+              marketing: _marketingChecked,
+              docVersion: LegalDocs.version,
+            );
       } catch (_) {}
       ref.invalidate(currentInvestorProvider);
       if (!mounted) return;
@@ -292,6 +298,9 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
             consentChecked: _consentChecked,
             onConsentChanged: (v) =>
                 setState(() => _consentChecked = v ?? false),
+            marketingChecked: _marketingChecked,
+            onMarketingChanged: (v) =>
+                setState(() => _marketingChecked = v ?? false),
           ),
         );
     }
@@ -458,6 +467,8 @@ class _BankStep extends StatelessWidget {
   final TextEditingController bank, ifsc, account, holder;
   final bool consentChecked;
   final ValueChanged<bool?> onConsentChanged;
+  final bool marketingChecked;
+  final ValueChanged<bool?> onMarketingChanged;
   const _BankStep({
     required this.bank,
     required this.ifsc,
@@ -465,6 +476,8 @@ class _BankStep extends StatelessWidget {
     required this.holder,
     required this.consentChecked,
     required this.onConsentChanged,
+    required this.marketingChecked,
+    required this.onMarketingChanged,
   });
 
   @override
@@ -521,24 +534,112 @@ class _BankStep extends StatelessWidget {
           controller: holder,
         ),
         const SizedBox(height: 4),
-        _ConsentBlock(
-          checked: consentChecked,
-          onChanged: onConsentChanged,
+        _ConsentSection(
+          consentChecked: consentChecked,
+          onConsentChanged: onConsentChanged,
+          marketingChecked: marketingChecked,
+          onMarketingChanged: onMarketingChanged,
         ),
       ],
     );
   }
 }
 
-class _ConsentBlock extends StatelessWidget {
-  final bool checked;
-  final ValueChanged<bool?> onChanged;
-  const _ConsentBlock({required this.checked, required this.onChanged});
+class _ConsentSection extends StatelessWidget {
+  final bool consentChecked;
+  final ValueChanged<bool?> onConsentChanged;
+  final bool marketingChecked;
+  final ValueChanged<bool?> onMarketingChanged;
+  const _ConsentSection({
+    required this.consentChecked,
+    required this.onConsentChanged,
+    required this.marketingChecked,
+    required this.onMarketingChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(4, 8, 12, 8),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // KYC / financial processing is required by law and your signed
+        // agreement, so it is disclosed here as a notice — not gated behind
+        // a "consent" tick it does not legally depend on.
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 6),
+          decoration: BoxDecoration(
+            color: ArlColors.primary.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Text(
+            'We process your identity, KYC and financial details to operate '
+            'your account and meet legal and KYC obligations. See the Privacy '
+            'Notice for what we collect, why, and your rights.',
+            style: TextStyle(
+              color: ArlColors.charcoal,
+              fontSize: 11,
+              height: 1.4,
+            ),
+          ),
+        ),
+        _CheckRow(
+          checked: consentChecked,
+          onChanged: onConsentChanged,
+          child: Text.rich(
+            TextSpan(
+              style: const TextStyle(
+                color: ArlColors.charcoal,
+                fontSize: 12,
+                height: 1.4,
+              ),
+              children: [
+                const TextSpan(text: 'I have read and agree to the '),
+                _LegalLink(
+                  label: LegalDocs.termsTitle,
+                  route: RouteNames.terms,
+                ),
+                const TextSpan(text: ' and '),
+                _LegalLink(
+                  label: LegalDocs.privacyTitle,
+                  route: RouteNames.privacy,
+                ),
+                const TextSpan(text: '. (required)'),
+              ],
+            ),
+          ),
+        ),
+        _CheckRow(
+          checked: marketingChecked,
+          onChanged: onMarketingChanged,
+          child: const Text(
+            'I’d like to receive product updates and offers. (optional)',
+            style: TextStyle(
+              color: ArlColors.charcoal,
+              fontSize: 12,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CheckRow extends StatelessWidget {
+  final bool checked;
+  final ValueChanged<bool?> onChanged;
+  final Widget child;
+  const _CheckRow({
+    required this.checked,
+    required this.onChanged,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 2, 12, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -553,28 +654,7 @@ class _ConsentBlock extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(top: 12),
-              child: Text.rich(
-                TextSpan(
-                  style: const TextStyle(
-                    color: ArlColors.charcoal,
-                    fontSize: 12,
-                    height: 1.4,
-                  ),
-                  children: [
-                    const TextSpan(text: 'I agree to the '),
-                    _LegalLink(
-                      label: LegalDocs.termsTitle,
-                      route: RouteNames.terms,
-                    ),
-                    const TextSpan(text: ' and '),
-                    _LegalLink(
-                      label: LegalDocs.privacyTitle,
-                      route: RouteNames.privacy,
-                    ),
-                    const TextSpan(text: '.'),
-                  ],
-                ),
-              ),
+              child: child,
             ),
           ),
         ],

@@ -10,8 +10,8 @@ library;
 
 abstract final class LegalDocs {
   /// "Last updated" stamp shown at the top of both documents.
-  static const String effectiveDate = '13 May 2026';
-  static const String version = '1.0';
+  static const String effectiveDate = '9 June 2026';
+  static const String version = '1.1';
 
   /// Contact email rendered in both documents.
   static const String contactEmail = 'tech@agresearchlabs.com';
@@ -80,20 +80,29 @@ Indian law.
    offered).
 
 5. Where your data is stored.
-   - Application data is hosted on Supabase (Postgres + Storage), in the
-     region(s) configured for our project. Access is gated by
-     row-level-security policies that scope each row to the authenticated
-     user.
-   - Customer relationship records are mirrored to Zoho CRM (operated by
-     Zoho Corporation) for our internal operations team.
-   - Email is delivered via the transactional email provider configured
-     in our backend.
+   - Application data (database + documents) is hosted on Supabase in
+     India (Mumbai region). Access is gated by row-level-security
+     policies that scope each row to the authenticated user.
+   - Customer relationship records are mirrored to Zoho CRM (Zoho
+     Corporation), processed in India.
 
-6. Third parties.
-   We do not sell your personal data. We share data only with the
-   following processors strictly for the purposes above: Supabase
-   (database + storage), Zoho (CRM), and any payment / payout
-   processor disclosed at the time you opt in to a specific transaction.
+6. Third parties and cross-border transfer.
+   We do not sell your personal data. We share it only with service
+   providers acting on our instructions and strictly for the purposes
+   above:
+   - Supabase (database, storage, authentication) — India.
+   - Zoho CRM (operations) — India.
+   - Resend (transactional email and one-time passcodes) — United States.
+   - Sentry (crash and error diagnostics; sensitive identifiers such as
+     PAN and Aadhaar are scrubbed before transmission) — United States.
+   - Netlify (web application hosting) — United States.
+   - Any payment / payout processor disclosed to you at the time you opt
+     in to a specific transaction.
+   Some of these providers process limited personal data outside India,
+   which the Digital Personal Data Protection Act permits except to
+   territories the Government may restrict. We are actively working to
+   migrate the United States-based services (Resend, Sentry, Netlify) to
+   India-based alternatives.
 
 7. Retention.
    We retain identity, contact, bank, and investment data for the
@@ -130,8 +139,8 @@ Indian law.
         $entityName — Grievance Officer
         Email: $contactEmail
         Address: $jurisdictionCity, $jurisdictionState, India
-    We will acknowledge your grievance within 7 working days and resolve
-    it within the timelines required by law.
+    We will acknowledge your grievance promptly and resolve it within 30
+    days, in line with the Digital Personal Data Protection Rules, 2025.
 
 12. Changes to this Policy.
     We may revise this Policy from time to time. Material revisions will

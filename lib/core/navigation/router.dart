@@ -24,6 +24,7 @@ import 'package:arl_app/features/profile/profile_screen.dart';
 import 'package:arl_app/features/profile/kyc_screen.dart';
 import 'package:arl_app/features/profile/bank_details_screen.dart';
 import 'package:arl_app/features/profile/security_screen.dart';
+import 'package:arl_app/features/profile/privacy_screen.dart';
 import 'package:arl_app/features/support/support_screen.dart';
 import 'package:arl_app/features/support/ticket_detail_screen.dart';
 import 'package:arl_app/features/support/new_ticket_screen.dart';
@@ -278,6 +279,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: RouteNames.security,
             builder: (context, state) => const SecurityScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.privacyCenter,
+            builder: (context, state) => const PrivacyScreen(),
           ),
           GoRoute(
             path: RouteNames.support,

@@ -103,6 +103,68 @@ class UserSettingsRepository {
     }, onConflict: 'user_id');
   }
 
+  /// Append granular consent records to the audit log at onboarding, and
+  /// stamp the legacy user_settings timestamps for the re-consent banner.
+  ///
+  /// Terms + Privacy are recorded as granted (required acceptance);
+  /// marketing reflects the optional checkbox. [docVersion] is the active
+  /// legal document version so we can trigger re-consent when it changes.
+  /// Best-effort: a failure here does not block onboarding (the investor
+  /// row is the source of truth for completion).
+  Future<void> recordOnboardingConsents({
+    required bool marketing,
+    required String docVersion,
+  }) async {
+    final client = ArlSupabase.client;
+    final uid = ArlSupabase.currentUserId;
+    if (client == null || uid == null) return;
+    await client.from('consents').insert([
+      {'user_id': uid, 'purpose': 'terms', 'granted': true, 'doc_version': docVersion, 'source': 'app_onboarding'},
+      {'user_id': uid, 'purpose': 'privacy', 'granted': true, 'doc_version': docVersion, 'source': 'app_onboarding'},
+      {'user_id': uid, 'purpose': 'marketing', 'granted': marketing, 'doc_version': docVersion, 'source': 'app_onboarding'},
+    ]);
+    final now = DateTime.now().toUtc().toIso8601String();
+    await client.from('user_settings').upsert({
+      'user_id': uid,
+      'terms_accepted_at': now,
+      'privacy_accepted_at': now,
+    }, onConflict: 'user_id');
+  }
+
+  /// Record a marketing-consent grant or withdrawal from Profile settings.
+  /// Each call appends a new audit row (DPDP withdrawal trail).
+  Future<void> setMarketingConsent({
+    required bool granted,
+    required String docVersion,
+  }) async {
+    final client = ArlSupabase.client;
+    final uid = ArlSupabase.currentUserId;
+    if (client == null || uid == null) return;
+    await client.from('consents').insert({
+      'user_id': uid,
+      'purpose': 'marketing',
+      'granted': granted,
+      'doc_version': docVersion,
+      'source': 'app_settings',
+    });
+  }
+
+  /// Latest marketing-consent state for the current user (false if never set).
+  Future<bool> marketingConsentGranted() async {
+    final client = ArlSupabase.client;
+    final uid = ArlSupabase.currentUserId;
+    if (client == null || uid == null) return false;
+    final row = await client
+        .from('consents')
+        .select('granted')
+        .eq('user_id', uid)
+        .eq('purpose', 'marketing')
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    return (row?['granted'] as bool?) ?? false;
+  }
+
   /// Clear the PIN — used when the user disables app-PIN entirely.
   Future<void> clearPin() async {
     final client = ArlSupabase.requireClient();

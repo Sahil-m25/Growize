@@ -12,6 +12,13 @@ import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/providers/repositories.dart';
 import 'package:arl_app/core/supabase/supabase_client.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
+import 'package:arl_app/features/legal/legal_content.dart';
+
+/// Latest marketing-consent state for the signed-in user. Backed by the
+/// append-only `consents` audit log. Re-read after each toggle.
+final marketingConsentProvider = FutureProvider.autoDispose<bool>((ref) async {
+  return ref.read(userSettingsRepositoryProvider).marketingConsentGranted();
+});
 
 /// Profile → Security screen.
 ///
@@ -32,6 +39,8 @@ class SecurityScreen extends ConsumerWidget {
     final settingsAsync = ref.watch(userSettingsProvider);
     final lockSettingsAsync = ref.watch(appLockSettingsProvider);
     final loginsAsync = ref.watch(myLoginEventsProvider);
+    final marketingGranted =
+        ref.watch(marketingConsentProvider).asData?.value ?? false;
 
     return Scaffold(
       backgroundColor: ArlColors.cream,
@@ -219,6 +228,73 @@ class SecurityScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
+                  _sectionTitle('Privacy & Consent'),
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: ArlColors.sand, width: 1),
+                    ),
+                    child: Column(
+                      children: [
+                        _SecurityRow(
+                          icon: Icons.campaign_outlined,
+                          iconColor: ArlColors.accent,
+                          iconBg: ArlColors.accent.withOpacity(0.15),
+                          title: 'Product updates & offers',
+                          subtitle: marketingGranted
+                              ? 'On — optional marketing messages'
+                              : 'Off — you only get essential service messages',
+                          trailing: Switch(
+                            value: marketingGranted,
+                            onChanged: (v) => _setMarketing(context, ref, v),
+                            thumbColor: WidgetStateProperty.resolveWith((s) =>
+                                s.contains(WidgetState.selected)
+                                    ? ArlColors.accent
+                                    : ArlColors.muted),
+                          ),
+                        ),
+                        const Divider(
+                            height: 1, color: ArlColors.sand, thickness: 1),
+                        _SecurityRow(
+                          icon: Icons.manage_accounts_outlined,
+                          iconColor: ArlColors.accent,
+                          iconBg: ArlColors.accent.withOpacity(0.15),
+                          title: 'Manage my data & rights',
+                          subtitle:
+                              'Download your data, set a nominee, request erasure',
+                          onTap: () => context.push(RouteNames.privacyCenter),
+                          trailing: const Icon(Icons.chevron_right,
+                              color: ArlColors.primary, size: 18),
+                        ),
+                        const Divider(
+                            height: 1, color: ArlColors.sand, thickness: 1),
+                        _SecurityRow(
+                          icon: Icons.privacy_tip_outlined,
+                          iconColor: ArlColors.primary,
+                          iconBg: ArlColors.primary.withOpacity(0.1),
+                          title: 'Privacy Notice',
+                          subtitle: 'What we collect, why, and your rights',
+                          onTap: () => context.push(RouteNames.privacy),
+                          trailing: const Icon(Icons.chevron_right,
+                              color: ArlColors.primary, size: 18),
+                        ),
+                        const Divider(
+                            height: 1, color: ArlColors.sand, thickness: 1),
+                        _SecurityRow(
+                          icon: Icons.description_outlined,
+                          iconColor: ArlColors.primary,
+                          iconBg: ArlColors.primary.withOpacity(0.1),
+                          title: 'Terms of Service',
+                          subtitle: 'The agreement governing your use',
+                          onTap: () => context.push(RouteNames.terms),
+                          trailing: const Icon(Icons.chevron_right,
+                              color: ArlColors.primary, size: 18),
+                        ),
+                      ],
+                    ),
+                  ),
                   _sectionTitle('Login History'),
                   Container(
                     margin: const EdgeInsets.only(bottom: 20),
@@ -529,6 +605,26 @@ class SecurityScreen extends ConsumerWidget {
     }
     try {
       await controller.setPinRequired(value);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Could not save: $e')));
+    }
+  }
+
+  Future<void> _setMarketing(
+      BuildContext context, WidgetRef ref, bool value) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      // Each grant/withdrawal appends a row to the consent audit log.
+      await ref.read(userSettingsRepositoryProvider).setMarketingConsent(
+            granted: value,
+            docVersion: LegalDocs.version,
+          );
+      ref.invalidate(marketingConsentProvider);
+      messenger.showSnackBar(SnackBar(
+        content: Text(value
+            ? 'Product updates turned on.'
+            : 'Product updates turned off. You can re-enable this anytime.'),
+      ));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Could not save: $e')));
     }

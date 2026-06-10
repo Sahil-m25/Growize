@@ -17,6 +17,7 @@ abstract final class RouteNames {
   static const String kyc = '/kyc';
   static const String bankDetails = '/bank-details';
   static const String security = '/security';
+  static const String privacyCenter = '/privacy-center';
   static const String biometric = '/biometric';
   static const String newTicket = '/new-ticket';
   static const String projectSelector = '/project-selector';

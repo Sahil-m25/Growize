@@ -101,11 +101,12 @@ Deno.serve(async (req: Request) => {
     // Get Zoho access token
     const accessToken = await getZohoAccessToken();
 
-    // 1. Fetch all active projects (zoho_llp_id lives on llps after the LLP/project split)
+    // 1. Fetch all active projects. NOTE: llp_status lives on `llps`, not
+    // `projects` (migration 009 split LLP from project) — join it and filter
+    // in JS rather than selecting projects.llp_status (which does not exist).
     const { data: projects, error: projError } = await supabase
       .from("projects")
-      .select("id, name, llp_status, llp:llps!inner(zoho_llp_id)")
-      .neq("llp_status", "completed")
+      .select("id, name, llp:llps!inner(zoho_llp_id, llp_status)")
       .not("llp_id", "is", null);
 
     if (projError) throw new Error(`Failed to fetch projects: ${projError.message}`);
@@ -121,9 +122,14 @@ Deno.serve(async (req: Request) => {
 
     for (const project of projects) {
       // PostgREST returns embedded relations as object or array depending on cardinality; normalise.
-      const llpRel = (project as { llp?: { zoho_llp_id?: string } | Array<{ zoho_llp_id?: string }> }).llp;
-      const zohoLlpId = Array.isArray(llpRel) ? llpRel[0]?.zoho_llp_id : llpRel?.zoho_llp_id;
+      const llpRel = (project as {
+        llp?: { zoho_llp_id?: string; llp_status?: string }
+          | Array<{ zoho_llp_id?: string; llp_status?: string }>;
+      }).llp;
+      const llp = Array.isArray(llpRel) ? llpRel[0] : llpRel;
+      const zohoLlpId = llp?.zoho_llp_id;
       if (!zohoLlpId) continue;
+      if ((llp?.llp_status ?? "").toLowerCase() === "completed") continue;
 
       // 2. Fetch existing gallery photo IDs for this project
       const { data: existingPhotos } = await supabase
