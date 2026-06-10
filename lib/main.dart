@@ -10,6 +10,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/auth/app_lock_provider.dart';
 import 'core/auth/web_session_native.dart'
     if (dart.library.js_interop) 'core/auth/web_session_web.dart';
+import 'core/navigation/url_strategy_stub.dart'
+    if (dart.library.js_interop) 'core/navigation/url_strategy_web.dart';
 import 'core/theme/arl_colors.dart';
 import 'core/observability/sentry_config.dart';
 import 'core/offline/hive_cache.dart';
@@ -54,6 +56,9 @@ class _AppScrollBehavior extends MaterialScrollBehavior {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Web: use clean path URLs instead of /#/... (no-op on mobile). Requires
+  // the SPA fallback in web/_redirects so deep links/refresh serve index.html.
+  configureUrlStrategy();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   // Global safety net: if any widget throws during build, show a calm

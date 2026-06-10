@@ -1,0 +1,4 @@
+# SPA fallback: serve index.html for any path so client-side (GoRouter)
+# routes, deep links, and page refreshes resolve instead of returning 404.
+# Flutter copies web/ into the build output; Netlify reads this file.
+/*    /index.html   200
