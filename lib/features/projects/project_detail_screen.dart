@@ -253,7 +253,7 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
                                 p.projectId == project.id &&
                                 p.status == 'processed' &&
                                 !p.isDemo)
-                            .fold(0.0, (sum, p) => sum + p.amount) ??
+                            .fold<double>(0.0, (sum, p) => sum + (p.amount ?? 0.0)) ??
                         0.0,
                   ),
                 ),
@@ -301,7 +301,7 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
                                   p.projectId == project.id &&
                                   p.status == 'processed' &&
                                   !p.isDemo)
-                              .fold(0.0, (sum, p) => sum + p.amount) ??
+                              .fold<double>(0.0, (sum, p) => sum + (p.amount ?? 0.0)) ??
                           0.0,
                     ),
                   ),
