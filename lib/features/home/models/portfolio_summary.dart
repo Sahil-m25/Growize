@@ -48,6 +48,10 @@ class PortfolioSummary {
   /// Reads from the Supabase `portfolio_summary` view.
   /// The view doesn't contain the investor's name (that's in `investors`),
   /// so the caller passes it through.
+  ///
+  /// NOTE: PostgREST returns PostgreSQL NUMERIC columns as JSON strings
+  /// (e.g. "2500000.00") to avoid double-precision loss. Use _d() / _i()
+  /// helpers that accept both num and String rather than `as num?` casts.
   factory PortfolioSummary.fromSupabase(
     Map<String, dynamic> r, {
     required String investorName,
@@ -55,24 +59,36 @@ class PortfolioSummary {
   }) {
     return PortfolioSummary(
       investorName: investorName,
-      totalInvested: (r['total_invested'] as num?)?.toDouble() ?? 0.0,
-      totalReceived:
-          (r['total_payouts_received'] as num?)?.toDouble() ?? 0.0,
-      pendingAmount:
-          (r['total_capital_outstanding'] as num?)?.toDouble() ?? 0.0,
-      activeUnits: (r['total_units'] as num?)?.toInt() ?? 0,
-      projectCount: (r['project_count'] as num?)?.toInt() ?? 0,
-      avgAnnualYieldPct:
-          (r['avg_annual_yield_pct'] as num?)?.toDouble() ?? 0.0,
-      nextPayoutAmount:
-          (r['next_payout_amount'] as num?)?.toDouble() ?? 0.0,
+      totalInvested: _d(r['total_invested']),
+      totalReceived: _d(r['total_payouts_received']),
+      pendingAmount: _d(r['total_capital_outstanding']),
+      activeUnits: _i(r['total_units']),
+      projectCount: _i(r['project_count']),
+      avgAnnualYieldPct: _d(r['avg_annual_yield_pct']),
+      nextPayoutAmount: _d(r['next_payout_amount']),
       nextPayoutDate: r['next_payout_date'] != null
           ? DateTime.parse(r['next_payout_date'].toString())
           : DateTime.now().add(const Duration(days: 30)),
       nextPayoutProjectName: nextPayoutProjectName,
-      roiPercent: (r['roi_pct'] as num?)?.toDouble() ?? 0.0,
+      roiPercent: _d(r['roi_pct']),
       annualReturns: 0.0, // Populated client-side from FY-filtered payouts
     );
+  }
+
+  /// Safe double parser: handles both num (from integer columns) and
+  /// String (from NUMERIC/DECIMAL columns which PostgREST encodes as JSON
+  /// strings to preserve precision).
+  static double _d(dynamic v) {
+    if (v == null) return 0.0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0.0;
+  }
+
+  /// Safe int parser: same dual-type handling.
+  static int _i(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString()) ?? 0;
   }
 
   factory PortfolioSummary.fromJson(Map<String, dynamic> json) {
