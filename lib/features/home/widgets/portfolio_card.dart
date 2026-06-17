@@ -240,32 +240,38 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: ArlColors.gold.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'Outperforming',
-                            style: TextStyle(
-                              color: ArlColors.goldLight,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
+                        // Only claim "Outperforming" (and surface the 12%
+                        // Nifty benchmark) when the ROI actually exceeds 12%.
+                        // Below that we say nothing rather than imply a
+                        // comparison we can't stand behind.
+                        if (widget.portfolio.roiPercent > 12) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: ArlColors.gold.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Outperforming',
+                              style: TextStyle(
+                                color: ArlColors.goldLight,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'vs 12% Nifty',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                            fontSize: 10,
+                          const SizedBox(height: 4),
+                          Text(
+                            'vs 12% Nifty',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.6),
+                              fontSize: 10,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ],

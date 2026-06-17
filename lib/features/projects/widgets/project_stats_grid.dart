@@ -18,10 +18,17 @@ class ProjectStatsGrid extends StatelessWidget {
   final Project project;
   final InvestorUnit? investor;
 
+  /// Sum of all *processed* non-demo payouts for this project, sourced from
+  /// the payouts table. Pass 0.0 when there are no payouts yet. This replaces
+  /// the previous (incorrect) use of investor_units.total_amount_received,
+  /// which represents the investor's capital payment, not a distribution.
+  final double payoutsTotal;
+
   const ProjectStatsGrid({
     super.key,
     required this.project,
     required this.investor,
+    this.payoutsTotal = 0.0,
   });
 
   @override
@@ -40,7 +47,7 @@ class ProjectStatsGrid extends StatelessWidget {
         : '${_fmtPct(iu.annualYieldPct)}%';
     final payouts = iu == null
         ? '—'
-        : Money.inr(iu.totalAmountReceived, inline: true);
+        : Money.inr(payoutsTotal, inline: true);
 
     final payoutsSince = iu?.investmentDate != null
         ? 'since ${_monthYear(iu!.investmentDate!)}'

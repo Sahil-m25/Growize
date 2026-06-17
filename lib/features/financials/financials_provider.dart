@@ -74,17 +74,26 @@ final scopedPortfolioProvider = FutureProvider<PortfolioSummary>((ref) async {
       return PortfolioSummary.empty(investorName: base.investorName);
     }
     final invested = iu.capitalInvested + iu.tokenAdvanceAmount;
+    // Compute actual processed payouts for this project from the payouts
+    // ledger. payoutsProvider is already scoped to selectedId, so we just
+    // sum the processed non-demo rows. Do NOT use iu.totalAmountReceived —
+    // that field is the investor's capital payment IN, not a distribution OUT.
+    final payouts = await ref.watch(payoutsProvider.future);
+    final projectPayoutsTotal = payouts
+        .where((p) => p.status == 'processed' && !p.isDemo)
+        .fold(0.0, (double sum, p) => sum + p.amount);
     return PortfolioSummary(
       investorName: base.investorName,
       totalInvested: invested,
-      totalReceived: iu.totalAmountReceived,
+      totalReceived: projectPayoutsTotal,
       pendingAmount: iu.capitalOutstanding,
       activeUnits: iu.issuedUnits,
       projectCount: 1,
       avgAnnualYieldPct: iu.annualYieldPct,
       nextPayoutAmount: 0,
       nextPayoutDate: iu.nextPayoutDate ?? base.nextPayoutDate,
-      roiPercent: invested > 0 ? (iu.totalAmountReceived / invested) * 100 : 0,
+      roiPercent:
+          invested > 0 ? (projectPayoutsTotal / invested) * 100 : 0,
       annualReturns: 0,
     );
   } catch (_) {

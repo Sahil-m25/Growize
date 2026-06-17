@@ -51,8 +51,12 @@ class ProjectsRepository {
 
     try {
       // RLS filters investor_units to rows where investor_id = auth.uid().
-      final unitsRows =
-          await client.from('investor_units').select('project_id');
+      // Also exclude soft-deleted rows so a stale duplicate doesn't surface
+      // a project the investor no longer has an active allocation in.
+      final unitsRows = await client
+          .from('investor_units')
+          .select('project_id')
+          .isFilter('deleted_at', null);
       final ids = unitsRows
           .map<String>((r) => (r['project_id'] ?? '') as String)
           .where((s) => s.isNotEmpty)
@@ -175,10 +179,14 @@ class ProjectsRepository {
 
     try {
       // RLS filters investor_units by investor_id = auth.uid().
+      // Filter soft-deleted rows and order by most recently updated so that
+      // if duplicate active rows ever exist, the freshest one wins.
       final row = await client
           .from('investor_units')
           .select()
           .eq('project_id', projectId)
+          .isFilter('deleted_at', null)
+          .order('updated_at', ascending: false)
           .limit(1)
           .maybeSingle();
       if (row == null) return null;
@@ -211,8 +219,11 @@ class ProjectsRepository {
     if (client.auth.currentSession == null) return _readAllUnitsCache();
 
     try {
-      // RLS filters by investor_id = auth.uid(); no Dart-side filter.
-      final rows = await client.from('investor_units').select();
+      // RLS filters by investor_id = auth.uid(); filter soft-deleted rows.
+      final rows = await client
+          .from('investor_units')
+          .select()
+          .isFilter('deleted_at', null);
       final list = (rows as List).cast<Map<String, dynamic>>();
       await ResilientCache.putList(_box, _kAllUnits, list);
       return list;

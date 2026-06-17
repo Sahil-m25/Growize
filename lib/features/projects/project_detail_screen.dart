@@ -248,6 +248,13 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
                   child: ProjectStatsGrid(
                     project: project,
                     investor: allocation,
+                    payoutsTotal: payoutsAsync.valueOrNull
+                            ?.where((p) =>
+                                p.projectId == project.id &&
+                                p.status == 'processed' &&
+                                !p.isDemo)
+                            .fold(0.0, (sum, p) => sum + p.amount) ??
+                        0.0,
                   ),
                 ),
 
@@ -287,7 +294,16 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
                 if (allocation != null && allocation.capitalOutstanding > 0)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                    child: _InvestmentBreakdownCard(allocation: allocation),
+                    child: _InvestmentBreakdownCard(
+                      allocation: allocation,
+                      payoutsTotal: payoutsAsync.valueOrNull
+                              ?.where((p) =>
+                                  p.projectId == project.id &&
+                                  p.status == 'processed' &&
+                                  !p.isDemo)
+                              .fold(0.0, (sum, p) => sum + p.amount) ??
+                          0.0,
+                    ),
                   ),
 
                 // 5) Monthly Updates — narrative posts from Supabase.
@@ -943,7 +959,11 @@ class _UpdatesInlineMessage extends StatelessWidget {
 
 class _InvestmentBreakdownCard extends StatelessWidget {
   final InvestorUnit allocation;
-  const _InvestmentBreakdownCard({required this.allocation});
+  final double payoutsTotal;
+  const _InvestmentBreakdownCard({
+    required this.allocation,
+    this.payoutsTotal = 0.0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -970,8 +990,7 @@ class _InvestmentBreakdownCard extends StatelessWidget {
           _row('Capital Invested', Money.inr(allocation.capitalInvested)),
           _row('Token Advance', Money.inr(allocation.tokenAdvanceAmount)),
           _row('Outstanding', Money.inr(allocation.capitalOutstanding)),
-          _row('Returns Received',
-              Money.inr(allocation.totalAmountReceived)),
+          _row('Returns Received', Money.inr(payoutsTotal)),
           const Divider(height: 16, color: ArlColors.sand),
           _row(
             'Allocation Date',
