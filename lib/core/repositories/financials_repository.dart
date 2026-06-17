@@ -18,6 +18,17 @@ class FinancialsRepository {
     final client = ArlSupabase.client;
     if (client == null) return _readSummaryCache(investorName);
 
+    // Wait briefly for the session — same race as myProjects/myAllUnits:
+    // on web the JWT is restored from localStorage asynchronously, so a
+    // cold-start fetch fires unauthenticated (401), RLS returns nothing,
+    // and maybeSingle() returns null → stale Hive cache is served instead.
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (client.auth.currentSession == null &&
+        DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    if (client.auth.currentSession == null) return _readSummaryCache(investorName);
+
     try {
       final row = await client.from('portfolio_summary').select().maybeSingle();
       if (row == null) return _readSummaryCache(investorName);
