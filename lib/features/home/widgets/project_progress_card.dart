@@ -9,7 +9,7 @@ import 'package:arl_app/features/projects/projects_provider.dart';
 
 /// Mirrors HTML `progress-card`: switches between
 /// `progress-single-view` (one project) and `progress-all-view`
-/// (3 stacked mini bars labelled "Contract Progress").
+/// (3 stacked mini bars labelled "Project Tenure").
 class ProjectProgressCard extends ConsumerWidget {
   const ProjectProgressCard({super.key});
 
@@ -55,7 +55,7 @@ class ProjectProgressCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Contract Progress',
+              'Project Tenure',
               style: TextStyle(
                 color: ArlColors.charcoal,
                 fontSize: 13,
@@ -242,7 +242,7 @@ class _AllProjectsView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Contract Progress',
+          'Project Tenure',
           style: TextStyle(
             color: ArlColors.charcoal,
             fontSize: 13,

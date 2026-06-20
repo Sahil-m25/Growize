@@ -126,7 +126,7 @@ class _ExitScreenState extends ConsumerState<ExitScreen> {
 
     final lockInEnd = investmentDate != null
         ? DateTime(
-            investmentDate.year + 5, investmentDate.month, investmentDate.day)
+            investmentDate.year + 3, investmentDate.month, investmentDate.day)
         : null;
 
     final isEligible = lockInEnd != null && now.isAfter(lockInEnd);
@@ -147,6 +147,40 @@ class _ExitScreenState extends ConsumerState<ExitScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Exit terms info card
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: ArlColors.primary.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: ArlColors.primary.withOpacity(0.15)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Exit Terms',
+                style: TextStyle(
+                  color: ArlColors.charcoal,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: 8),
+              _ExitTermRow(
+                icon: Icons.lock_outline,
+                text: '3-year lock-in period from investment date',
+              ),
+              SizedBox(height: 6),
+              _ExitTermRow(
+                icon: Icons.schedule,
+                text: '6-month notice period required after lock-in ends',
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
@@ -393,6 +427,33 @@ class _ExitScreenState extends ConsumerState<ExitScreen> {
                 color: ArlColors.charcoal,
                 fontSize: 12,
                 fontWeight: FontWeight.w500)),
+      ],
+    );
+  }
+}
+
+class _ExitTermRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _ExitTermRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: ArlColors.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: ArlColors.charcoal,
+              fontSize: 11,
+              height: 1.4,
+            ),
+          ),
+        ),
       ],
     );
   }

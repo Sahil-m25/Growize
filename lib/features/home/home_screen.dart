@@ -55,7 +55,7 @@ class HomeScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'WELCOME BACK',
+                            'WELCOME',
                             style: TextStyle(
                               color: ArlColors.muted,
                               fontSize: 10,

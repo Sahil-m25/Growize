@@ -366,8 +366,10 @@ class _CropsCard extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(c.emoji, style: const TextStyle(fontSize: 12)),
-                const SizedBox(width: 4),
+                if (c.emoji.isNotEmpty) ...[
+                  Text(c.emoji, style: const TextStyle(fontSize: 12)),
+                  const SizedBox(width: 4),
+                ],
                 Text(
                   c.name,
                   style: TextStyle(
@@ -733,15 +735,10 @@ class _ViewAreaProfile {
         region: fallbackLocation.isNotEmpty
             ? fallbackLocation
             : 'Pune Region, Maharashtra',
-        crops: const [
-          _CropEntry(emoji: '🍓', name: 'Strawberries', primary: true),
-          _CropEntry(emoji: '🌿', name: 'Basil'),
-          _CropEntry(emoji: '🥬', name: 'Lettuce'),
-          _CropEntry(emoji: '🌱', name: 'Microgreens'),
-        ],
-        climateCycle: 'Year-round',
-        climateTemp: '22–26°C',
-        climateHumidity: '65–75%',
+        crops: const [_CropEntry(emoji: '', name: 'TBD', primary: true)],
+        climateCycle: 'N/A',
+        climateTemp: 'N/A',
+        climateHumidity: 'N/A',
         totalAcres: '8.2 acres',
         cultivatedAcres: '5.4 acres',
         infrastructure:
@@ -755,14 +752,10 @@ class _ViewAreaProfile {
         region: fallbackLocation.isNotEmpty
             ? fallbackLocation
             : 'Nashik Region, Maharashtra',
-        crops: const [
-          _CropEntry(emoji: '🍇', name: 'Grapes', primary: true),
-          _CropEntry(emoji: '🥒', name: 'Cucumbers'),
-          _CropEntry(emoji: '🍅', name: 'Tomatoes'),
-        ],
-        climateCycle: 'Seasonal',
-        climateTemp: '18–28°C',
-        climateHumidity: '55–70%',
+        crops: const [_CropEntry(emoji: '', name: 'TBD', primary: true)],
+        climateCycle: 'N/A',
+        climateTemp: 'N/A',
+        climateHumidity: 'N/A',
         totalAcres: '12.4 acres',
         cultivatedAcres: '9.1 acres',
         infrastructure:
@@ -776,14 +769,10 @@ class _ViewAreaProfile {
         region: fallbackLocation.isNotEmpty
             ? fallbackLocation
             : 'Lonavala Region, Maharashtra',
-        crops: const [
-          _CropEntry(emoji: '🥬', name: 'Lettuce', primary: true),
-          _CropEntry(emoji: '🌿', name: 'Herbs'),
-          _CropEntry(emoji: '🌱', name: 'Microgreens'),
-        ],
-        climateCycle: 'Year-round',
-        climateTemp: '20–24°C',
-        climateHumidity: '60–70%',
+        crops: const [_CropEntry(emoji: '', name: 'TBD', primary: true)],
+        climateCycle: 'N/A',
+        climateTemp: 'N/A',
+        climateHumidity: 'N/A',
         totalAcres: '6.0 acres',
         cultivatedAcres: '3.2 acres',
         infrastructure:
@@ -797,12 +786,10 @@ class _ViewAreaProfile {
       region: fallbackLocation.isNotEmpty
           ? fallbackLocation
           : 'Project Region',
-      crops: const [
-        _CropEntry(emoji: '🌱', name: 'Seasonal Crops', primary: true),
-      ],
-      climateCycle: 'Year-round',
-      climateTemp: '22–26°C',
-      climateHumidity: '65–75%',
+      crops: const [_CropEntry(emoji: '', name: 'TBD', primary: true)],
+      climateCycle: 'N/A',
+      climateTemp: 'N/A',
+      climateHumidity: 'N/A',
       totalAcres: 'TBD',
       cultivatedAcres: 'TBD',
       infrastructure:

@@ -21,14 +21,22 @@ final portfolioSummaryProvider = FutureProvider<PortfolioSummary>((ref) async {
 
   final financials = ref.watch(financialsRepositoryProvider);
 
-  Future<PortfolioSummary> fetchReal(String name) async {
+  Future<PortfolioSummary> fetchReal(
+      String name, Map<String, dynamic>? investor) async {
     try {
       final real = await trackedFetch(
           ref, () => financials.portfolioSummary(investorName: name));
-      return real ?? PortfolioSummary.empty(investorName: name);
+      if (real == null) return PortfolioSummary.empty(investorName: name);
+      // Override roi_pct with the fixed value from the investor record
+      // so it reflects what was set manually, not the payouts calculation.
+      final raw = investor?['roi_pct'];
+      final fixedRoi = raw == null
+          ? 0.0
+          : raw is num
+              ? raw.toDouble()
+              : double.tryParse(raw.toString()) ?? 0.0;
+      return real.copyWith(roiPercent: fixedRoi);
     } catch (_) {
-      // Timeout / unexpected error → render zero-state with the real
-      // name so the UI never falls back to skeleton.
       return PortfolioSummary.empty(investorName: name);
     }
   }
@@ -56,7 +64,7 @@ final portfolioSummaryProvider = FutureProvider<PortfolioSummary>((ref) async {
             : (emailLocal != null && emailLocal.isNotEmpty)
                 ? emailLocal
                 : 'Investor';
-    return fetchReal(name);
+    return fetchReal(name, investor);
   }
 
   // Unauthenticated design-preview flow → demo browsing.

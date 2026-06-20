@@ -65,10 +65,12 @@ class KycScreen extends ConsumerWidget {
               ((investor['kyc_status'] as String?) ?? 'pending').toLowerCase();
           final isVerified = kycStatus == 'verified';
           final isRejected = kycStatus == 'rejected';
-          final updatedRaw = investor['updated_at'] as String?;
-          final submittedOn = updatedRaw != null && updatedRaw.isNotEmpty
+          // Use created_at for the "Submitted on" date — updated_at changes
+          // on every row touch (background syncs, etc.) and would show today.
+          final createdRaw = investor['created_at'] as String?;
+          final submittedOn = createdRaw != null && createdRaw.isNotEmpty
               ? DateFormat('dd MMM yyyy')
-                  .format(DateTime.parse(updatedRaw).toLocal())
+                  .format(DateTime.parse(createdRaw).toLocal())
               : null;
 
           return SingleChildScrollView(
@@ -77,6 +79,8 @@ class KycScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   _topStatusBanner(kycStatus, submittedOn),
+                  const SizedBox(height: 12),
+                  _ConfidentialityBanner(),
                   const SizedBox(height: 16),
                   _kycField('Full Name', name.isEmpty ? '—' : name,
                       isVerified: isVerified),
@@ -200,6 +204,38 @@ class KycScreen extends ConsumerWidget {
         .where((s) => s.isNotEmpty)
         .toList();
     return parts.isEmpty ? '—' : parts.join(', ');
+  }
+
+  Widget _ConfidentialityBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF3C5152).withOpacity(0.07),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(0xFF3C5152).withOpacity(0.15),
+        ),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.lock_outline, size: 14, color: Color(0xFF3C5152)),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'This information is confidential and for your use only. '
+              'ARL does not share your personal data with any third parties.',
+              style: TextStyle(
+                color: Color(0xFF3C5152),
+                fontSize: 11,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _kycField(String label, String value, {bool isVerified = false}) {

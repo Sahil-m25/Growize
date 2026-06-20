@@ -115,6 +115,7 @@ class PortfolioSummary {
     String? nextPayoutProjectName,
     int? projectCount,
     double? avgAnnualYieldPct,
+    double? roiPercent,
   }) =>
       PortfolioSummary(
         investorName: investorName,
@@ -128,7 +129,7 @@ class PortfolioSummary {
         nextPayoutDate: nextPayoutDate,
         nextPayoutProjectName:
             nextPayoutProjectName ?? this.nextPayoutProjectName,
-        roiPercent: roiPercent,
+        roiPercent: roiPercent ?? this.roiPercent,
         annualReturns: annualReturns,
         isDemo: isDemo ?? this.isDemo,
       );

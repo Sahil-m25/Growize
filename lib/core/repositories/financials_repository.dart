@@ -30,7 +30,14 @@ class FinancialsRepository {
     if (client.auth.currentSession == null) return _readSummaryCache(investorName);
 
     try {
-      final row = await client.from('portfolio_summary').select().maybeSingle();
+      // Use RPC instead of the view — avoids PostgREST schema-cache
+      // issues after DDL changes, and makes auth.uid() filtering explicit
+      // inside a SECURITY DEFINER function rather than relying on RLS
+      // propagating through the view definition.
+      final rpcResult = await client.rpc('get_portfolio_summary');
+      final row = (rpcResult is List && (rpcResult as List).isNotEmpty)
+          ? (rpcResult as List).first as Map<String, dynamic>?
+          : null;
       if (row == null) return _readSummaryCache(investorName);
 
       String? nextPayoutProjectName;

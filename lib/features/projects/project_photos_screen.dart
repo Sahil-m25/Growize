@@ -77,46 +77,7 @@ class ProjectPhotosScreen extends ConsumerWidget {
         ),
         centerTitle: false,
       ),
-      body: Builder(builder: (context) {
-        final photos = _resolvePhotos(
-          gallery: galleryAsync.valueOrNull ?? const [],
-          projectId: projectId,
-        );
-
-        if (photos.isEmpty) {
-          return const _EmptyState();
-        }
-
-        return GridView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1,
-          ),
-          itemCount: photos.length,
-          itemBuilder: (context, index) {
-            final photo = photos[index];
-            return _PhotoTile(
-              photo: photo,
-              heroTag: 'project-photo-$projectId-$index',
-              onTap: () {
-                Navigator.of(context).push(
-                  PageRouteBuilder(
-                    opaque: false,
-                    barrierColor: Colors.black,
-                    pageBuilder: (_, __, ___) => _FullscreenPhoto(
-                      photo: photo,
-                      heroTag: 'project-photo-$projectId-$index',
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        );
-      }),
+      body: const _EmptyState(),
     );
   }
 
@@ -306,7 +267,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             const Text(
-              'No photos yet',
+              'Coming Soon',
               style: TextStyle(
                 color: ArlColors.charcoal,
                 fontSize: 15,
@@ -315,7 +276,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Daily photos from this project will appear here at 9 AM IST.',
+              'Farm photos for this project will be available soon.',
               textAlign: TextAlign.center,
               style: TextStyle(color: ArlColors.muted, fontSize: 12),
             ),

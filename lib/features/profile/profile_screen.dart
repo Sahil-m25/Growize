@@ -98,14 +98,17 @@ class ProfileScreen extends ConsumerWidget {
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              Text(
-                                investorArl,
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontSize: 13,
+                              if (investorArl != 'ARL-DEMO') ...[
+                                Text(
+                                  investorArl,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.7),
+                                    fontSize: 13,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 6),
+                                const SizedBox(height: 4),
+                              ],
+                              const SizedBox(height: 2),
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -214,7 +217,6 @@ class ProfileScreen extends ConsumerWidget {
                       icon: Icons.person_outline,
                       title: 'KYC Details',
                       route: RouteNames.kyc,
-                      badge: 'Verified',
                     ),
                     _menuTile(
                       context,

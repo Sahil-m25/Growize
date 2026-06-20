@@ -14,6 +14,7 @@ import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/features/documents/documents_provider.dart';
 import 'package:arl_app/features/documents/models/document.dart';
+import 'package:arl_app/features/documents/widgets/inline_pdf_viewer.dart';
 
 /// Full-screen in-app document viewer.
 ///
@@ -203,11 +204,16 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
       );
     }
     final ext = _extOf(doc);
-    if (_isPdf(ext)) return _PdfBody(url: doc.signedUrl, doc: doc);
+    if (_isPdf(ext)) {
+      // On web, use an iframe-based viewer — no CORS issues, no blank render,
+      // stays inside the app window. Native uses SfPdfViewer.network as before.
+      if (kIsWeb) return InlinePdfViewer(url: doc.signedUrl);
+      return _PdfBody(url: doc.signedUrl, doc: doc);
+    }
     if (_isImage(ext)) return _imageBody(doc);
     return _fallback(
       'Preview not supported',
-      'This document type (.${ext.isEmpty ? 'unknown' : ext}) can\'t be previewed in-app. Tap "Download" above to save a copy to your in-app library.',
+      'This document type (.${ext.isEmpty ? 'unknown' : ext}) can\'t be previewed in-app.',
       doc,
     );
   }

@@ -75,6 +75,8 @@ class BankDetailsScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
+                  _ConfidentialityBanner(),
+                  const SizedBox(height: 12),
                   // Single rounded-15 white card with sand dividers between
                   // fields � matches HTML pattern. Each field is a label
                   // + value row inside one card, NOT individually bordered.
@@ -415,6 +417,38 @@ class BankDetailsScreen extends ConsumerWidget {
       return 'XXXX-XXXX-$last4';
     }
     return '';
+  }
+
+  Widget _ConfidentialityBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF3C5152).withOpacity(0.07),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(0xFF3C5152).withOpacity(0.15),
+        ),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.lock_outline, size: 14, color: Color(0xFF3C5152)),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'This information is confidential and for your use only. '
+              'ARL does not share your personal data with any third parties.',
+              style: TextStyle(
+                color: Color(0xFF3C5152),
+                fontSize: 11,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _bankRow(String label, String value, {bool isVerified = false}) {
