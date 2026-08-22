@@ -1,6 +1,10 @@
 class ArlNotification {
   final String id;
-  final String type; // payout | photo | ticket | reminder | milestone (DB)
+  // DB values, per the notifications_type_check constraint:
+  //   payout | photo | ticket | reminder | milestone | kyc | exit |
+  //   bank_change | phase_update | document | new_project
+  // (phase_update / document / new_project added by migration 066)
+  final String type;
   final String title;
   final String body;
   final bool isRead;
@@ -44,9 +48,15 @@ class ArlNotification {
         return 'payout';
       case 'photo':
         return 'success';
+      // Stage / milestone progress on a project. `phase_update` is
+      // written by the migration-066 trigger on project_phases;
+      // `milestone` is the older name kept for rows seeded before it.
       case 'milestone':
-        return 'success';
+      case 'phase_update':
+        return 'milestone';
       case 'ticket':
+        return 'info';
+      case 'document':
         return 'info';
       case 'reminder':
         return 'warning';

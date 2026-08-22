@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -226,6 +227,8 @@ class _NotifCard extends StatelessWidget {
         return ArlColors.accent;
       case 'payout':
         return ArlColors.gold;
+      case 'milestone':
+        return ArlColors.accent;
       default:
         return ArlColors.primary;
     }
@@ -239,9 +242,21 @@ class _NotifCard extends StatelessWidget {
         return Icons.image_outlined;
       case 'payout':
         return Icons.account_balance_wallet_outlined;
+      case 'milestone':
+        return Icons.flag_outlined;
       default:
         return Icons.description_outlined;
     }
+  }
+
+  /// Optional milestone photo, written by the migration-068 trigger from
+  /// `project_phases.image_url`. Absent for every notification type that
+  /// has no picture, which is most of them.
+  String? _imageFromMetadata(Map<String, dynamic>? m) {
+    final v = m?['image_url'];
+    if (v is! String) return null;
+    final t = v.trim();
+    return t.isEmpty ? null : t;
   }
 
   String? _ctaRouteFromMetadata(Map<String, dynamic>? m) {
@@ -257,6 +272,7 @@ class _NotifCard extends StatelessWidget {
       case 'payout':
         return 'View Details';
       case 'milestone':
+      case 'phase_update':
         return 'View Project';
       default:
         return null;
@@ -269,6 +285,7 @@ class _NotifCard extends StatelessWidget {
     final dateFmt = DateFormat('MMM dd · h:mm a');
     final ctaLabel = _ctaLabelFromMetadata(notif.metadata, notif.type);
     final ctaRoute = _ctaRouteFromMetadata(notif.metadata);
+    final imageUrl = _imageFromMetadata(notif.metadata);
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -317,6 +334,26 @@ class _NotifCard extends StatelessWidget {
                   notif.body,
                   style: const TextStyle(color: ArlColors.muted, fontSize: 11),
                 ),
+                if (imageUrl != null) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        // A milestone card must still read correctly when
+                        // the photo is slow or gone — never leave a broken
+                        // box or a stretched placeholder in the feed.
+                        placeholder: (_, __) => Container(
+                          color: tint.withOpacity(0.12),
+                        ),
+                        errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  ),
+                ],
                 if (ctaLabel != null) ...[
                   const SizedBox(height: 6),
                   TextButton(

@@ -378,6 +378,34 @@ Start with the data, not the code.
 
 ## v33 — Phase data + Slack/email + Notifications
 
+> **[ACCURACY WARNING — added 2026-08-22]**
+>
+> Sections 1 and 3 below describe a system that **does not exist in this
+> repository**. Every item listed here was checked against the codebase on
+> 2026-08-22 and found missing:
+>
+> | Documented below | Actual state |
+> |---|---|
+> | `handleLlp()` in `zoho-crm-webhook/index.ts` | no such function |
+> | `phase_timeline_10.dart` | does not exist — the widget is `phase_timeline_6.dart` (class name kept for source-stability; it does render 10 stages) |
+> | `supabase/migrations/2026-05-19_phase_backfill.sql` | does not exist |
+> | `supabase/migrations/2026-05-19_documents_notify_trigger.sql` | does not exist |
+> | `notify_document_insert()` | not in any migration file (note: a `notify_document_uploaded()` IS referenced by migration 060, so the live DB may hold functions this repo does not) |
+> | `project_phases.stage_index` / `stage_name` / `reached_at` / `source` | real columns are `phase_name`, `status`, `phase_date`, `sub_items`, `sort_order`, `started_at`, `completed_at` |
+> | notification types `phase_update`, `new_project`, `document` | none were legal until migration 066 (2026-08-22) — `documents-sync` had been emitting `document` and Postgres had been silently rejecting every insert |
+> | `Phase_1..Phase_10` date + notes fields on `LLP_Creation_Module` | the live EKA LLP record carries none of these 20 fields |
+>
+> What IS true as of migration 066: `project_phases` rows now drive the
+> stage timeline, and flipping a row to `current` fans out a
+> `phase_update` notification. There is still **no Zoho sync handler** for
+> phase data — stage rows must be written directly (see
+> `scripts/eka_stage_update.sql`). Push notifications remain unbuilt; see
+> `docs/plans/2026-08-22_push_notifications_fcm_scope.md`.
+>
+> Treat the rest of this section as a design sketch, not a description of
+> running code.
+
+
 Added 2026-05-20 to capture the data flows that landed during the v33 design refresh / edge-function upgrade.
 
 ### 1. 10-stage Zoho phase data flow

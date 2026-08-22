@@ -61,19 +61,50 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
     return Color(int.parse('FF$h', radix: 16));
   }
 
-  /// Maps the project's progress to one of ten fixed stages (Zoho
-  /// project_phases taxonomy). The real source of truth is the
-  /// `project_phases` rows synced from Zoho; this heuristic is a
-  /// transitional fallback until that join is wired.
+  /// Resolve the active stage for the timeline.
   ///
-  /// Heuristic: 0% → stage 0 (Land Closed), 100% → stage 9 (Go-live).
-  /// Pending projects clamp to stage 0 regardless of progress so the
-  /// timeline reads as "nothing started" until allocation clears.
-  int _stageIndexFor(Project project) {
+  /// Source of truth is the `project_phases` rows synced from Zoho:
+  ///   1. the row marked `current` wins outright;
+  ///   2. else the furthest `done` row + 1 — work has moved past it
+  ///      even though ops has not flagged the next row yet;
+  ///   3. else fall back to the legacy calendar heuristic below.
+  ///
+  /// Before migration 066 this method did ONLY step 3: the stage came
+  /// from `progressPercent`, which is `monthsElapsed / totalMonths`
+  /// (see Project.fromSupabase). That advanced the timeline on the
+  /// calendar no matter what was happening on the ground, and it meant
+  /// a `phase_update` notification could name a stage the timeline was
+  /// not showing. Real rows now win; the heuristic only covers
+  /// projects that have no phase rows seeded yet.
+  int _stageIndexFor(Project project, List<ProjectPhase> phases) {
+    const maxIdx = PhaseTimeline6.stageCount - 1;
+
+    // Demo rows exist so the sample projects render something; they are
+    // not authoritative. Filter them out and let those fall through to
+    // the heuristic, exactly as before.
+    final real = phases.where((p) => !p.isDemo).toList();
+
+    if (real.isNotEmpty) {
+      for (final p in real) {
+        if (p.isCurrent) return p.sortOrder.clamp(0, maxIdx);
+      }
+      final furthestDone = real
+          .where((p) => p.isDone)
+          .map((p) => p.sortOrder)
+          .fold<int>(-1, (a, b) => b > a ? b : a);
+      if (furthestDone >= 0) return (furthestDone + 1).clamp(0, maxIdx);
+      // Rows seeded but nothing done or current yet.
+      return 0;
+    }
+
+    // Legacy fallback: no phase rows for this project.
+    // 0% -> stage 0 (Land Closed), 100% -> stage 9 (Go-live).
+    // Pending projects clamp to stage 0 regardless of progress so the
+    // timeline reads as "nothing started" until allocation clears.
     final isPending = project.status.toLowerCase().contains('pending');
     if (isPending) return 0;
     final pct = project.progressPercent.clamp(0, 100);
-    return (pct / 100 * 9).round().clamp(0, 9);
+    return (pct / 100 * maxIdx).round().clamp(0, maxIdx);
   }
 
   /// Build the 10-element started/completed list the timeline reads.
@@ -102,21 +133,33 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
     if (isPending) return result;
 
     // 1) Real phase rows — accept anything that maps into 0..9.
-    var anyReal = false;
+    //
+    // The guard below is on the EXISTENCE of real rows, not on whether
+    // they happen to carry dates. That distinction matters: the old
+    // condition was `anyReal` (at least one row with a date), so a
+    // project whose stages were tracked but undated fell through to the
+    // synthetic block and the timeline rendered INVENTED completion
+    // dates against real, signed-off stages. Eka hit exactly this on
+    // 2026-08-22 — Land Closed was marked done with a null phase_date
+    // and the UI captioned it "18 Jul", a date nobody had entered.
+    //
+    // A stage with no recorded date now simply renders no date label.
+    // Silence is correct; a plausible-looking guess is not.
+    final hasRealRows = phases.any((p) => !p.isDemo);
     for (final p in phases) {
       final idx = p.sortOrder.clamp(0, PhaseTimeline6.stageCount - 1);
       final s = p.effectiveStartedAt;
       final c = p.effectiveCompletedAt;
       if (s == null && c == null) continue;
       result[idx] = PhaseStageDates(startedAt: s, completedAt: c);
-      anyReal = true;
     }
-    if (anyReal) return result;
+    if (hasRealRows) return result;
 
-    // 2) Synthetic fallback — evenly space completed stages between
-    // project.startDate and "now" so completed nodes get a visual
-    // anchor date on demo projects. The current phase reports the
-    // synthetic "started" date for the same slot.
+    // 2) Synthetic fallback — reached only when the project has NO real
+    // phase rows. Evenly spaces dates between project.startDate and
+    // "now" so demo projects show a plausible-looking timeline. Never
+    // runs against tracked stages, so it cannot invent a date for a
+    // real milestone.
     final start = project.startDate;
     final now = DateTime.now();
     if (!now.isAfter(start)) return result;
@@ -159,13 +202,6 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
     return null;
   }
 
-  String _tierFor(Project project) {
-    final t = project.cropType.toLowerCase();
-    if (t.contains('premium')) return 'Premium';
-    if (t.contains('standard')) return 'Standard';
-    return 'Premium';
-  }
-
   // _openShare removed — Share Project CTA on the detail screen was
   // dropped per UX feedback. Sharing happens at the portfolio level
   // (not per-project) in the current v3 model.
@@ -203,15 +239,18 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
 
         final isPending = project.status.toLowerCase().contains('pending');
         final brand = _hexToColor(project.colorHex);
-        final stageIdx = _stageIndexFor(project);
         // Phases (milestone gates) and updates (monthly narrative posts)
-        // are two different data sources. We watch both: phases feed the
-        // started/completed date affordances on the timeline (falling
-        // back to a synthetic schedule derived from project.startDate
-        // when no rows are seeded yet); updates drive the Monthly
-        // Updates accordion below.
+        // are two different data sources. We watch both: phases now drive
+        // the active stage itself AND feed the started/completed date
+        // affordances on the timeline (falling back to a synthetic
+        // schedule derived from project.startDate when no rows are
+        // seeded yet); updates drive the Monthly Updates accordion below.
+        //
+        // Order matters: _stageIndexFor reads the phase rows, so the
+        // watch has to resolve before the stage is computed.
         final phasesAsync = ref.watch(projectPhasesProvider(project.id));
         final phases = phasesAsync.valueOrNull ?? const <ProjectPhase>[];
+        final stageIdx = _stageIndexFor(project, phases);
         final phaseDates = _phaseDatesFor(project, phases, stageIdx);
         final updatesAsync = ref.watch(projectUpdatesProvider(project.id));
         final allocationAsync =
@@ -230,7 +269,6 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
                   name: project.name,
                   location: project.location,
                   imageUrl: _heroImageFor(project),
-                  tierBadge: _tierFor(project),
                   initials: project.initials,
                   fallbackTint: brand.withOpacity(0.35),
                   onBack: () {
@@ -483,11 +521,8 @@ class _CurrentPhaseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stageLabel = PhaseTimeline6.labelAt(currentStageIndex);
-
-    // Compact card: padding tightened 14 → 10, header condensed into
-    // one tight row (small disc + label + stage pill), and the timeline
-    // gap shrunk to 6px so the whole block fits in ~180-220px on mobile.
+    // Compact card: padding tightened 14 → 10 and the timeline gap
+    // shrunk to 6px so the whole block fits in ~180-220px on mobile.
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
       decoration: BoxDecoration(
@@ -506,64 +541,33 @@ class _CurrentPhaseCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Icon(Icons.eco_outlined, color: accent, size: 14),
+          // Header stripped per design feedback (2026-08-22). The leaf
+          // disc and the "Current Phase — <stage>" label duplicated what
+          // the timeline already communicates: the active node carries a
+          // ring plus an "(in progress)" caption, and tapping any node
+          // opens a sheet with the full stage name and "Stage N of 10".
+          // Only the at-a-glance counter is kept.
+          //
+          // Side benefit: that label was a bare RichText whose TextSpans
+          // set no fontFamily, so it was the one string on the screen
+          // rendering in the platform face instead of Inter.
+          Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: accent.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(20),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: RichText(
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  text: TextSpan(
-                    children: [
-                      const TextSpan(
-                        text: 'Current Phase  ',
-                        style: TextStyle(
-                          color: ArlColors.muted,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                      TextSpan(
-                        text: stageLabel,
-                        style: const TextStyle(
-                          color: ArlColors.charcoal,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
+              child: Text(
+                '${currentStageIndex + 1}/${PhaseTimeline6.stageCount}',
+                style: TextStyle(
+                  color: accent,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${currentStageIndex + 1}/${PhaseTimeline6.stageCount}',
-                  style: TextStyle(
-                    color: accent,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: 6),
           PhaseTimeline6(
