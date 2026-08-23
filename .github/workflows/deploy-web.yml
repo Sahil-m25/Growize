@@ -1,8 +1,16 @@
 name: Build & Deploy Web
 
+# Branch decides the destination:
+#   main          -> production deploy (the live investor URL)
+#   any other     -> Netlify DRAFT deploy on the same site, its own URL,
+#                    production untouched.
+#
+# Before this, `production-deploy: true` was hardcoded, so the only route
+# the pipeline offered went straight to investors — there was no way to
+# look at a change as a user before they did.
 on:
   push:
-    branches: [main]
+    branches: ['**']
   workflow_dispatch:
 
 jobs:
@@ -15,6 +23,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Pinned to 3.24.x deliberately. The build below passes
+      # `--web-renderer html`, a flag REMOVED in Flutter 3.29 — bumping
+      # this version without also dropping that flag fails the build.
+      # Verified 2026-08-22: the current tree analyzes, tests and builds
+      # clean on 3.24.5.
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -25,6 +38,27 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
+      # Branch -> deploy target. Netlify aliases cannot contain "/", so
+      # feat/eka-stage-notifications becomes feat-eka-stage-notifications.
+      - name: Resolve deploy target
+        id: target
+        run: |
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            echo "prod=true"  >> "$GITHUB_OUTPUT"
+            echo "sentry_env=production" >> "$GITHUB_OUTPUT"
+            echo "alias=" >> "$GITHUB_OUTPUT"
+          else
+            echo "prod=false" >> "$GITHUB_OUTPUT"
+            echo "sentry_env=preview" >> "$GITHUB_OUTPUT"
+            ALIAS=$(printf '%s' "$GITHUB_REF_NAME" | tr '/' '-' \
+                    | tr -cd '[:alnum:]-' | cut -c1-30)
+            echo "alias=$ALIAS" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Previews talk to the SAME Supabase as production on purpose —
+      # real login, real data, that is the point of a preview. Only the
+      # Sentry environment differs, so preview noise does not pollute
+      # production error tracking.
       - name: Write env files
         run: |
           printf 'SUPABASE_URL=%s\n' "$SUPABASE_URL" > .env.production
@@ -32,7 +66,7 @@ jobs:
           printf 'ARL_APP_MODE=live\n' >> .env.production
           printf 'ARL_DEV_BYPASS=false\n' >> .env.production
           printf 'SENTRY_DSN=%s\n' "$SENTRY_DSN" >> .env.production
-          printf 'SENTRY_ENVIRONMENT=production\n' >> .env.production
+          printf 'SENTRY_ENVIRONMENT=%s\n' "$SENTRY_ENV" >> .env.production
           printf 'SENTRY_RELEASE=growize@%s\n' "$GITHUB_SHA" >> .env.production
           printf 'ARL_AUTH_GATE_SECRET=%s\n' "$ARL_AUTH_GATE_SECRET" >> .env.production
           cp .env.production .env
@@ -41,6 +75,7 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           ARL_AUTH_GATE_SECRET: ${{ secrets.ARL_AUTH_GATE_SECRET }}
+          SENTRY_ENV: ${{ steps.target.outputs.sentry_env }}
 
       - name: Flutter clean
         run: flutter clean
@@ -49,14 +84,30 @@ jobs:
         run: flutter build web --release --dart-define-from-file=.env.production --web-renderer html --pwa-strategy offline-first --no-source-maps
 
       - name: Deploy to Netlify
+        id: netlify
         uses: nwtgck/actions-netlify@v3.0
         with:
           publish-dir: build/web
           production-branch: main
-          production-deploy: true
-          deploy-message: "Deploy ${{ github.sha }}"
-          enable-pull-request-comment: false
+          production-deploy: ${{ steps.target.outputs.prod == 'true' }}
+          alias: ${{ steps.target.outputs.alias }}
+          deploy-message: "${{ steps.target.outputs.prod == 'true' && 'Production' || 'Preview' }} ${{ github.sha }}"
+          enable-pull-request-comment: true
           enable-commit-comment: false
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+      # Surfaces the URL on the run page so you never have to dig into
+      # Netlify to find where a preview landed.
+      - name: Report deploy URL
+        run: |
+          if [ "${{ steps.target.outputs.prod }}" = "true" ]; then
+            echo "### Production deploy" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### Preview deploy (production untouched)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Branch: \`$GITHUB_REF_NAME\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "URL: ${{ steps.netlify.outputs.deploy-url }}" >> "$GITHUB_STEP_SUMMARY"
