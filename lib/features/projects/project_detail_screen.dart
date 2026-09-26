@@ -1159,7 +1159,8 @@ class _ProjectDocCardMini extends StatelessWidget {
       signedUrl: doc.signedUrl,
       uploadedAt: doc.uploadedAt,
     );
-    Navigator.of(context).push(
+    // rootNavigator: open ABOVE the bottom-nav shell (full-screen viewer).
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute<void>(
         builder: (_) => DocumentViewerScreen(
           documentId: doc.id,

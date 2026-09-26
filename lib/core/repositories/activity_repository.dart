@@ -69,7 +69,7 @@ class ActivityRepository {
     try {
       await client
           .from('notifications')
-          .update({'read_at': DateTime.now().toIso8601String()}).eq('id', id);
+          .update({'read_at': DateTime.now().toUtc().toIso8601String()}).eq('id', id);
     } catch (_) {
       // Best-effort write; ignore so the UI optimistic-update sticks.
     }
@@ -81,7 +81,7 @@ class ActivityRepository {
     try {
       await client
           .from('notifications')
-          .update({'read_at': DateTime.now().toIso8601String()}).filter(
+          .update({'read_at': DateTime.now().toUtc().toIso8601String()}).filter(
               'read_at', 'is', null);
     } catch (_) {}
   }

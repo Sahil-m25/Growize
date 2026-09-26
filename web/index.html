@@ -6,7 +6,7 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Growize — ARL Investor Portal. Private investor portal for Agri Research Labs agricultural projects.">
-  <meta name="theme-color" content="#3C5152">
+  <meta name="theme-color" content="#FAFAF7">
 
   <!-- Mobile-first viewport — covers notches and rounded corners -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -14,7 +14,7 @@
   <!-- PWA / home-screen install -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Growize">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
@@ -26,114 +26,163 @@
   <link rel="manifest" href="manifest.json">
 
   <style>
-    /* Splash screen shown while Flutter engine boots.
-       Matches the app's primary colour so there's no flash of white. */
+    /* Boot splash. Pixel-matched to the Flutter BrandSplash widget
+       (lib/core/widgets/brand_splash.dart) and the native launch screens:
+       cream background, 72px "g" mark dead-centre, wordmark + gold
+       progress bar below. Flutter's first frame draws the same thing in
+       the same place, so the fade-out is invisible rather than a flash. */
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
-      background: #3C5152;
-      /* Prevent pull-to-refresh and over-scroll bounce on mobile */
+      background: #FAFAF7;
       overscroll-behavior: none;
     }
-
-    #splash {
+    #gz-splash {
       position: fixed;
       inset: 0;
+      background: #FAFAF7;
+      z-index: 9999;
+      transition: opacity .35s ease;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    #gz-splash.hidden { opacity: 0; pointer-events: none; }
+    #gz-mark {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 72px;
+      height: 72px;
+      margin: -36px 0 0 -36px;
+      animation: gz-in .5s ease-out both;
+    }
+    #gz-text {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(50% + 56px);
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      background: #3C5152;
-      z-index: 9999;
-      transition: opacity 0.4s ease;
+      animation: gz-in .5s .1s ease-out both;
     }
-
-    #splash.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    /* Wordmark */
-    #splash-title {
-      color: #FAFAF7;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 28px;
+    #gz-word {
+      color: #3C5152;
+      font-size: 24px;
       font-weight: 700;
-      letter-spacing: 0.5px;
-      margin-top: 20px;
+      letter-spacing: -0.3px;
+      line-height: 29px;
     }
-
-    #splash-sub {
-      color: #D4AF37;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 12px;
+    #gz-sub {
+      color: #6B7280;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 2.2px;
+      margin-top: 4px;
+    }
+    #gz-bar {
+      position: relative;
+      overflow: hidden;
+      width: 120px;
+      height: 3px;
+      border-radius: 2px;
+      background: #E1DFC6;
+      margin-top: 28px;
+    }
+    #gz-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 44px;
+      border-radius: 2px;
+      background: #D4AF37;
+      animation: gz-slide 1.4s ease-in-out infinite;
+    }
+    #gz-foot {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+      text-align: center;
+      color: #6B7280;
+      font-size: 11px;
       font-weight: 500;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-top: 6px;
-      opacity: 0.85;
     }
-
-    /* Subtle animated dot loader */
-    .dots {
-      display: flex;
-      gap: 6px;
-      margin-top: 48px;
+    #gz-error {
+      display: none;
+      margin-top: 22px;
+      color: #6B7280;
+      font-size: 13px;
+      text-align: center;
+      line-height: 1.5;
     }
-    .dots span {
-      width: 7px;
-      height: 7px;
-      background: rgba(255,255,255,0.35);
-      border-radius: 50%;
-      animation: pulse 1.2s ease-in-out infinite;
+    #gz-error button {
+      margin-top: 10px;
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 18px;
+      background: #3C5152;
+      color: #FAFAF7;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
     }
-    .dots span:nth-child(2) { animation-delay: 0.2s; }
-    .dots span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes pulse {
-      0%, 80%, 100% { transform: scale(1);   opacity: 0.35; }
-      40%            { transform: scale(1.3); opacity: 1;    }
+    #gz-splash.failed #gz-bar { display: none; }
+    #gz-splash.failed #gz-error { display: block; }
+    @keyframes gz-slide {
+      0%   { left: -44px; }
+      100% { left: 120px; }
+    }
+    @keyframes gz-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #gz-mark, #gz-text { animation: none; }
+      #gz-bar::after { animation-duration: 3s; }
     }
   </style>
 </head>
 <body>
-  <!-- Splash: visible until Flutter signals it is ready -->
-  <div id="splash">
-    <!-- Logo placeholder — replaced by the real SVG/PNG once assets load -->
-    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="64" height="64" rx="16" fill="#2E7D6E"/>
-      <path d="M32 14C22.06 14 14 22.06 14 32C14 41.94 22.06 50 32 50C41.94 50 50 41.94 50 32C50 22.06 41.94 14 32 14ZM32 20C36.42 20 40.36 21.84 43.18 24.82L24.82 43.18C21.84 40.36 20 36.42 20 32C20 25.37 25.37 20 32 20ZM32 44C27.58 44 23.64 42.16 20.82 39.18L39.18 20.82C42.16 23.64 44 27.58 44 32C44 38.63 38.63 44 32 44Z" fill="#D4AF37"/>
-    </svg>
-    <div id="splash-title">Growize</div>
-    <div id="splash-sub">by ARL</div>
-    <div class="dots">
-      <span></span><span></span><span></span>
+  <div id="gz-splash" role="progressbar" aria-label="Loading Growize">
+    <img id="gz-mark" alt="Growize" src="data:image/png;base64,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">
+    <div id="gz-text">
+      <div id="gz-word">growize</div>
+      <div id="gz-sub">INVESTOR PORTAL</div>
+      <div id="gz-bar"></div>
+      <div id="gz-error">
+        Taking longer than usual.<br>Check your connection and try again.<br>
+        <button type="button" onclick="location.reload()">Reload</button>
+      </div>
     </div>
+    <div id="gz-foot">by Agri Research Labs</div>
   </div>
 
-  <script src="flutter_bootstrap.js" async></script>
-
   <script>
-    function hideSplash() {
-      var splash = document.getElementById('splash');
-      if (splash) {
-        splash.classList.add('hidden');
-        setTimeout(function () {
-          if (splash.parentNode) splash.parentNode.removeChild(splash);
-        }, 450);
+    (function () {
+      var done = false;
+      function hideSplash() {
+        if (done) return;
+        done = true;
+        var s = document.getElementById('gz-splash');
+        if (!s) return;
+        s.classList.add('hidden');
+        setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 400);
       }
-    }
-
-    // Flutter 3.x fires 'flutter-first-frame' after the first rendered frame.
-    window.addEventListener('flutter-first-frame', hideSplash);
-
-    // Fallback: some Flutter web builds use a different signal.
-    // Also hide after 6 seconds regardless, so a startup error doesn't
-    // trap users behind the splash permanently.
-    window.addEventListener('load', function () {
-      setTimeout(hideSplash, 6000);
-    });
+      // Fired by the Flutter engine after the first frame is painted.
+      window.addEventListener('flutter-first-frame', hideSplash);
+      // Slow network / boot failure: never trap the user behind a
+      // spinner and never reveal a blank canvas. After 15s offer a
+      // reload instead (previously the splash was force-hidden at 6s,
+      // which on slow 3G exposed an empty page).
+      setTimeout(function () {
+        if (done) return;
+        var s = document.getElementById('gz-splash');
+        if (s) s.classList.add('failed');
+      }, 15000);
+    })();
   </script>
+  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

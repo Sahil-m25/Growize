@@ -31,3 +31,25 @@ Future<void> initHive() async {
 
 /// Quick getter so callers don't need to remember box names.
 Box<dynamic> hiveBox(String name) => Hive.box<dynamic>(name);
+
+/// Wipes every per-user cache box. Called on sign-out so a second
+/// investor on the same device never sees the first one's data via the
+/// offline fallback paths in the repositories.
+Future<void> clearUserCaches() async {
+  if (!_initialized) return;
+  for (final name in const [
+    HiveBoxes.home,
+    HiveBoxes.projects,
+    HiveBoxes.financials,
+    HiveBoxes.gallery,
+    HiveBoxes.documents,
+    HiveBoxes.activity,
+    HiveBoxes.auth,
+  ]) {
+    try {
+      await Hive.box<dynamic>(name).clear();
+    } catch (_) {
+      // Box closed / not opened — nothing cached.
+    }
+  }
+}

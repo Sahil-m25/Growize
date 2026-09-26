@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:arl_app/core/auth/app_lock_provider.dart';
 import 'package:arl_app/core/auth/app_lock_service.dart';
@@ -9,7 +10,10 @@ import 'package:arl_app/core/auth/session_manager.dart';
 import 'package:arl_app/core/constants/supabase_constants.dart';
 import 'package:arl_app/core/repositories/login_events_repository.dart';
 import 'package:arl_app/core/repositories/user_settings_repository.dart';
+import 'package:arl_app/core/offline/hive_cache.dart';
+import 'package:arl_app/core/supabase/storage_helper.dart';
 import 'package:arl_app/core/supabase/supabase_client.dart';
+import 'package:arl_app/features/projects/projects_provider.dart';
 
 /// Live auth state — emits whenever Supabase signals signin / signout.
 /// In demo mode (no Supabase configured) the stream is empty and we
@@ -32,7 +36,9 @@ final authStateProvider = StreamProvider<AuthState?>((ref) {
   // signin/refresh to learn the user is already authenticated.
   final seedSession = client.auth.currentSession;
   if (seedSession != null) {
-    controller.add(AuthState(AuthChangeEvent.initialSession, seedSession));
+    final seed = AuthState(AuthChangeEvent.initialSession, seedSession);
+    _syncSentryUser(seed);
+    controller.add(seed);
   } else {
     controller.add(null);
   }
@@ -42,6 +48,22 @@ final authStateProvider = StreamProvider<AuthState?>((ref) {
   final settingsRepo = UserSettingsRepository();
   final sub = client.auth.onAuthStateChange.listen(
     (event) {
+      // Account-boundary hygiene. Runs BEFORE the event is forwarded so
+      // dependent providers that rebuild on it never read the previous
+      // user's cached rows / signed URLs / project filter.
+      if (event.event == AuthChangeEvent.signedIn ||
+          event.event == AuthChangeEvent.signedOut) {
+        StorageHelper.clear();
+        _resetProjectFilter(ref);
+      }
+      if (event.event == AuthChangeEvent.signedOut) {
+        // Hive cache keys are not user-scoped, and repositories fall
+        // back to them on network errors — without this wipe, the next
+        // person to sign in on this device could see the previous
+        // investor's profile, payouts and notifications.
+        unawaited(clearUserCaches());
+      }
+      _syncSentryUser(event);
       controller.add(event);
       // Audit: record a row on real sign-ins (not on every token refresh
       // or the seeded initialSession event — that fires on cold start
@@ -100,6 +122,25 @@ final authStateProvider = StreamProvider<AuthState?>((ref) {
   });
   return controller.stream;
 });
+
+void _resetProjectFilter(Ref ref) {
+  try {
+    ref.read(selectedProjectIdProvider.notifier).state = null;
+  } catch (_) {
+    // Provider not yet mounted — nothing to reset.
+  }
+}
+
+void _syncSentryUser(AuthState event) {
+  final user = event.session?.user;
+  if (event.event == AuthChangeEvent.signedOut) {
+    Sentry.configureScope((scope) => scope.setUser(null));
+  } else if (user != null &&
+      (event.event == AuthChangeEvent.signedIn ||
+          event.event == AuthChangeEvent.initialSession)) {
+    Sentry.configureScope((scope) => scope.setUser(SentryUser(id: user.id)));
+  }
+}
 
 final isLoggedInProvider = Provider<bool>((ref) {
   // Watch auth state to rebuild on changes.

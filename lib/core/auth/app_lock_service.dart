@@ -67,6 +67,12 @@ class AppLockService {
   static const _kPinHash = 'arl.lock.pin_hash';
   static const _kPinSalt = 'arl.lock.pin_salt';
   static const _kPinIterations = 'arl.lock.pin_iterations';
+  static const _kPinFailCount = 'arl.lock.pin_fail_count';
+  static const _kPinLockedUntil = 'arl.lock.pin_locked_until';
+
+  /// Wrong PINs allowed in a row before the session is revoked and the
+  /// user must sign in again with an email code.
+  static const int maxPinFailures = 10;
 
   static const int _pinIterations = 100000;
   static const int _saltBytes = 16;
@@ -127,12 +133,57 @@ class AppLockService {
     return _constantTimeEquals(computed, hash);
   }
 
+  /// Persisted wrong-PIN state. Lives in secure storage (not widget
+  /// state) so killing and relaunching the app does NOT reset the
+  /// counter or the cooldown.
+  Future<PinAttemptState> pinAttemptState() async {
+    final count = int.tryParse(await _storage.read(key: _kPinFailCount) ?? '') ?? 0;
+    final untilMs = int.tryParse(await _storage.read(key: _kPinLockedUntil) ?? '');
+    return PinAttemptState(
+      failures: count,
+      lockedUntil: untilMs == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(untilMs),
+    );
+  }
+
+  /// Record one wrong PIN and return the new state. Escalating cooldown:
+  /// 3 wrong -> 30 s, 6 -> 5 min, 9 -> 30 min, [maxPinFailures] -> the
+  /// caller must sign the user out.
+  Future<PinAttemptState> recordPinFailure() async {
+    final count = (await pinAttemptState()).failures + 1;
+    await _storage.write(key: _kPinFailCount, value: '$count');
+    Duration? cooldown;
+    if (count >= 9) {
+      cooldown = const Duration(minutes: 30);
+    } else if (count >= 6) {
+      cooldown = const Duration(minutes: 5);
+    } else if (count >= 3) {
+      cooldown = const Duration(seconds: 30);
+    }
+    // Only start a cooldown on the threshold attempts (3, 6, 9); attempts
+    // in between just count.
+    DateTime? until;
+    if (cooldown != null && count % 3 == 0) {
+      until = DateTime.now().add(cooldown);
+      await _storage.write(
+          key: _kPinLockedUntil, value: '${until.millisecondsSinceEpoch}');
+    }
+    return PinAttemptState(failures: count, lockedUntil: until);
+  }
+
+  Future<void> resetPinFailures() async {
+    await _storage.delete(key: _kPinFailCount);
+    await _storage.delete(key: _kPinLockedUntil);
+  }
+
   /// Drop the PIN material. Also flips `pinRequired` off — a required PIN
   /// with no stored hash would lock the user out permanently.
   Future<void> clearPin() async {
     await _storage.delete(key: _kPinHash);
     await _storage.delete(key: _kPinSalt);
     await _storage.delete(key: _kPinIterations);
+    await resetPinFailures();
     await _storage.write(key: _kPinRequired, value: 'false');
   }
 
@@ -144,6 +195,7 @@ class AppLockService {
     await _storage.delete(key: _kPinHash);
     await _storage.delete(key: _kPinSalt);
     await _storage.delete(key: _kPinIterations);
+    await resetPinFailures();
   }
 
   /// True when the device can prompt for biometrics. Always false on web —
@@ -269,4 +321,16 @@ class AppLockService {
     }
     return diff == 0;
   }
+}
+
+/// Persisted wrong-PIN counter + active cooldown (if any).
+class PinAttemptState {
+  final int failures;
+  final DateTime? lockedUntil;
+  const PinAttemptState({required this.failures, this.lockedUntil});
+
+  bool get inCooldown =>
+      lockedUntil != null && DateTime.now().isBefore(lockedUntil!);
+  bool get mustSignOut => failures >= AppLockService.maxPinFailures;
+  int get remainingBeforeSignOut => AppLockService.maxPinFailures - failures;
 }

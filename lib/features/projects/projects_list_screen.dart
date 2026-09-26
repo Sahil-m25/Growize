@@ -397,34 +397,9 @@ class _ProjectTile extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: ArlColors.sand,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (project.cropEmoji.isNotEmpty)
-                              Text(project.cropEmoji,
-                                  style: const TextStyle(fontSize: 10)),
-                            if (project.cropEmoji.isNotEmpty)
-                              const SizedBox(width: 4),
-                            Text(
-                              project.cropType.isNotEmpty
-                                  ? project.cropType
-                                  : 'Mixed crops',
-                              style: const TextStyle(
-                                color: ArlColors.charcoal,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      // Crop chip removed — investor app shows basic info only
+                      // (crops are not surfaced). `cropType` still carries
+                      // `projects.tier` and feeds the tier badge (_tier).
                       const Spacer(),
                       Text(
                         'Month ${project.monthOfContract}/${project.totalMonths}',

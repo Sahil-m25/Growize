@@ -120,8 +120,7 @@ class ProjectViewAreaScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   // Growing Technology section removed per UX call — the
                   // tech specs are covered during the onboarding call.
-                  _CropsCard(crops: profile.crops),
-                  const SizedBox(height: 16),
+                  // Crops card removed — basic info only (no crops shown).
                   _ClimateCard(
                     cycle: profile.climateCycle,
                     temp: profile.climateTemp,
@@ -337,75 +336,6 @@ class _GridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _CropsCard extends StatelessWidget {
-  final List<_CropEntry> crops;
-  const _CropsCard({required this.crops});
-
-  @override
-  Widget build(BuildContext context) {
-    return _SectionCard(
-      icon: Icons.spa_outlined,
-      iconColor: ArlColors.accent,
-      title: 'Crops Grown',
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        children: crops.map((c) {
-          final isPrimary = c.primary;
-          return Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: isPrimary
-                  ? ArlColors.accent.withOpacity(0.12)
-                  : ArlColors.sand,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (c.emoji.isNotEmpty) ...[
-                  Text(c.emoji, style: const TextStyle(fontSize: 12)),
-                  const SizedBox(width: 4),
-                ],
-                Text(
-                  c.name,
-                  style: TextStyle(
-                    color: isPrimary
-                        ? ArlColors.accent
-                        : ArlColors.charcoal,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (isPrimary) ...[
-                  const SizedBox(width: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: ArlColors.accent,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      'Primary',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
 }
 
 class _ClimateCard extends StatelessWidget {

@@ -67,7 +67,10 @@ class KycScreen extends ConsumerWidget {
           final isRejected = kycStatus == 'rejected';
           // Use created_at for the "Submitted on" date — updated_at changes
           // on every row touch (background syncs, etc.) and would show today.
-          final createdRaw = investor['created_at'] as String?;
+          final createdRaw = (investor['kyc_submitted_at'] ??
+                  investor['onboarded_at'] ??
+                  investor['created_at'])
+              ?.toString();
           final submittedOn = createdRaw != null && createdRaw.isNotEmpty
               ? DateFormat('dd MMM yyyy')
                   .format(DateTime.parse(createdRaw).toLocal())

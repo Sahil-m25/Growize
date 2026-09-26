@@ -21,8 +21,10 @@ class ProjectSelectorScreen extends ConsumerWidget {
     // Investor's actual aggregate (from portfolio_summary view), not
     // project capacity. Falls back to summing project ticket sizes only
     // when portfolio summary hasn't loaded yet.
-    final investorTotalInvested = portfolio?.totalInvested ??
-        projects.fold<double>(0, (sum, p) => sum + p.investedAmount);
+    // No fallback to project ticket sizes: `total_ticket_size` is the
+    // whole project's size, not this investor's money (flagged by the
+    // Jev field-mapping check). 0 until the portfolio loads.
+    final investorTotalInvested = portfolio?.totalInvested ?? 0.0;
     final investorTotalUnits = portfolio?.activeUnits ??
         projects.fold<int>(0, (sum, p) => sum + p.totalUnits);
 

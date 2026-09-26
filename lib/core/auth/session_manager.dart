@@ -53,16 +53,14 @@ class SessionManager {
     required String mode,
   }) async {
     final client = ArlSupabase.requireClient();
-    final secret = SupabaseConstants.authGateSecret;
-    if (secret.isEmpty) {
-      throw const AuthException(
-        'Auth gate not configured. Contact support.',
-      );
-    }
+    // No client-side secret: anything compiled into the app (and
+    // especially the public web JS) is readable by anyone, so it can't
+    // authenticate the caller. Protection lives server-side instead:
+    // the function only mails registered investors, always returns the
+    // same generic reply, and Supabase Auth rate-limits OTP sends.
     final res = await client.functions.invoke(
       SupabaseConstants.fnRequestAuthEmail,
       body: {'email': email, 'mode': mode},
-      headers: {'x-arl-cron-secret': secret},
     );
     final status = res.status;
     if (status < 200 || status >= 300) {

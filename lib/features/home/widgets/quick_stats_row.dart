@@ -176,7 +176,9 @@ class _NextPayoutCard extends StatelessWidget {
             const SizedBox(height: 4),
             if (hasPayout)
               _PayoutSubLine(
-                date: dateFormatter.format(portfolio.nextPayoutDate),
+                date: portfolio.nextPayoutDate != null
+                    ? dateFormatter.format(portfolio.nextPayoutDate!)
+                    : 'Date to be confirmed',
                 projectName: portfolio.nextPayoutProjectName,
               )
             else

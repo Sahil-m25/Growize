@@ -106,6 +106,10 @@ class AppLockController {
 
   Future<bool> verifyPin(String pin) => _svc.verifyPin(pin);
 
+  Future<PinAttemptState> pinAttemptState() => _svc.pinAttemptState();
+  Future<PinAttemptState> recordPinFailure() => _svc.recordPinFailure();
+  Future<void> resetPinFailures() => _svc.resetPinFailures();
+
   Future<void> clearPin() async {
     await _svc.clearPin();
     _ref.invalidate(appLockSettingsProvider);

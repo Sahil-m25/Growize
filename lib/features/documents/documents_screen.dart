@@ -467,7 +467,8 @@ class _ProjectDocRow extends StatelessWidget {
       signedUrl: doc.signedUrl,
       uploadedAt: doc.uploadedAt,
     );
-    Navigator.of(context).push(
+    // rootNavigator: open ABOVE the bottom-nav shell (full-screen viewer).
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute<void>(
         builder: (_) => DocumentViewerScreen(
           documentId: doc.id,
@@ -738,7 +739,8 @@ class _DocRow extends StatelessWidget {
     // Deep-linkable via `/document-viewer/<id>`; we also pass the
     // doc as `extra` so the viewer doesn't have to re-resolve from
     // the cache when the user comes from the list.
-    Navigator.of(context).push(
+    // rootNavigator: open ABOVE the bottom-nav shell (full-screen viewer).
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute<void>(
         builder: (_) => DocumentViewerScreen(
           documentId: item.id,

@@ -51,7 +51,7 @@ class PrivacyRepository {
     await grab('bank_change_requests',
         () => client.from('bank_change_requests').select().eq('investor_id', uid));
     await grab('exit_requests',
-        () => client.from('exit_requests').select().eq('investor_id', uid));
+        () => client.from('exit_requests').select().eq('user_id', uid));
     await grab('nominee',
         () => client.from('nominees').select().eq('investor_id', uid));
     await grab(

@@ -66,9 +66,10 @@ class Project {
 
   factory Project.fromSupabase(Map<String, dynamic> r) {
     final name = (r['name'] ?? '') as String;
-    final launch = _parseDate(r['launch_year']) ??
-        _parseDate(r['updated_at']) ??
-        DateTime.now();
+    // launch_year only. `updated_at` changes on every CRM sync, so using
+    // it as the contract start made "Month X of 60" reset after each sync.
+    // No launch_year -> month 0 until ops sets it.
+    final launch = _parseDate(r['launch_year']) ?? DateTime.now();
     // No explicit end date in DB — assume 5y contract from launch_year.
     final endDate = DateTime(launch.year + 5, launch.month, launch.day);
     final months =

@@ -7,7 +7,8 @@ class PortfolioSummary {
   final int projectCount;
   final double avgAnnualYieldPct;
   final double nextPayoutAmount;
-  final DateTime nextPayoutDate;
+  /// Null when no pending payout has a date — never invented.
+  final DateTime? nextPayoutDate;
   final String? nextPayoutProjectName;
   final double roiPercent;
   final double annualReturns;
@@ -40,7 +41,7 @@ class PortfolioSummary {
         activeUnits: 0,
         projectCount: 0,
         nextPayoutAmount: 0,
-        nextPayoutDate: DateTime.now().add(const Duration(days: 30)),
+        nextPayoutDate: null,
         roiPercent: 0,
         annualReturns: 0,
       );
@@ -67,8 +68,8 @@ class PortfolioSummary {
       avgAnnualYieldPct: _d(r['avg_annual_yield_pct']),
       nextPayoutAmount: _d(r['next_payout_amount']),
       nextPayoutDate: r['next_payout_date'] != null
-          ? DateTime.parse(r['next_payout_date'].toString())
-          : DateTime.now().add(const Duration(days: 30)),
+          ? DateTime.tryParse(r['next_payout_date'].toString())
+          : null, // was now()+30d: showed a payout date nobody scheduled
       nextPayoutProjectName: nextPayoutProjectName,
       roiPercent: _d(r['roi_pct']),
       annualReturns: 0.0, // Populated client-side from FY-filtered payouts
@@ -101,8 +102,8 @@ class PortfolioSummary {
       projectCount: json['projectCount'] ?? 0,
       nextPayoutAmount: (json['nextPayoutAmount'] ?? 0).toDouble(),
       nextPayoutDate: json['nextPayoutDate'] != null
-          ? DateTime.parse(json['nextPayoutDate'])
-          : DateTime.now(),
+          ? DateTime.tryParse(json['nextPayoutDate'].toString())
+          : null,
       nextPayoutProjectName: json['nextPayoutProjectName'] as String?,
       roiPercent: (json['roiPercent'] ?? 0).toDouble(),
       annualReturns: (json['annualReturns'] ?? 0).toDouble(),
@@ -142,7 +143,7 @@ class PortfolioSummary {
         'activeUnits': activeUnits,
         'projectCount': projectCount,
         'nextPayoutAmount': nextPayoutAmount,
-        'nextPayoutDate': nextPayoutDate.toIso8601String(),
+        'nextPayoutDate': nextPayoutDate?.toIso8601String(),
         'nextPayoutProjectName': nextPayoutProjectName,
         'roiPercent': roiPercent,
         'annualReturns': annualReturns,

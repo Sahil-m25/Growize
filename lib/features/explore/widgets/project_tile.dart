@@ -92,19 +92,7 @@ class ProjectTile extends StatelessWidget {
                       ],
                     ),
                   ],
-                  // DEF-V32-AUTH-05: always render a crop chip — fall
-                  // back to "Mixed crops" when the project row has no
-                  // crop_type set, so tiles never lose their identity
-                  // strip on seed data.
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: _cropChip(
-                      (project.cropType != null &&
-                              project.cropType!.isNotEmpty)
-                          ? project.cropType!
-                          : 'Mixed crops',
-                    ),
-                  ),
+                  // Crop chip removed — basic info only (no crops shown).
                   const SizedBox(height: 10),
                   // Two pill stats: Total Units · Area in acres.
                   _statPillsRow(),
@@ -246,26 +234,6 @@ class ProjectTile extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _cropChip(String crop) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: ArlColors.sand,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        crop,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: ArlColors.charcoal,
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
-        ),
       ),
     );
   }

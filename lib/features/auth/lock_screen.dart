@@ -19,9 +19,9 @@ import 'package:arl_app/core/theme/arl_colors.dart';
 /// 1. If biometric is enabled and available, the OS sheet is prompted
 ///    automatically on first build.
 /// 2. The 4-6 digit PIN pad is always visible as a fallback.
-/// 3. Three consecutive wrong PINs triggers a 30-second cooldown rather
-///    than logging the user out — private launch, no need for the harder
-///    server-revocation path.
+/// 3. Wrong PINs are counted in secure storage (survives app restarts):
+///    3 -> 30 s cooldown, 6 -> 5 min, 9 -> 30 min, 10 -> signed out and
+///    must re-verify by email code. See AppLockService.recordPinFailure.
 class LockScreen extends ConsumerStatefulWidget {
   const LockScreen({super.key});
 
@@ -34,7 +34,6 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   bool _busy = false;
   bool _attemptedBiometric = false;
   String? _error;
-  int _wrongAttempts = 0;
   DateTime? _cooldownUntil;
 
   /// True when the device actually supports biometrics. Distinct from
@@ -55,6 +54,8 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     // returns success before the UI is ready to consume it. The delay
     // gives the LockScreen time to mount completely.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _restoreAttemptState();
+      if (!mounted) return;
       await _refreshPlatformSupport();
       if (!mounted) return;
       await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -115,6 +116,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     _attemptedBiometric = true;
 
     final enrolled = await controller.biometricEnrolled();
+    if (!mounted) return;
     if (!enrolled) {
       setState(() {
         _error = settings.hasPin
@@ -128,6 +130,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     final ok = await controller.authenticateBiometric(reason: 'Unlock Growize');
     if (!mounted) return;
     if (ok) {
+      await controller.resetPinFailures();
       controller.unlock();
       return;
     }
@@ -157,27 +160,70 @@ class _LockScreenState extends ConsumerState<LockScreen> {
       _error = null;
     });
     final controller = ref.read(appLockControllerProvider);
+    // Re-check the persisted cooldown — the in-memory copy may be stale
+    // if the app was relaunched.
+    final before = await controller.pinAttemptState();
+    if (!mounted) return;
+    if (before.inCooldown) {
+      _applyCooldown(before.lockedUntil!);
+      setState(() => _busy = false);
+      return;
+    }
     final ok = await controller.verifyPin(pin);
     if (!mounted) return;
     if (ok) {
+      await controller.resetPinFailures();
       controller.unlock();
       return;
     }
-    _wrongAttempts += 1;
     _pinCtrl.clear();
-    if (_wrongAttempts >= 3) {
-      _cooldownUntil = DateTime.now().add(const Duration(seconds: 30));
+    final state = await controller.recordPinFailure();
+    if (!mounted) return;
+    if (state.mustSignOut) {
       setState(() {
         _busy = false;
-        _error = 'Too many attempts. Try again in 30 seconds.';
+        _error = 'Too many wrong PINs. Please sign in again.';
       });
-      _startCooldownTicker();
-    } else {
-      setState(() {
-        _busy = false;
-        _error = 'PIN incorrect. ${3 - _wrongAttempts} attempts remaining.';
-      });
+      await Future<void>.delayed(const Duration(milliseconds: 1200));
+      if (!mounted) return;
+      setState(() => _busy = false);
+      await _signOutEscape();
+      return;
     }
+    if (state.inCooldown) {
+      setState(() => _busy = false);
+      _applyCooldown(state.lockedUntil!);
+      return;
+    }
+    final untilCooldown = 3 - (state.failures % 3);
+    setState(() {
+      _busy = false;
+      _error = state.remainingBeforeSignOut <= 3
+          ? 'PIN incorrect. ${state.remainingBeforeSignOut} attempts left before you are signed out.'
+          : 'PIN incorrect. $untilCooldown attempts remaining.';
+    });
+  }
+
+  Future<void> _restoreAttemptState() async {
+    final state =
+        await ref.read(appLockControllerProvider).pinAttemptState();
+    if (!mounted) return;
+    if (state.inCooldown) _applyCooldown(state.lockedUntil!);
+  }
+
+  void _applyCooldown(DateTime until) {
+    _cooldownUntil = until;
+    setState(() => _error = _cooldownMessage());
+    _startCooldownTicker();
+  }
+
+  String _cooldownMessage() {
+    final until = _cooldownUntil;
+    if (until == null) return '';
+    final left = until.difference(DateTime.now());
+    final secs = left.inSeconds < 1 ? 1 : left.inSeconds;
+    final text = secs >= 60 ? '${(secs / 60).ceil()} min' : '$secs s';
+    return 'Too many attempts. Try again in $text.';
   }
 
   bool get _inCooldown {
@@ -191,12 +237,11 @@ class _LockScreenState extends ConsumerState<LockScreen> {
       if (!mounted) return;
       if (!_inCooldown) {
         setState(() {
-          _wrongAttempts = 0;
           _cooldownUntil = null;
           _error = null;
         });
       } else {
-        setState(() {});
+        setState(() => _error = _cooldownMessage());
         _startCooldownTicker();
       }
     });

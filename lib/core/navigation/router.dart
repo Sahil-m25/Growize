@@ -43,13 +43,26 @@ const _publicRoutes = <String>{
   RouteNames.auth,
   RouteNames.login,
   // OTP entry is mid-flow: the user has submitted their email but
-  // hasn't redeemed the code yet, so there's no session. Public so
-  // the redirect doesn't bounce them back to /auth before they can
-  // verify.
+  // hasn't redeemed the code yet, so there's no session.
   RouteNames.otp,
-  RouteNames.setup,
+  // Legal pages are linked from pre-auth screens AND from Profile /
+  // Security, so they must be reachable in both states.
   RouteNames.privacy,
   RouteNames.terms,
+};
+
+/// Sign-in screens a signed-in user should be bounced away from.
+///
+/// Deliberately a SUBSET of [_publicRoutes]. Previously the whole public
+/// set was treated as "auth screens", which (a) bounced signed-in users
+/// off Privacy Policy / Terms back to Home, (b) bounced them off /setup
+/// (a signed-in-only onboarding screen), and (c) yanked them off /otp
+/// the instant verifyOTP emitted `signedIn` — before OtpScreen could
+/// route to /setup-biometric — leaving /auth + /login under Home on the
+/// back stack. /otp is excluded so OtpScreen finishes its own routing.
+const _signInRoutes = <String>{
+  RouteNames.auth,
+  RouteNames.login,
 };
 
 /// Marketplace project detail (`/explore/<projectId>`) is reachable
@@ -86,6 +99,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   // B.T3: Wire auth state changes to router refresh.
   final refreshNotifier =
       GoRouterRefreshStream(SessionManager.authStateChanges);
+  ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
     initialLocation: RouteNames.home,
@@ -104,7 +118,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // signed-in user should be bounced away from (we don't bounce
       // off `/explore/<id>` so an investor can still view a shared
       // link while signed in).
-      final isAuthRoute = _publicRoutes.contains(loc);
+      final isAuthRoute = _signInRoutes.contains(loc);
 
       // Not signed in + heading to a private route → bounce to /auth.
       if (!isLoggedIn && !isPublic) return RouteNames.auth;

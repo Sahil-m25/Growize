@@ -23,15 +23,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Pinned to 3.24.x deliberately. The build below passes
-      # `--web-renderer html`, a flag REMOVED in Flutter 3.29 — bumping
-      # this version without also dropping that flag fails the build.
-      # Verified 2026-08-22: the current tree analyzes, tests and builds
-      # clean on 3.24.5.
+      # Flutter 3.41.x to match local dev (pubspec.lock needs Dart >= 3.11).
+      # On 3.24 pub silently re-resolved ~65 packages to older versions, so
+      # CI shipped different package versions than dev. `--web-renderer html`
+      # (removed in 3.29) is dropped below; web uses CanvasKit, served from
+      # our own domain via --no-web-resources-cdn (the CSP blocks gstatic).
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.x'
+          flutter-version: '3.41.x'
           channel: 'stable'
           cache: true
 
@@ -68,20 +68,18 @@ jobs:
           printf 'SENTRY_DSN=%s\n' "$SENTRY_DSN" >> .env.production
           printf 'SENTRY_ENVIRONMENT=%s\n' "$SENTRY_ENV" >> .env.production
           printf 'SENTRY_RELEASE=growize@%s\n' "$GITHUB_SHA" >> .env.production
-          printf 'ARL_AUTH_GATE_SECRET=%s\n' "$ARL_AUTH_GATE_SECRET" >> .env.production
           cp .env.production .env
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-          ARL_AUTH_GATE_SECRET: ${{ secrets.ARL_AUTH_GATE_SECRET }}
           SENTRY_ENV: ${{ steps.target.outputs.sentry_env }}
 
       - name: Flutter clean
         run: flutter clean
 
       - name: Build Flutter web
-        run: flutter build web --release --dart-define-from-file=.env.production --web-renderer html --pwa-strategy offline-first --no-source-maps
+        run: flutter build web --release --dart-define-from-file=.env.production --pwa-strategy offline-first --no-source-maps --no-web-resources-cdn
 
       - name: Deploy to Netlify
         id: netlify

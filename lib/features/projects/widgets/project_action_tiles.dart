@@ -51,7 +51,7 @@ class ProjectActionTiles extends StatelessWidget {
               icon: Icons.map_outlined,
               tint: viewTint,
               label: 'View Area',
-              caption: 'Map · tech · crops',
+              caption: 'Map · location',
               onTap: () => context.push('/projects/$projectId/view-area'),
             ),
           ),

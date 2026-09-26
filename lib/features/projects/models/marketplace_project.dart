@@ -44,7 +44,7 @@ class MarketplaceProject {
       tagline: (r['tagline'] ?? '') as String,
       location: _composeLocation(r),
       tier: (r['tier'] ?? '') as String,
-      cropType: r['crop_type'] as String?,
+      cropType: null, // crops are not shown in the investor app
       totalUnits: (r['total_units'] as num?)?.toInt() ?? 0,
       unitsAvailable: (r['units_available'] as num?)?.toInt() ?? 0,
       pricePerUnit: (r['price_per_unit'] as num?)?.toDouble() ?? 0.0,

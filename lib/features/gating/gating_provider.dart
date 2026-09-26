@@ -31,7 +31,12 @@ final gateStatusProvider = FutureProvider<GateStatus>((ref) async {
 
   try {
     final appConfig = ref.watch(appConfigRepositoryProvider);
-    final config = await appConfig.all();
+    // Bounded: on a slow / captive network the request can hang for a
+    // long time, which kept users staring at the splash. After 6 s we
+    // fail open (same as any other fetch error) — repositories have
+    // their own offline fallbacks.
+    final config =
+        await appConfig.all().timeout(const Duration(seconds: 6));
 
     // Check maintenance mode first.
     final maintenanceMode = config['maintenance_mode']?.toLowerCase() ?? 'false';

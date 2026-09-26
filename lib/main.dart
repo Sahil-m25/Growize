@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/auth/app_lock_provider.dart';
 import 'core/auth/web_session_native.dart'
@@ -16,25 +15,17 @@ import 'core/theme/arl_colors.dart';
 import 'core/observability/sentry_config.dart';
 import 'core/offline/hive_cache.dart';
 import 'core/supabase/supabase_client.dart';
-import 'core/supabase/storage_helper.dart';
 import 'core/navigation/router.dart';
 import 'core/theme/arl_theme.dart';
 import 'core/constants/supabase_constants.dart';
 import 'core/widgets/demo_mode_banner.dart';
 import 'core/widgets/app_error_view.dart';
+import 'core/widgets/brand_splash.dart';
 import 'features/auth/lock_screen.dart';
 import 'features/gating/gating_provider.dart';
 import 'features/gating/force_update_screen.dart';
 import 'features/gating/maintenance_screen.dart';
-import 'core/providers/repositories.dart';
 import 'features/auth/auth_provider.dart';
-import 'features/activity/activity_provider.dart';
-import 'features/financials/financials_provider.dart';
-import 'features/projects/projects_provider.dart';
-import 'features/documents/documents_provider.dart';
-import 'features/gallery/gallery_provider.dart';
-
-late ProviderContainer _container;
 
 /// Web-friendly scroll behaviour — enables mouse drag and trackpad-pan
 /// gestures alongside touch. Without this, Flutter web's default
@@ -110,9 +101,13 @@ void main() async {
 
   Future<void> appRunner() async {
     runApp(
-      ProviderScope(
-        observers: [_ProviderObserver()],
-        child: const ArlApp(),
+      // Auth-change side effects (cache wipe, Sentry user, signed-URL
+      // cache) live in authStateProvider's single subscription — see
+      // features/auth/auth_provider.dart. The old ProviderObserver added
+      // a new onAuthStateChange listener on every login/logout flip and
+      // never cancelled it.
+      const ProviderScope(
+        child: ArlApp(),
       ),
     );
   }
@@ -138,50 +133,6 @@ void main() async {
     );
   } else {
     await appRunner();
-  }
-}
-
-/// D.T3: Custom observer to capture the ProviderContainer for auth-state-driven
-/// provider invalidation.
-class _ProviderObserver extends ProviderObserver {
-  @override
-  void didUpdateProvider(ProviderBase<dynamic> provider, dynamic previousValue,
-      dynamic newValue, ProviderContainer container) {
-    // Capture container when isLoggedInProvider updates.
-    if (provider == isLoggedInProvider) {
-      _container = container;
-
-      // B.T5 + D.T3: Invalidate user-scoped providers on auth state change.
-      // This runs every time auth state changes (sign-in, sign-out, etc.).
-      ArlSupabase.client?.auth.onAuthStateChange.listen((event) {
-        if (event.event == AuthChangeEvent.signedIn ||
-            event.event == AuthChangeEvent.signedOut ||
-            event.event == AuthChangeEvent.userUpdated ||
-            event.event == AuthChangeEvent.initialSession ||
-            event.event == AuthChangeEvent.tokenRefreshed) {
-          // Invalidate all user-scoped caches.
-          _container.invalidate(currentInvestorProvider);
-          _container.invalidate(payoutsProvider);
-          _container.invalidate(projectsProvider);
-          _container.invalidate(notificationsProvider);
-          _container.invalidate(documentsProvider);
-          _container.invalidate(galleryProvider);
-          StorageHelper.clear();
-
-          // E.T1: Configure Sentry user scope on auth state change.
-          if (event.event == AuthChangeEvent.signedIn &&
-              event.session?.user != null) {
-            Sentry.configureScope((scope) {
-              scope.setUser(SentryUser(id: event.session!.user.id));
-            });
-          } else if (event.event == AuthChangeEvent.signedOut) {
-            Sentry.configureScope((scope) {
-              scope.setUser(null);
-            });
-          }
-        }
-      });
-    }
   }
 }
 
@@ -318,16 +269,14 @@ class _ArlAppState extends ConsumerState<ArlApp> with WidgetsBindingObserver {
         );
       },
       loading: () {
+        // First frame on every platform. Matches the native launch
+        // screens and the web splash exactly, so boot is one continuous
+        // branded screen instead of a bare spinner.
         return MaterialApp(
           title: 'Growize',
           theme: arlTheme,
           debugShowCheckedModeBanner: false,
-          home: const Scaffold(
-            backgroundColor: Color(0xFFFAFAF7),
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          ),
+          home: const BrandSplash(),
         );
       },
       error: (_, __) {
@@ -387,14 +336,7 @@ class _LockGate extends ConsumerWidget {
     // in SizedBox.expand so the splash claims the full pane even when
     // the parent gives us loose constraints.
     if (settings == null) {
-      return const SizedBox.expand(
-        child: ColoredBox(
-          color: ArlColors.primary,
-          child: Center(
-            child: CircularProgressIndicator(color: ArlColors.gold),
-          ),
-        ),
-      );
+      return const BrandSplash();
     }
     // No lock configured — pass through.
     if (!settings.lockEnabled) return child;

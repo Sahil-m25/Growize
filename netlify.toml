@@ -30,7 +30,7 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     # Allows Supabase API calls and Google Fonts / CDN assets Flutter may load
-    Content-Security-Policy = "default-src 'self' https://*.supabase.co wss://*.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://o4511383323869184.ingest.de.sentry.io;"
+    Content-Security-Policy = "default-src 'self' https://*.supabase.co wss://*.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://fonts.gstatic.com https://*.supabase.co wss://*.supabase.co https://o4511383323869184.ingest.de.sentry.io;"
 
 # ── Caching strategy ────────────────────────────────────────────────────
 # Flutter hashed assets (content-addressed, safe to cache forever)

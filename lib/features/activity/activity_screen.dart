@@ -261,7 +261,9 @@ class _NotifCard extends StatelessWidget {
 
   String? _ctaRouteFromMetadata(Map<String, dynamic>? m) {
     if (m == null) return null;
-    return (m['cta_route'] ?? m['route']) as String?;
+    final r = m['cta_route'] ?? m['route'];
+    // Only accept internal app paths; anything else renders no CTA.
+    return (r is String && r.startsWith('/')) ? r : null;
   }
 
   String? _ctaLabelFromMetadata(Map<String, dynamic>? m, String type) {
@@ -354,11 +356,12 @@ class _NotifCard extends StatelessWidget {
                     ),
                   ),
                 ],
-                if (ctaLabel != null) ...[
+                // No route -> no button (was a dead, disabled CTA).
+                if (ctaLabel != null && ctaRoute != null) ...[
                   const SizedBox(height: 6),
                   TextButton(
                     onPressed:
-                        ctaRoute != null ? () => context.push(ctaRoute) : null,
+                        () => context.push(ctaRoute),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),

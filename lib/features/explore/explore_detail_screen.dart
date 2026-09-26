@@ -577,7 +577,7 @@ class _ExploreDetailScreenState extends ConsumerState<ExploreDetailScreen> {
   // includes the emoji); deadline prefers `project.subscriptionDeadline`
   // and falls back to a mock-friendly default so the tile never collapses.
   Widget _cropAndDeadlineRow(MarketplaceProject p, _ExploreDetailMock mock) {
-    final cropLabel = mock.crop.isNotEmpty ? mock.crop : '🌱 Mixed crops';
+    // Crop card removed — basic info only (no crops shown).
     final deadlineText = _deadlineLabel(p);
     // IntrinsicHeight gives the Row a bounded vertical extent so
     // `CrossAxisAlignment.stretch` doesn't propagate an unbounded
@@ -587,16 +587,6 @@ class _ExploreDetailScreenState extends ConsumerState<ExploreDetailScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: _miniLabelCard(
-              label: 'CROP',
-              value: cropLabel,
-              bg: Colors.white,
-              border: ArlColors.sand,
-              valueColor: ArlColors.charcoal,
-            ),
-          ),
-          const SizedBox(width: 10),
           Expanded(
             child: _miniLabelCard(
               label: 'SUBSCRIPTION DEADLINE',
@@ -615,9 +605,9 @@ class _ExploreDetailScreenState extends ConsumerState<ExploreDetailScreen> {
   String _deadlineLabel(MarketplaceProject p) {
     final d = p.subscriptionDeadline;
     if (d == null) {
-      // Mock-friendly fallback so the tile renders something meaningful
-      // even before admins seed `subscription_deadline` in Supabase.
-      return 'Dec 31, 2026';
+      // No invented dates — show a neutral label until ops sets
+      // `subscription_deadline` in Supabase.
+      return 'To be announced';
     }
     // Use the default (en_US) locale — preloaded by intl — instead of
     // 'en_IN'. The previous 'en_IN' locale threw `LocaleDataException`
@@ -911,7 +901,6 @@ class _ExploreDetailScreenState extends ConsumerState<ExploreDetailScreen> {
       heroImageUrl: mock.heroUrl,
       growingTech: mock.tech,
       yieldLabel: mock.yieldValue,
-      cropLabel: mock.crop,
       sharerName: sharerName,
     );
   }

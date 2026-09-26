@@ -137,7 +137,10 @@ class MainScaffold extends ConsumerWidget {
     if (location.startsWith(RouteNames.projects)) return 1;
     if (location.startsWith(RouteNames.financials)) return 2;
     if (location.startsWith(RouteNames.explore)) return 3;
-    return 0;
+    // Only "/" is Home. Profile / Activity / KYC / Support / Documents
+    // etc. are not tabs, so no tab should be highlighted on them.
+    if (location == RouteNames.home) return 0;
+    return -1;
   }
 }
 

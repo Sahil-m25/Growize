@@ -141,7 +141,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           stackTrace: stack,
           withScope: (s) => s.setTag('flow', 'sign_in_otp_verify'));
       if (!mounted) return;
-      setState(() => _error = 'Verification failed: $e');
+      setState(() => _error = 'Could not verify the code. Check your connection and try again.');
     } finally {
       if (mounted) setState(() => _verifying = false);
     }
