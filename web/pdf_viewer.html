@@ -8,59 +8,67 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; background: #FAFAF7; }
+    body { overflow: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
     #loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      font-family: 'Inter', sans-serif;
-      font-size: 13px;
-      color: #6B7280;
-      gap: 10px;
+      display: flex; align-items: center; justify-content: center; height: 100%;
+      font-family: 'Inter', sans-serif; font-size: 13px; color: #6B7280; gap: 10px;
     }
     #loading .spinner {
-      width: 18px;
-      height: 18px;
-      border: 2px solid #E1DFC6;
-      border-top-color: #2E7D6E;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
+      width: 18px; height: 18px; border: 2px solid #E1DFC6; border-top-color: #2E7D6E;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     #error {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      font-family: 'Inter', sans-serif;
-      font-size: 12px;
-      color: #C05640;
-      text-align: center;
-      padding: 24px;
+      display: none; align-items: center; justify-content: center; height: 100%;
+      font-family: 'Inter', sans-serif; font-size: 12px; color: #C05640;
+      text-align: center; padding: 24px;
     }
+    /* Pages stack vertically; when zoomed wider than the screen the whole
+       stack scrolls sideways instead of being clipped on the left. */
     #viewer {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 16px;
-      gap: 12px;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 16px 16px 88px; gap: 12px; width: max-content; min-width: 100%;
+      transform-origin: 0 0;
     }
-    canvas {
-      display: block;
-      max-width: 100%;
-      box-shadow: 0 1px 6px rgba(0,0,0,0.12);
-      background: #fff;
+    canvas { display: block; box-shadow: 0 1px 6px rgba(0,0,0,0.12); background: #fff; }
+
+    /* Floating zoom bar, bottom-centre, out of the way of the page. */
+    #zoombar {
+      display: none; position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+      background: rgba(60, 81, 82, 0.92); border-radius: 999px; padding: 4px;
+      gap: 2px; align-items: center; z-index: 10;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.18); font-family: 'Inter', sans-serif;
     }
+    #zoombar button {
+      border: 0; background: transparent; color: #fff; font-size: 18px; line-height: 1;
+      width: 40px; height: 36px; border-radius: 999px; cursor: pointer;
+    }
+    #zoombar button:hover { background: rgba(255,255,255,0.12); }
+    #zoombar #fit { font-size: 12px; width: auto; padding: 0 12px; font-weight: 600; }
+    #zoombar #level { color: #fff; font-size: 12px; min-width: 44px; text-align: center; }
   </style>
 </head>
 <body>
   <div id="loading"><div class="spinner"></div>Loading document...</div>
   <div id="error"></div>
   <div id="viewer"></div>
+  <div id="zoombar">
+    <button id="out" aria-label="Zoom out">&minus;</button>
+    <span id="level">100%</span>
+    <button id="in" aria-label="Zoom in">+</button>
+    <button id="fit" aria-label="Fit to width">Fit</button>
+  </div>
 
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    var MIN_ZOOM = 0.5, MAX_ZOOM = 4, STEP = 1.25;
+    var pdfDoc = null;
+    var zoom = 1;            // 1 = fit to width
+    var renderToken = 0;     // cancels an older render when zoom changes again
+    var viewer = document.getElementById('viewer');
+    var levelEl = document.getElementById('level');
 
     function showError(msg) {
       document.getElementById('loading').style.display = 'none';
@@ -69,50 +77,136 @@
       el.style.display = 'flex';
     }
 
+    function fitWidth(page) {
+      var base = page.getViewport({ scale: 1 });
+      return Math.min(window.innerWidth - 32, 860) / base.width;
+    }
+
+    // Draw every page at the current zoom. Canvas backing store uses the
+    // device pixel ratio so text stays sharp on phones and when zoomed in.
+    function renderAll() {
+      if (!pdfDoc) return;
+      var token = ++renderToken;
+      var dpr = window.devicePixelRatio || 1;
+      // Keep the reader's place: remember relative scroll before re-render.
+      var sx = document.documentElement.scrollWidth > 0 ? window.scrollX / document.documentElement.scrollWidth : 0;
+      var sy = document.documentElement.scrollHeight > 0 ? window.scrollY / document.documentElement.scrollHeight : 0;
+
+      var frag = document.createDocumentFragment();
+      var jobs = [];
+      var chain = Promise.resolve();
+      for (var i = 1; i <= pdfDoc.numPages; i++) {
+        (function (n) {
+          chain = chain.then(function () {
+            if (token !== renderToken) return;
+            return pdfDoc.getPage(n).then(function (page) {
+              if (token !== renderToken) return;
+              var vp = page.getViewport({ scale: fitWidth(page) * zoom });
+              var canvas = document.createElement('canvas');
+              canvas.width = Math.floor(vp.width * dpr);
+              canvas.height = Math.floor(vp.height * dpr);
+              canvas.style.width = Math.floor(vp.width) + 'px';
+              canvas.style.height = Math.floor(vp.height) + 'px';
+              frag.appendChild(canvas);
+              return page.render({
+                canvasContext: canvas.getContext('2d'),
+                viewport: vp,
+                transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null
+              }).promise;
+            });
+          });
+        })(i);
+      }
+      return chain.then(function () {
+        if (token !== renderToken) return;
+        viewer.style.transform = '';
+        viewer.innerHTML = '';
+        viewer.appendChild(frag);
+        levelEl.textContent = Math.round(zoom * 100) + '%';
+        window.scrollTo(sx * document.documentElement.scrollWidth,
+                        sy * document.documentElement.scrollHeight);
+      }).catch(function (err) {
+        showError('Error rendering document: ' + (err && err.message ? err.message : err));
+      });
+    }
+
+    function setZoom(z) {
+      z = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
+      if (Math.abs(z - zoom) < 0.001) return;
+      zoom = z;
+      levelEl.textContent = Math.round(zoom * 100) + '%';
+      renderAll();
+    }
+
+    document.getElementById('in').onclick = function () { setZoom(zoom * STEP); };
+    document.getElementById('out').onclick = function () { setZoom(zoom / STEP); };
+    document.getElementById('fit').onclick = function () { setZoom(1); };
+
+    // Desktop: Ctrl/Cmd + scroll wheel zooms (trackpad pinch sends this too).
+    window.addEventListener('wheel', function (e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      setZoom(zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1));
+    }, { passive: false });
+
+    // Keyboard: + / - / 0
+    window.addEventListener('keydown', function (e) {
+      if (e.key === '+' || e.key === '=') setZoom(zoom * STEP);
+      else if (e.key === '-') setZoom(zoom / STEP);
+      else if (e.key === '0') setZoom(1);
+    });
+
+    // Phones/tablets: two-finger pinch. Scale the page live with CSS for a
+    // smooth feel, then re-render crisply at the new zoom when fingers lift.
+    var pinchStart = 0, pinchZoom = 1;
+    function dist(t) {
+      var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    window.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 2) { pinchStart = dist(e.touches); pinchZoom = zoom; }
+    }, { passive: true });
+    window.addEventListener('touchmove', function (e) {
+      if (e.touches.length !== 2 || !pinchStart) return;
+      e.preventDefault();
+      var target = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, pinchZoom * dist(e.touches) / pinchStart));
+      viewer.style.transform = 'scale(' + (target / zoom) + ')';
+      levelEl.textContent = Math.round(target * 100) + '%';
+    }, { passive: false });
+    window.addEventListener('touchend', function (e) {
+      if (!pinchStart || e.touches.length > 1) return;
+      var m = /scale\(([\d.]+)\)/.exec(viewer.style.transform);
+      var target = m ? zoom * parseFloat(m[1]) : zoom;
+      pinchStart = 0;
+      if (Math.abs(target - zoom) < 0.01) { viewer.style.transform = ''; return; }
+      zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, target));
+      renderAll();
+    });
+
+    // Double-tap / double-click toggles between fit and 2x.
+    viewer.addEventListener('dblclick', function () { setZoom(zoom > 1.01 ? 1 : 2); });
+
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(renderAll, 200);
+    });
+
     var params = new URLSearchParams(window.location.search);
     var rawUrl = params.get('url');
 
     if (!rawUrl) {
       showError('No document URL provided.');
     } else {
-      var pdfUrl = decodeURIComponent(rawUrl);
-      pdfjsLib.getDocument({ url: pdfUrl, withCredentials: false }).promise
-        .then(function(pdf) {
-          document.getElementById('loading').style.display = 'none';
-          var viewer = document.getElementById('viewer');
-          var total = pdf.numPages;
-          var scale = Math.min((window.innerWidth - 32), 860) /
-                      (window.innerWidth > 0 ? window.innerWidth : 860);
-
-          function renderPage(num) {
-            return pdf.getPage(num).then(function(page) {
-              var baseViewport = page.getViewport({ scale: 1 });
-              var fitScale = Math.min((window.innerWidth - 32), 860) / baseViewport.width;
-              var viewport = page.getViewport({ scale: fitScale });
-              var canvas = document.createElement('canvas');
-              canvas.width = viewport.width;
-              canvas.height = viewport.height;
-              canvas.style.width = viewport.width + 'px';
-              canvas.style.height = viewport.height + 'px';
-              viewer.appendChild(canvas);
-              return page.render({
-                canvasContext: canvas.getContext('2d'),
-                viewport: viewport
-              }).promise;
-            });
-          }
-
-          var chain = Promise.resolve();
-          for (var i = 1; i <= total; i++) {
-            (function(n) {
-              chain = chain.then(function() { return renderPage(n); });
-            })(i);
-          }
-          chain.catch(function(err) {
-            showError('Error rendering document: ' + (err && err.message ? err.message : err));
+      pdfjsLib.getDocument({ url: decodeURIComponent(rawUrl), withCredentials: false }).promise
+        .then(function (pdf) {
+          pdfDoc = pdf;
+          return renderAll().then(function () {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('zoombar').style.display = 'flex';
           });
         })
-        .catch(function(err) {
+        .catch(function (err) {
           showError('Could not load document. ' + (err && err.message ? err.message : String(err)));
         });
     }
