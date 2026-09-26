@@ -1,0 +1,2290 @@
+[
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 42,
+  "key": "id",
+  "dart_field": "id",
+  "exact": [
+   "investor_units.id",
+   "projects.id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.92
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 43,
+  "key": "project_id",
+  "dart_field": "projectId",
+  "exact": [
+   "investor_units.project_id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 44,
+  "key": "issued_units",
+  "dart_field": "issuedUnits",
+  "exact": [
+   "investor_units.issued_units"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 45,
+  "key": "reserved_units",
+  "dart_field": "reservedUnits",
+  "exact": [
+   "investor_units.reserved_units"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 46,
+  "key": "unit_price",
+  "dart_field": "unitPrice",
+  "exact": [
+   "investor_units.unit_price"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 47,
+  "key": "capital_invested",
+  "dart_field": "capitalInvested",
+  "exact": [
+   "investor_units.capital_invested"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 49,
+  "key": "capital_outstanding",
+  "dart_field": null,
+  "exact": [
+   "investor_units.capital_outstanding"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.79
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 50,
+  "key": "capital_returns",
+  "dart_field": "capitalReturns",
+  "exact": [
+   "investor_units.capital_returns"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.93
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 52,
+  "key": "total_amount_receivable",
+  "dart_field": null,
+  "exact": [
+   "investor_units.total_amount_receivable"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.8
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 54,
+  "key": "total_amount_received",
+  "dart_field": null,
+  "exact": [
+   "investor_units.total_amount_received"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.86
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 56,
+  "key": "token_advance_amount",
+  "dart_field": null,
+  "exact": [
+   "investor_units.token_advance_amount"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.85
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 57,
+  "key": "annual_yield_pct",
+  "dart_field": "annualYieldPct",
+  "exact": [
+   "investor_units.annual_yield_pct",
+   "projects.annual_yield_pct"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.9
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 58,
+  "key": "allocation_status",
+  "dart_field": "allocationStatus",
+  "exact": [
+   "investor_units.allocation_status"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.93
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 59,
+  "key": "customer_status",
+  "dart_field": "customerStatus",
+  "exact": [
+   "investor_units.customer_status"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.91
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 60,
+  "key": "investment_date",
+  "dart_field": "investmentDate",
+  "exact": [
+   "investor_units.investment_date"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 61,
+  "key": "investment_date",
+  "dart_field": null,
+  "exact": [
+   "investor_units.investment_date"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.93
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 63,
+  "key": "next_payout_date",
+  "dart_field": "nextPayoutDate",
+  "exact": [
+   "investor_units.next_payout_date"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/projects/models/investor_unit.dart",
+  "line": 64,
+  "key": "next_payout_date",
+  "dart_field": null,
+  "exact": [
+   "investor_units.next_payout_date"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.83
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 42,
+  "key": "id",
+  "dart_field": "id",
+  "exact": [
+   "projects.id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 43,
+  "key": "name",
+  "dart_field": "name",
+  "exact": [
+   "projects.name"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.97
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 44,
+  "key": "tagline",
+  "dart_field": "tagline",
+  "exact": [
+   "projects.tagline"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 46,
+  "key": "tier",
+  "dart_field": "tier",
+  "exact": [
+   "projects.tier"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.88
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 47,
+  "key": "crop_type",
+  "dart_field": "cropType",
+  "exact": [],
+  "answer": {
+   "type": "choice",
+   "choice": "none",
+   "confidence": 0.7,
+   "probabilities": {
+    "projects.marketplace_sort_order": 0.0,
+    "projects.name": 0.0,
+    "projects.price_per_unit": 0.0,
+    "projects.llp_id": 0.0,
+    "projects.latitude": 0.0,
+    "projects.insurance_expiry_date": 0.0,
+    "projects.expected_annual_return_pct": 0.0,
+    "projects.last_synced_at": 0.0,
+    "projects.accent_hex": 0.0,
+    "none": 0.72,
+    "projects.insurance_policy_no": 0.0,
+    "projects.updated_at": 0.0,
+    "projects.id": 0.0,
+    "projects.subscription_deadline": 0.0,
+    "projects.status": 0.01,
+    "projects.longitude": 0.0,
+    "projects.insured_amount": 0.0,
+    "projects.tagline": 0.0,
+    "projects.total_project_cost": 0.0,
+    "projects.pincode": 0.0,
+    "projects.total_units": 0.03,
+    "projects.annual_yield_pct": 0.0,
+    "projects.city": 0.0,
+    "projects.launch_year": 0.0,
+    "projects.insurance_provider": 0.0,
+    "derived_or_nested": 0.13,
+    "projects.is_listed_in_marketplace": 0.0,
+    "projects.marketplace_image": 0.0,
+    "projects.address_line1": 0.0,
+    "projects.state": 0.0,
+    "projects.approx_radius_meters": 0.0,
+    "projects.country": 0.0,
+    "projects.units_issued": 0.0,
+    "projects.color_hex": 0.0,
+    "projects.tier": 0.03,
+    "projects.deleted_at": 0.0,
+    "projects.cover_image_path": 0.0,
+    "projects.units_available": 0.08,
+    "projects.acreage_acres": 0.0,
+    "projects.total_ticket_size": 0.0
+   }
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 48,
+  "key": "total_units",
+  "dart_field": "totalUnits",
+  "exact": [
+   "projects.total_units"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 49,
+  "key": "units_available",
+  "dart_field": "unitsAvailable",
+  "exact": [
+   "projects.units_available"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 50,
+  "key": "price_per_unit",
+  "dart_field": "pricePerUnit",
+  "exact": [
+   "projects.price_per_unit"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 51,
+  "key": "acreage_acres",
+  "dart_field": "acreageAcres",
+  "exact": [
+   "projects.acreage_acres"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 53,
+  "key": "expected_annual_return_pct",
+  "dart_field": null,
+  "exact": [
+   "projects.expected_annual_return_pct"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.85
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 54,
+  "key": "annual_yield_pct",
+  "dart_field": null,
+  "exact": [
+   "projects.annual_yield_pct"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.89
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 56,
+  "key": "subscription_deadline",
+  "dart_field": "subscriptionDeadline",
+  "exact": [
+   "projects.subscription_deadline"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.93
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 57,
+  "key": "marketplace_image",
+  "dart_field": "marketplaceImage",
+  "exact": [
+   "projects.marketplace_image"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.93
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 58,
+  "key": "status",
+  "dart_field": "llpStatus",
+  "exact": [
+   "projects.status"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.75
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 98,
+  "key": "city",
+  "dart_field": null,
+  "exact": [
+   "projects.city"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 99,
+  "key": "state",
+  "dart_field": null,
+  "exact": [
+   "projects.state"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/projects/models/marketplace_project.dart",
+  "line": 102,
+  "key": "address_line1",
+  "dart_field": null,
+  "exact": [
+   "projects.address_line1"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.92
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 27,
+  "key": "id",
+  "dart_field": "id",
+  "exact": [
+   "project_phases.id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 28,
+  "key": "project_id",
+  "dart_field": "projectId",
+  "exact": [
+   "project_phases.project_id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 29,
+  "key": "phase_name",
+  "dart_field": "name",
+  "exact": [
+   "project_phases.phase_name"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 29,
+  "key": "name",
+  "dart_field": "name",
+  "exact": [],
+  "answer": {
+   "type": "choice",
+   "choice": "project_phases.phase_name",
+   "confidence": 0.97,
+   "probabilities": {
+    "project_phases.phase_date": 0.0,
+    "derived_or_nested": 0.01,
+    "project_phases.custom_title": 0.0,
+    "project_phases.zoho_phase_id": 0.0,
+    "project_phases.custom_body": 0.0,
+    "project_phases.project_id": 0.0,
+    "project_phases.status": 0.0,
+    "project_phases.image_url": 0.0,
+    "project_phases.updated_at": 0.0,
+    "project_phases.id": 0.0,
+    "project_phases.sort_order": 0.0,
+    "none": 0.01,
+    "project_phases.phase_name": 0.98,
+    "project_phases.sub_items": 0.0
+   }
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 30,
+  "key": "status",
+  "dart_field": "status",
+  "exact": [
+   "project_phases.status"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 31,
+  "key": "phase_date",
+  "dart_field": "phaseDate",
+  "exact": [
+   "project_phases.phase_date"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.93
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 32,
+  "key": "phase_date",
+  "dart_field": null,
+  "exact": [
+   "project_phases.phase_date"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.74
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 33,
+  "key": "start_date",
+  "dart_field": null,
+  "exact": [],
+  "answer": {
+   "type": "choice",
+   "choice": "project_phases.phase_date",
+   "confidence": 0.58,
+   "probabilities": {
+    "project_phases.phase_date": 0.62,
+    "project_phases.project_id": 0.0,
+    "project_phases.custom_title": 0.0,
+    "project_phases.zoho_phase_id": 0.0,
+    "project_phases.custom_body": 0.0,
+    "project_phases.image_url": 0.0,
+    "project_phases.status": 0.0,
+    "derived_or_nested": 0.04,
+    "project_phases.updated_at": 0.02,
+    "project_phases.sub_items": 0.0,
+    "project_phases.sort_order": 0.01,
+    "none": 0.3,
+    "project_phases.phase_name": 0.01,
+    "project_phases.id": 0.0
+   }
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 36,
+  "key": "started_at",
+  "dart_field": "startedAt",
+  "exact": [],
+  "answer": {
+   "type": "choice",
+   "choice": "none",
+   "confidence": 0.45,
+   "probabilities": {
+    "project_phases.image_url": 0.0,
+    "derived_or_nested": 0.08,
+    "project_phases.custom_title": 0.0,
+    "project_phases.zoho_phase_id": 0.01,
+    "project_phases.custom_body": 0.0,
+    "project_phases.project_id": 0.0,
+    "project_phases.status": 0.0,
+    "project_phases.phase_date": 0.07,
+    "project_phases.updated_at": 0.34,
+    "project_phases.id": 0.0,
+    "project_phases.sort_order": 0.0,
+    "none": 0.5,
+    "project_phases.phase_name": 0.0,
+    "project_phases.sub_items": 0.0
+   }
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 37,
+  "key": "started_at",
+  "dart_field": null,
+  "exact": [],
+  "answer": {
+   "type": "choice",
+   "choice": "none",
+   "confidence": 0.71,
+   "probabilities": {
+    "project_phases.image_url": 0.0,
+    "derived_or_nested": 0.05,
+    "project_phases.custom_title": 0.0,
+    "project_phases.zoho_phase_id": 0.0,
+    "project_phases.custom_body": 0.0,
+    "project_phases.project_id": 0.0,
+    "project_phases.status": 0.0,
+    "project_phases.phase_date": 0.02,
+    "project_phases.updated_at": 0.18,
+    "project_phases.id": 0.0,
+    "project_phases.sort_order": 0.01,
+    "none": 0.74,
+    "project_phases.phase_name": 0.0,
+    "project_phases.sub_items": 0.0
+   }
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 39,
+  "key": "completed_at",
+  "dart_field": "completedAt",
+  "exact": [],
+  "answer": {
+   "type": "choice",
+   "choice": "none",
+   "confidence": 0.66,
+   "probabilities": {
+    "project_phases.image_url": 0.0,
+    "project_phases.project_id": 0.0,
+    "project_phases.custom_title": 0.0,
+    "project_phases.zoho_phase_id": 0.0,
+    "project_phases.custom_body": 0.0,
+    "derived_or_nested": 0.04,
+    "project_phases.status": 0.0,
+    "project_phases.phase_date": 0.02,
+    "project_phases.updated_at": 0.21,
+    "project_phases.sub_items": 0.0,
+    "project_phases.sort_order": 0.03,
+    "none": 0.6900000000000001,
+    "project_phases.phase_name": 0.0,
+    "project_phases.id": 0.0
+   }
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 40,
+  "key": "completed_at",
+  "dart_field": null,
+  "exact": [],
+  "answer": {
+   "type": "choice",
+   "choice": "project_phases.sort_order",
+   "confidence": 0.86,
+   "probabilities": {
+    "project_phases.phase_date": 0.0,
+    "project_phases.project_id": 0.0,
+    "project_phases.custom_title": 0.0,
+    "project_phases.zoho_phase_id": 0.0,
+    "project_phases.custom_body": 0.0,
+    "project_phases.image_url": 0.0,
+    "project_phases.status": 0.0,
+    "derived_or_nested": 0.01,
+    "project_phases.updated_at": 0.01,
+    "project_phases.id": 0.0,
+    "project_phases.sort_order": 0.88,
+    "none": 0.1,
+    "project_phases.phase_name": 0.0,
+    "project_phases.sub_items": 0.0
+   }
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 42,
+  "key": "sort_order",
+  "dart_field": "sortOrder",
+  "exact": [
+   "project_phases.sort_order"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.93
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 43,
+  "key": "sub_items",
+  "dart_field": "subItems",
+  "exact": [
+   "project_phases.sub_items"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.89
+  }
+ },
+ {
+  "file": "features/projects/models/project_phase.dart",
+  "line": 44,
+  "key": "sub_items",
+  "dart_field": null,
+  "exact": [
+   "project_phases.sub_items"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.81
+  }
+ },
+ {
+  "file": "features/projects/models/project.dart",
+  "line": 68,
+  "key": "name",
+  "dart_field": null,
+  "exact": [
+   "projects.name"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.88
+  }
+ },
+ {
+  "file": "features/projects/models/project.dart",
+  "line": 69,
+  "key": "launch_year",
+  "dart_field": null,
+  "exact": [
+   "projects.launch_year"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.9
+  }
+ },
+ {
+  "file": "features/projects/models/project.dart",
+  "line": 70,
+  "key": "updated_at",
+  "dart_field": null,
+  "exact": [
+   "projects.updated_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.26
+  }
+ },
+ {
+  "file": "features/projects/models/project.dart",
+  "line": 80,
+  "key": "id",
+  "dart_field": "id",
+  "exact": [
+   "projects.id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/projects/models/project.dart",
+  "line": 85,
+  "key": "tier",
+  "dart_field": "cropType",
+  "exact": [
+   "projects.tier"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.12
+  }
+ },
+ {
+  "file": "features/projects/models/project.dart",
+  "line": 87,
+  "key": "status",
+  "dart_field": "status",
+  "exact": [
+   "projects.status"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.91
+  }
+ },
+ {
+  "file": "features/projects/models/project.dart",
+  "line": 90,
+  "key": "total_units",
+  "dart_field": "totalUnits",
+  "exact": [
+   "projects.total_units"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.86
+  }
+ },
+ {
+  "file": "features/projects/models/project.dart",
+  "line": 91,
+  "key": "total_ticket_size",
+  "dart_field": "investedAmount",
+  "exact": [
+   "projects.total_ticket_size"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.5
+  }
+ },
+ {
+  "file": "features/projects/models/project.dart",
+  "line": 97,
+  "key": "color_hex",
+  "dart_field": "colorHex",
+  "exact": [
+   "projects.color_hex"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/projects/models/project.dart",
+  "line": 192,
+  "key": "city",
+  "dart_field": null,
+  "exact": [
+   "projects.city"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/projects/models/project.dart",
+  "line": 193,
+  "key": "state",
+  "dart_field": null,
+  "exact": [
+   "projects.state"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/projects/models/project_update.dart",
+  "line": 25,
+  "key": "update_date",
+  "dart_field": null,
+  "exact": [
+   "project_updates.update_date"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.92
+  }
+ },
+ {
+  "file": "features/projects/models/project_update.dart",
+  "line": 33,
+  "key": "id",
+  "dart_field": "id",
+  "exact": [
+   "project_updates.id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/projects/models/project_update.dart",
+  "line": 34,
+  "key": "project_id",
+  "dart_field": "projectId",
+  "exact": [
+   "project_updates.project_id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/projects/models/project_update.dart",
+  "line": 36,
+  "key": "title",
+  "dart_field": "title",
+  "exact": [
+   "project_updates.title"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/projects/models/project_update.dart",
+  "line": 37,
+  "key": "body",
+  "dart_field": "body",
+  "exact": [
+   "project_updates.body"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/projects/models/project_update.dart",
+  "line": 38,
+  "key": "image_url",
+  "dart_field": "imageUrl",
+  "exact": [
+   "project_updates.image_url"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/financials/models/payout.dart",
+  "line": 29,
+  "key": "id",
+  "dart_field": "id",
+  "exact": [
+   "payouts.id",
+   "projects.id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/financials/models/payout.dart",
+  "line": 30,
+  "key": "amount",
+  "dart_field": "amount",
+  "exact": [
+   "payouts.amount"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.97
+  }
+ },
+ {
+  "file": "features/financials/models/payout.dart",
+  "line": 31,
+  "key": "project_id",
+  "dart_field": "projectId",
+  "exact": [
+   "payouts.project_id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/financials/models/payout.dart",
+  "line": 33,
+  "key": "status",
+  "dart_field": "status",
+  "exact": [
+   "payouts.status",
+   "projects.status"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/financials/models/payout.dart",
+  "line": 34,
+  "key": "payout_date",
+  "dart_field": "date",
+  "exact": [
+   "payouts.payout_date"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.97
+  }
+ },
+ {
+  "file": "features/financials/models/payout.dart",
+  "line": 35,
+  "key": "payout_date",
+  "dart_field": null,
+  "exact": [
+   "payouts.payout_date"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.86
+  }
+ },
+ {
+  "file": "features/financials/models/payout.dart",
+  "line": 37,
+  "key": "utr",
+  "dart_field": "utrRef",
+  "exact": [
+   "payouts.utr"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/financials/models/payout.dart",
+  "line": 38,
+  "key": "is_demo",
+  "dart_field": "isDemo",
+  "exact": [
+   "payouts.is_demo"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/profile/kyc_screen.dart",
+  "line": 56,
+  "key": "name",
+  "dart_field": null,
+  "exact": [
+   "investors.name"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.91
+  }
+ },
+ {
+  "file": "features/profile/kyc_screen.dart",
+  "line": 57,
+  "key": "pan_masked",
+  "dart_field": null,
+  "exact": [
+   "investors.pan_masked"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/profile/kyc_screen.dart",
+  "line": 58,
+  "key": "aadhaar_masked",
+  "dart_field": null,
+  "exact": [
+   "investors.aadhaar_masked"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/profile/kyc_screen.dart",
+  "line": 59,
+  "key": "date_of_birth",
+  "dart_field": null,
+  "exact": [
+   "investors.date_of_birth"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/profile/kyc_screen.dart",
+  "line": 65,
+  "key": "kyc_status",
+  "dart_field": null,
+  "exact": [
+   "investors.kyc_status"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.97
+  }
+ },
+ {
+  "file": "features/profile/kyc_screen.dart",
+  "line": 70,
+  "key": "created_at",
+  "dart_field": null,
+  "exact": [],
+  "answer": {
+   "type": "choice",
+   "choice": "investors.onboarded_at",
+   "confidence": 0.58,
+   "probabilities": {
+    "investors.onboarded_at": 0.59,
+    "investors.unit_allocated": 0.0,
+    "investors.last_synced_at": 0.0,
+    "investors.updated_at": 0.01,
+    "investors.bank_ifsc": 0.0,
+    "investors.arl_id": 0.0,
+    "investors.date_of_birth": 0.0,
+    "investors.profile_verified": 0.0,
+    "investors.roi_pct": 0.0,
+    "investors.salutation": 0.0,
+    "investors.email": 0.0,
+    "investors.fema_applicable": 0.0,
+    "investors.pincode": 0.0,
+    "derived_or_nested": 0.02,
+    "investors.name": 0.0,
+    "investors.pan_masked": 0.0,
+    "investors.bank_name": 0.0,
+    "investors.kyc_status": 0.0,
+    "investors.state": 0.0,
+    "investors.country": 0.0,
+    "investors.phone": 0.0,
+    "investors.city": 0.0,
+    "investors.address_line1": 0.0,
+    "investors.agreement_signed": 0.0,
+    "none": 0.04,
+    "investors.aadhaar_masked": 0.0,
+    "investors.zoho_contact_id": 0.0,
+    "investors.bank_branch": 0.0,
+    "investors.bank_account_masked": 0.0,
+    "investors.bank_holder_name": 0.0,
+    "investors.deleted_at": 0.0,
+    "investors.payment_received": 0.0,
+    "investors.id": 0.0,
+    "investors.kyc_submitted_at": 0.34
+   }
+  }
+ },
+ {
+  "file": "features/profile/kyc_screen.dart",
+  "line": 70,
+  "key": "onboarded_at",
+  "dart_field": null,
+  "exact": [
+   "investors.onboarded_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.87
+  }
+ },
+ {
+  "file": "features/profile/kyc_screen.dart",
+  "line": 198,
+  "key": "address_line1",
+  "dart_field": null,
+  "exact": [
+   "investors.address_line1"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/profile/kyc_screen.dart",
+  "line": 199,
+  "key": "city",
+  "dart_field": null,
+  "exact": [
+   "investors.city"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/profile/kyc_screen.dart",
+  "line": 200,
+  "key": "state",
+  "dart_field": null,
+  "exact": [
+   "investors.state"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/profile/kyc_screen.dart",
+  "line": 201,
+  "key": "pincode",
+  "dart_field": null,
+  "exact": [
+   "investors.pincode"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/profile/kyc_screen.dart",
+  "line": 202,
+  "key": "country",
+  "dart_field": null,
+  "exact": [
+   "investors.country"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/profile/bank_details_screen.dart",
+  "line": 60,
+  "key": "bank_name",
+  "dart_field": null,
+  "exact": [
+   "investors.bank_name"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/profile/bank_details_screen.dart",
+  "line": 62,
+  "key": "bank_account_masked",
+  "dart_field": null,
+  "exact": [
+   "investors.bank_account_masked"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/profile/bank_details_screen.dart",
+  "line": 63,
+  "key": "bank_ifsc",
+  "dart_field": null,
+  "exact": [
+   "investors.bank_ifsc"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/profile/bank_details_screen.dart",
+  "line": 64,
+  "key": "bank_holder_name",
+  "dart_field": null,
+  "exact": [
+   "investors.bank_holder_name"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.93
+  }
+ },
+ {
+  "file": "features/profile/bank_details_screen.dart",
+  "line": 65,
+  "key": "kyc_status",
+  "dart_field": null,
+  "exact": [
+   "investors.kyc_status"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.9
+  }
+ },
+ {
+  "file": "features/profile/bank_details_screen.dart",
+  "line": 69,
+  "key": "status",
+  "dart_field": "data",
+  "exact": [
+   "bank_change_requests.status"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/profile/privacy_screen.dart",
+  "line": 122,
+  "key": "name",
+  "dart_field": null,
+  "exact": [
+   "nominees.name"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/profile/privacy_screen.dart",
+  "line": 127,
+  "key": "relationship",
+  "dart_field": null,
+  "exact": [
+   "nominees.relationship"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/profile/privacy_screen.dart",
+  "line": 132,
+  "key": "email",
+  "dart_field": null,
+  "exact": [
+   "nominees.email"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/profile/privacy_screen.dart",
+  "line": 136,
+  "key": "phone",
+  "dart_field": null,
+  "exact": [
+   "nominees.phone"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/profile/security_screen.dart",
+  "line": 791,
+  "key": "occurred_at",
+  "dart_field": null,
+  "exact": [
+   "login_events.occurred_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.93
+  }
+ },
+ {
+  "file": "features/profile/security_screen.dart",
+  "line": 792,
+  "key": "device_label",
+  "dart_field": null,
+  "exact": [
+   "login_events.device_label"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/profile/security_screen.dart",
+  "line": 846,
+  "key": "platform",
+  "dart_field": null,
+  "exact": [
+   "login_events.platform"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.89
+  }
+ },
+ {
+  "file": "features/profile/security_screen.dart",
+  "line": 847,
+  "key": "app_version",
+  "dart_field": null,
+  "exact": [
+   "login_events.app_version"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.91
+  }
+ },
+ {
+  "file": "features/home/models/portfolio_summary.dart",
+  "line": 62,
+  "key": "total_invested",
+  "dart_field": "totalInvested",
+  "exact": [
+   "rpc:get_portfolio_summary.total_invested"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/home/models/portfolio_summary.dart",
+  "line": 63,
+  "key": "total_payouts_received",
+  "dart_field": "totalReceived",
+  "exact": [
+   "rpc:get_portfolio_summary.total_payouts_received"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/home/models/portfolio_summary.dart",
+  "line": 64,
+  "key": "total_capital_outstanding",
+  "dart_field": "pendingAmount",
+  "exact": [
+   "rpc:get_portfolio_summary.total_capital_outstanding"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/home/models/portfolio_summary.dart",
+  "line": 65,
+  "key": "total_units",
+  "dart_field": "activeUnits",
+  "exact": [
+   "rpc:get_portfolio_summary.total_units"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/home/models/portfolio_summary.dart",
+  "line": 66,
+  "key": "project_count",
+  "dart_field": "projectCount",
+  "exact": [
+   "rpc:get_portfolio_summary.project_count"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/home/models/portfolio_summary.dart",
+  "line": 67,
+  "key": "avg_annual_yield_pct",
+  "dart_field": "avgAnnualYieldPct",
+  "exact": [
+   "rpc:get_portfolio_summary.avg_annual_yield_pct"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/home/models/portfolio_summary.dart",
+  "line": 68,
+  "key": "next_payout_amount",
+  "dart_field": "nextPayoutAmount",
+  "exact": [
+   "rpc:get_portfolio_summary.next_payout_amount"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/home/models/portfolio_summary.dart",
+  "line": 69,
+  "key": "next_payout_date",
+  "dart_field": "nextPayoutDate",
+  "exact": [
+   "rpc:get_portfolio_summary.next_payout_date"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/home/models/portfolio_summary.dart",
+  "line": 70,
+  "key": "next_payout_date",
+  "dart_field": null,
+  "exact": [
+   "rpc:get_portfolio_summary.next_payout_date"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.61
+  }
+ },
+ {
+  "file": "features/home/models/portfolio_summary.dart",
+  "line": 73,
+  "key": "roi_pct",
+  "dart_field": "roiPercent",
+  "exact": [
+   "rpc:get_portfolio_summary.roi_pct"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/activity/models/notification.dart",
+  "line": 28,
+  "key": "id",
+  "dart_field": "id",
+  "exact": [
+   "notifications.id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/activity/models/notification.dart",
+  "line": 29,
+  "key": "type",
+  "dart_field": "type",
+  "exact": [
+   "notifications.type"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/activity/models/notification.dart",
+  "line": 30,
+  "key": "title",
+  "dart_field": "title",
+  "exact": [
+   "notifications.title"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/activity/models/notification.dart",
+  "line": 31,
+  "key": "body",
+  "dart_field": "body",
+  "exact": [
+   "notifications.body"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/activity/models/notification.dart",
+  "line": 32,
+  "key": "read_at",
+  "dart_field": "isRead",
+  "exact": [
+   "notifications.read_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/activity/models/notification.dart",
+  "line": 33,
+  "key": "created_at",
+  "dart_field": "createdAt",
+  "exact": [
+   "notifications.created_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/activity/models/notification.dart",
+  "line": 34,
+  "key": "created_at",
+  "dart_field": null,
+  "exact": [
+   "notifications.created_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.82
+  }
+ },
+ {
+  "file": "features/activity/models/notification.dart",
+  "line": 36,
+  "key": "metadata",
+  "dart_field": "metadata",
+  "exact": [
+   "notifications.metadata"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.92
+  }
+ },
+ {
+  "file": "features/activity/models/notification.dart",
+  "line": 37,
+  "key": "metadata",
+  "dart_field": null,
+  "exact": [
+   "notifications.metadata"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.91
+  }
+ },
+ {
+  "file": "features/documents/models/project_document.dart",
+  "line": 55,
+  "key": "id",
+  "dart_field": "id",
+  "exact": [
+   "project_documents.id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/documents/models/project_document.dart",
+  "line": 56,
+  "key": "project_id",
+  "dart_field": "projectId",
+  "exact": [
+   "project_documents.project_id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/documents/models/project_document.dart",
+  "line": 57,
+  "key": "storage_path",
+  "dart_field": "storagePath",
+  "exact": [
+   "project_documents.storage_path"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.93
+  }
+ },
+ {
+  "file": "features/documents/models/project_document.dart",
+  "line": 58,
+  "key": "title",
+  "dart_field": "title",
+  "exact": [
+   "project_documents.title"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/documents/models/project_document.dart",
+  "line": 59,
+  "key": "category",
+  "dart_field": "category",
+  "exact": [
+   "project_documents.category"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/documents/models/project_document.dart",
+  "line": 60,
+  "key": "uploaded_at",
+  "dart_field": "uploadedAt",
+  "exact": [
+   "project_documents.uploaded_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.97
+  }
+ },
+ {
+  "file": "features/documents/models/project_document.dart",
+  "line": 61,
+  "key": "uploaded_at",
+  "dart_field": null,
+  "exact": [
+   "project_documents.uploaded_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.72
+  }
+ },
+ {
+  "file": "features/documents/models/project_document.dart",
+  "line": 63,
+  "key": "is_public",
+  "dart_field": "isPublic",
+  "exact": [
+   "project_documents.is_public"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/documents/models/document.dart",
+  "line": 29,
+  "key": "id",
+  "dart_field": "id",
+  "exact": [
+   "documents.id",
+   "projects.id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/documents/models/document.dart",
+  "line": 30,
+  "key": "name",
+  "dart_field": "name",
+  "exact": [
+   "documents.name",
+   "projects.name"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/documents/models/document.dart",
+  "line": 31,
+  "key": "doc_type",
+  "dart_field": "category",
+  "exact": [
+   "documents.doc_type"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.9
+  }
+ },
+ {
+  "file": "features/documents/models/document.dart",
+  "line": 32,
+  "key": "visibility",
+  "dart_field": "visibility",
+  "exact": [
+   "documents.visibility"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/documents/models/document.dart",
+  "line": 33,
+  "key": "project_id",
+  "dart_field": "projectId",
+  "exact": [
+   "documents.project_id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/documents/models/document.dart",
+  "line": 35,
+  "key": "uploaded_at",
+  "dart_field": "uploadedAt",
+  "exact": [
+   "documents.uploaded_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.97
+  }
+ },
+ {
+  "file": "features/documents/models/document.dart",
+  "line": 36,
+  "key": "uploaded_at",
+  "dart_field": null,
+  "exact": [
+   "documents.uploaded_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.8
+  }
+ },
+ {
+  "file": "features/documents/models/document.dart",
+  "line": 38,
+  "key": "file_size_kb",
+  "dart_field": "fileSizeKb",
+  "exact": [
+   "documents.file_size_kb"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/gallery/models/gallery_photo.dart",
+  "line": 25,
+  "key": "id",
+  "dart_field": "id",
+  "exact": [
+   "gallery_photos.id",
+   "projects.id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/gallery/models/gallery_photo.dart",
+  "line": 26,
+  "key": "project_id",
+  "dart_field": "projectId",
+  "exact": [
+   "gallery_photos.project_id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/gallery/models/gallery_photo.dart",
+  "line": 28,
+  "key": "caption",
+  "dart_field": "caption",
+  "exact": [
+   "gallery_photos.caption"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/gallery/models/gallery_photo.dart",
+  "line": 29,
+  "key": "taken_at",
+  "dart_field": "takenAt",
+  "exact": [
+   "gallery_photos.taken_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/gallery/models/gallery_photo.dart",
+  "line": 30,
+  "key": "taken_at",
+  "dart_field": null,
+  "exact": [
+   "gallery_photos.taken_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.79
+  }
+ },
+ {
+  "file": "features/gallery/models/gallery_photo.dart",
+  "line": 32,
+  "key": "uploaded_at",
+  "dart_field": "uploadedAt",
+  "exact": [
+   "gallery_photos.uploaded_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/gallery/models/gallery_photo.dart",
+  "line": 33,
+  "key": "uploaded_at",
+  "dart_field": null,
+  "exact": [
+   "gallery_photos.uploaded_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "features/support/ticket_detail_screen.dart",
+  "line": 134,
+  "key": "subject",
+  "dart_field": null,
+  "exact": [
+   "support_tickets.subject"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.93
+  }
+ },
+ {
+  "file": "features/support/ticket_detail_screen.dart",
+  "line": 135,
+  "key": "status",
+  "dart_field": null,
+  "exact": [
+   "support_tickets.status"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/support/ticket_detail_screen.dart",
+  "line": 232,
+  "key": "sender_type",
+  "dart_field": null,
+  "exact": [
+   "ticket_messages.sender_type"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "features/support/ticket_detail_screen.dart",
+  "line": 233,
+  "key": "body",
+  "dart_field": null,
+  "exact": [
+   "ticket_messages.body"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "features/support/ticket_detail_screen.dart",
+  "line": 234,
+  "key": "created_at",
+  "dart_field": null,
+  "exact": [
+   "support_tickets.created_at",
+   "ticket_messages.created_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.41
+  }
+ },
+ {
+  "file": "features/exit/exit_screen.dart",
+  "line": 47,
+  "key": "id",
+  "dart_field": null,
+  "exact": [
+   "investor_units.id",
+   "exit_requests.id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.77
+  }
+ },
+ {
+  "file": "features/exit/exit_screen.dart",
+  "line": 261,
+  "key": "created_at",
+  "dart_field": "submittedAt",
+  "exact": [
+   "exit_requests.created_at"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "core/repositories/documents_repository.dart",
+  "line": 35,
+  "key": "storage_path",
+  "dart_field": null,
+  "exact": [
+   "documents.storage_path",
+   "project_documents.storage_path"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "core/repositories/gallery_repository.dart",
+  "line": 20,
+  "key": "storage_path",
+  "dart_field": null,
+  "exact": [
+   "gallery_photos.storage_path"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.95
+  }
+ },
+ {
+  "file": "core/repositories/user_settings_repository.dart",
+  "line": 80,
+  "key": "app_pin_hash",
+  "dart_field": null,
+  "exact": [
+   "user_settings.app_pin_hash"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.94
+  }
+ },
+ {
+  "file": "core/repositories/user_settings_repository.dart",
+  "line": 81,
+  "key": "app_pin_salt",
+  "dart_field": null,
+  "exact": [
+   "user_settings.app_pin_salt"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.97
+  }
+ },
+ {
+  "file": "core/repositories/user_settings_repository.dart",
+  "line": 82,
+  "key": "app_pin_iterations",
+  "dart_field": null,
+  "exact": [
+   "user_settings.app_pin_iterations"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.96
+  }
+ },
+ {
+  "file": "core/repositories/projects_repository.dart",
+  "line": 61,
+  "key": "project_id",
+  "dart_field": null,
+  "exact": [
+   "investor_units.project_id",
+   "project_phases.project_id",
+   "project_updates.project_id"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.83
+  }
+ },
+ {
+  "file": "core/repositories/financials_repository.dart",
+  "line": 108,
+  "key": "_project_name",
+  "dart_field": null,
+  "exact": [],
+  "answer": {
+   "type": "choice",
+   "choice": "projects.name",
+   "confidence": 0.78,
+   "probabilities": {
+    "projects.llp_id": 0.0,
+    "projects.pincode": 0.0,
+    "projects.subscription_deadline": 0.0,
+    "projects.units_available": 0.0,
+    "projects.deleted_at": 0.0,
+    "projects.name": 0.8,
+    "payouts.id": 0.0,
+    "projects.tier": 0.0,
+    "projects.units_issued": 0.0,
+    "payouts.source": 0.0,
+    "none": 0.0,
+    "payouts.utr": 0.0,
+    "projects.status": 0.0,
+    "projects.updated_at": 0.0,
+    "projects.annual_yield_pct": 0.0,
+    "projects.cover_image_path": 0.0,
+    "derived_or_nested": 0.2,
+    "payouts.notes": 0.0,
+    "payouts.allocation_id": 0.0,
+    "projects.country": 0.0,
+    "projects.city": 0.0,
+    "projects.total_ticket_size": 0.0,
+    "projects.is_listed_in_marketplace": 0.0,
+    "payouts.is_demo": 0.0,
+    "projects.insured_amount": 0.0,
+    "projects.expected_annual_return_pct": 0.0,
+    "payouts.payout_date": 0.0,
+    "projects.total_project_cost": 0.0,
+    "payouts.investor_id": 0.0,
+    "projects.price_per_unit": 0.0,
+    "projects.insurance_policy_no": 0.0,
+    "payouts.crop_name": 0.0,
+    "projects.launch_year": 0.0,
+    "payouts.idempotency_key": 0.0,
+    "projects.accent_hex": 0.0,
+    "payouts.updated_at": 0.0,
+    "projects.approx_radius_meters": 0.0,
+    "projects.last_synced_at": 0.0,
+    "projects.insurance_expiry_date": 0.0,
+    "payouts.status": 0.0,
+    "payouts.zoho_invoice_id": 0.0,
+    "projects.longitude": 0.0,
+    "projects.color_hex": 0.0,
+    "projects.insurance_provider": 0.0,
+    "projects.latitude": 0.0,
+    "projects.total_units": 0.0,
+    "payouts.project_id": 0.0,
+    "projects.state": 0.0,
+    "projects.id": 0.0,
+    "payouts.amount": 0.0,
+    "projects.tagline": 0.0,
+    "projects.acreage_acres": 0.0,
+    "projects.marketplace_image": 0.0,
+    "projects.address_line1": 0.0,
+    "projects.marketplace_sort_order": 0.0
+   }
+  }
+ },
+ {
+  "file": "core/repositories/financials_repository.dart",
+  "line": 108,
+  "key": "name",
+  "dart_field": null,
+  "exact": [
+   "projects.name"
+  ],
+  "answer": {
+   "type": "noul",
+   "noul": 0.83
+  }
+ }
+]

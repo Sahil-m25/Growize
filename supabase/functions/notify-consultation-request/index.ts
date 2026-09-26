@@ -116,15 +116,15 @@ Deno.serve(async (req: Request) => {
       .maybeSingle(),
     supabase
       .from("investors")
-      .select("full_name, email, phone")
-      .eq("user_id", consultation.user_id)
+      .select("name, email, phone")
+      .eq("id", consultation.user_id)
       .maybeSingle(),
   ]);
 
   const projectName = (project?.name as string | undefined) ?? "Unknown project";
   const projectTier = (project?.tier as string | undefined) ?? "";
   const investorName =
-    (investor?.full_name as string | undefined) ?? "Unknown investor";
+    (investor?.name as string | undefined) ?? "Unknown investor";
   const investorEmail = (investor?.email as string | undefined) ?? "";
   const investorPhone = (investor?.phone as string | undefined) ?? "";
 
