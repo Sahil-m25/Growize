@@ -270,12 +270,6 @@ class ProfileScreen extends ConsumerWidget {
                       key: TourKeys.profileReplayTour,
                       child: _replayTutorialTile(context, ref),
                     ),
-                    _menuTile(
-                      context,
-                      icon: Icons.celebration,
-                      title: 'Preview First-Payout Celebration',
-                      route: '/celebration?amount=41000&project=EKA&date=2026-03-15',
-                    ),
                   ],
                 ),
               ),

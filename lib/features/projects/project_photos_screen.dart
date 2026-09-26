@@ -77,7 +77,45 @@ class ProjectPhotosScreen extends ConsumerWidget {
         ),
         centerTitle: false,
       ),
-      body: const _EmptyState(),
+      // Real photos only (gallery sync + photos posted with farm updates).
+      // No stock or mock images for a signed-in investor.
+      body: galleryAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: ArlColors.primary),
+        ),
+        error: (_, __) => const _EmptyState(),
+        data: (gallery) {
+          final id = projectId.toLowerCase();
+          final photos = gallery
+              .where((p) =>
+                  p.projectId.toLowerCase() == id && p.signedUrl.isNotEmpty)
+              .map((p) => _PhotoSrc(url: p.signedUrl, caption: p.caption))
+              .toList();
+          if (photos.isEmpty) return const _EmptyState();
+          return GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+            ),
+            itemCount: photos.length,
+            itemBuilder: (context, i) {
+              final tag = 'photo-$projectId-$i';
+              return _PhotoTile(
+                photo: photos[i],
+                heroTag: tag,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        _FullscreenPhoto(photo: photos[i], heroTag: tag),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/core/widgets/demo_badge.dart';
@@ -188,9 +189,10 @@ class _SingleProjectView extends StatelessWidget {
         Text(
           isPending
               ? 'Awaiting payment clearance'
-              : 'Month ${project.monthOfContract} of ${project.totalMonths}',
+              : 'Farm: month ${project.monthOfContract} of ${project.totalMonths}',
           style: const TextStyle(color: ArlColors.muted, fontSize: 10),
         ),
+        _InvestedSince(projectId: project.id),
         if (isPending) ...[
           const SizedBox(height: 8),
           Container(
@@ -363,12 +365,13 @@ class _MiniProgress extends StatelessWidget {
         Text(
           isPending
               ? 'Awaiting payment clearance · Pending'
-              : 'Month ${project.monthOfContract} of ${project.totalMonths} · Operational',
+              : 'Farm: month ${project.monthOfContract} of ${project.totalMonths} · Operational',
           style: TextStyle(
             color: isPending ? ArlColors.earth : ArlColors.muted,
             fontSize: 10,
           ),
         ),
+        _InvestedSince(projectId: project.id),
       ],
     );
   }
@@ -406,4 +409,38 @@ class _GradientBar extends StatelessWidget {
 Color _hexToColor(String hex) {
   final h = hex.replaceAll('#', '');
   return Color(int.parse('FF$h', radix: 16));
+}
+
+
+/// "You invested on 26 Sep 2026" — the investor's own start date in this
+/// project (earliest investment_date across their allotments). The month
+/// counter above is the farm's age, which starts at the project launch,
+/// so without this line an investor can't tell when *their* money went in.
+class _InvestedSince extends ConsumerWidget {
+  final String projectId;
+  const _InvestedSince({required this.projectId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final units = ref.watch(investorUnitsListProvider).valueOrNull ?? const [];
+    DateTime? first;
+    for (final u in units) {
+      if (u.projectId != projectId || u.investmentDate == null) continue;
+      if (first == null || u.investmentDate!.isBefore(first)) {
+        first = u.investmentDate;
+      }
+    }
+    if (first == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Text(
+        'You invested on ${DateFormat('d MMM yyyy').format(first)}',
+        style: const TextStyle(
+          color: ArlColors.charcoal,
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
 }

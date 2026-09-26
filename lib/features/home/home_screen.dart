@@ -4,6 +4,7 @@ import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/core/widgets/skel_box.dart';
 import 'package:arl_app/core/widgets/async_value_widget.dart';
+import 'package:arl_app/features/celebration/celebration_trigger.dart';
 import 'package:arl_app/features/financials/financials_provider.dart';
 import 'package:arl_app/features/home/home_provider.dart';
 import 'package:arl_app/features/home/models/portfolio_summary.dart';
@@ -19,7 +20,6 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // TODO: integration: call CelebrationTrigger.maybeShow(context, ref) here. See lib/features/celebration/README_FOR_T4.md
     // Use the scoped provider so picking a single project on the home
     // page filters Total Portfolio Value, Invested, Returns, Active
     // Units, etc. to that project. With selection cleared (All
@@ -41,6 +41,9 @@ class HomeScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Shows the first-payout celebration once, when the first
+              // processed payout arrives. Renders nothing.
+              const _FirstPayoutCelebration(),
               // Welcome row + project selector pill (HTML parity)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -225,4 +228,30 @@ class _HomeSkeleton extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// Fires [CelebrationTrigger.maybeShow] once per Home visit, after the
+/// first frame. The trigger itself decides whether there is anything to
+/// celebrate (a processed payout, not yet seen by this investor).
+class _FirstPayoutCelebration extends ConsumerStatefulWidget {
+  const _FirstPayoutCelebration();
+
+  @override
+  ConsumerState<_FirstPayoutCelebration> createState() =>
+      _FirstPayoutCelebrationState();
+}
+
+class _FirstPayoutCelebrationState
+    extends ConsumerState<_FirstPayoutCelebration> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) CelebrationTrigger.maybeShow(context, ref);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }

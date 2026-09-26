@@ -1,5 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'package:arl_app/core/supabase/supabase_client.dart';
+
 /// Persists whether the first-payout celebration overlay has been shown.
 ///
 /// Stored in a dedicated Hive box (`celebration_cache`) so this state is
@@ -13,6 +15,13 @@ abstract final class CelebrationFlag {
   static const String _boxName = 'celebration_cache';
   static const String _firstPayoutSeenKey = 'first_payout_seen';
 
+  /// Seen-state is per investor, so a second investor signing in on the
+  /// same device still gets their own first-payout moment.
+  static String get _key {
+    final uid = ArlSupabase.currentUserId;
+    return uid == null ? _firstPayoutSeenKey : '${_firstPayoutSeenKey}_$uid';
+  }
+
   static Future<Box<dynamic>> _box() async {
     if (Hive.isBoxOpen(_boxName)) {
       return Hive.box<dynamic>(_boxName);
@@ -25,7 +34,7 @@ abstract final class CelebrationFlag {
   static Future<bool> hasSeen() async {
     try {
       final box = await _box();
-      return box.get(_firstPayoutSeenKey, defaultValue: false) == true;
+      return box.get(_key, defaultValue: false) == true;
     } catch (_) {
       // If Hive isn't ready for any reason, behave as if not seen — the
       // worst case is showing the celebration once on a fresh install.
@@ -39,7 +48,7 @@ abstract final class CelebrationFlag {
   static Future<void> markSeen() async {
     try {
       final box = await _box();
-      await box.put(_firstPayoutSeenKey, true);
+      await box.put(_key, true);
     } catch (_) {
       // Swallow — failure to persist just means we may re-show once.
     }
@@ -51,7 +60,7 @@ abstract final class CelebrationFlag {
   static Future<void> reset() async {
     try {
       final box = await _box();
-      await box.delete(_firstPayoutSeenKey);
+      await box.delete(_key);
     } catch (_) {}
   }
 }

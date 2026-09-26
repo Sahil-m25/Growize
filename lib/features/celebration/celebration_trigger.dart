@@ -2,7 +2,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:arl_app/features/financials/financials_provider.dart';
+import 'package:arl_app/core/auth/session_manager.dart';
+import 'package:arl_app/core/providers/repositories.dart';
 import 'package:arl_app/features/financials/models/payout.dart';
 
 import 'celebration_flag.dart';
@@ -25,11 +26,19 @@ abstract final class CelebrationTrigger {
   /// Failures (network, missing context, etc.) silently no-op — the
   /// celebration is delightful but optional; never block app entry.
   static Future<void> maybeShow(BuildContext context, WidgetRef ref) async {
+    // Real investors only — never for the signed-out demo portfolio.
+    if (!SessionManager.isLoggedIn) return;
     if (await CelebrationFlag.hasSeen()) return;
 
+    // All of the investor's payouts (not scoped to the selected project),
+    // and only money that has actually been paid out.
     final List<Payout> payouts;
     try {
-      payouts = await ref.read(payoutsProvider.future);
+      final all =
+          await ref.read(financialsRepositoryProvider).myPayouts();
+      payouts = all
+          .where((p) => p.status == 'processed' && !p.isDemo && p.amount > 0)
+          .toList();
     } catch (_) {
       return;
     }
