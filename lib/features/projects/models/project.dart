@@ -43,6 +43,13 @@ class Project {
   /// UI shows a "Sample" pill when this is true.
   final bool isDemo;
 
+  /// Each investor's 60-month term starts on the day they have paid in
+  /// full, not at the farm launch. False while money is still due.
+  final bool termStarted;
+
+  /// Amount still due before this investor's term starts (0 when paid).
+  final double amountToComplete;
+
   Project({
     required this.id,
     required this.name,
@@ -62,6 +69,8 @@ class Project {
     required this.nextPayoutDate,
     required this.cropEmoji,
     this.isDemo = false,
+    this.termStarted = true,
+    this.amountToComplete = 0,
   });
 
   factory Project.fromSupabase(Map<String, dynamic> r) {
@@ -129,21 +138,32 @@ class Project {
           : null,
       cropEmoji: json['cropEmoji'] ?? '',
       isDemo: json['isDemo'] == true,
+      termStarted: json['termStarted'] != false,
+      amountToComplete: (json['amountToComplete'] ?? 0).toDouble(),
     );
   }
 
-  Project copyWith({bool? isDemo, double? progressPercent}) => Project(
+  Project copyWith({
+    bool? isDemo,
+    double? progressPercent,
+    DateTime? startDate,
+    DateTime? endDate,
+    int? monthOfContract,
+    bool? termStarted,
+    double? amountToComplete,
+  }) =>
+      Project(
         id: id,
         name: name,
         cropType: cropType,
         location: location,
         status: status,
-        startDate: startDate,
-        endDate: endDate,
+        startDate: startDate ?? this.startDate,
+        endDate: endDate ?? this.endDate,
         totalUnits: totalUnits,
         investedAmount: investedAmount,
         progressPercent: progressPercent ?? this.progressPercent,
-        monthOfContract: monthOfContract,
+        monthOfContract: monthOfContract ?? this.monthOfContract,
         totalMonths: totalMonths,
         colorHex: colorHex,
         initials: initials,
@@ -151,6 +171,8 @@ class Project {
         nextPayoutDate: nextPayoutDate,
         cropEmoji: cropEmoji,
         isDemo: isDemo ?? this.isDemo,
+        termStarted: termStarted ?? this.termStarted,
+        amountToComplete: amountToComplete ?? this.amountToComplete,
       );
 
   Map<String, dynamic> toJson() {
@@ -173,6 +195,8 @@ class Project {
       'nextPayoutDate': nextPayoutDate?.toIso8601String(),
       'cropEmoji': cropEmoji,
       'isDemo': isDemo,
+      'termStarted': termStarted,
+      'amountToComplete': amountToComplete,
     };
   }
 }

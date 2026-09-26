@@ -402,7 +402,9 @@ class _ProjectTile extends StatelessWidget {
                       // `projects.tier` and feeds the tier badge (_tier).
                       const Spacer(),
                       Text(
-                        'Month ${project.monthOfContract}/${project.totalMonths}',
+                        project.termStarted
+                            ? 'Month ${project.monthOfContract}/${project.totalMonths}'
+                            : 'Starts on full payment',
                         style: const TextStyle(
                             color: ArlColors.muted, fontSize: 9),
                       ),

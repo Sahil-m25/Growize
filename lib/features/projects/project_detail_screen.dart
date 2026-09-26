@@ -404,6 +404,11 @@ class _ContractProgressCard extends StatelessWidget {
   }
 
   String _timeLeft() {
+    if (!project.termStarted) {
+      return project.amountToComplete > 0
+          ? '${Money.inr(project.amountToComplete)} left to start your term'
+          : 'Starts once paid in full';
+    }
     final now = DateTime.now();
     if (!project.endDate.isAfter(now)) return 'Contract complete';
     final monthsLeft =

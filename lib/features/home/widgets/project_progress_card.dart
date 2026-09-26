@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
+import 'package:arl_app/core/utils/money.dart';
 import 'package:arl_app/core/widgets/demo_badge.dart';
 import 'package:arl_app/features/projects/models/project.dart';
 import 'package:arl_app/features/projects/projects_provider.dart';
@@ -189,10 +190,12 @@ class _SingleProjectView extends StatelessWidget {
         Text(
           isPending
               ? 'Awaiting payment clearance'
-              : 'Farm: month ${project.monthOfContract} of ${project.totalMonths}',
+              : project.termStarted
+                  ? 'Month ${project.monthOfContract} of ${project.totalMonths}'
+                  : 'Your ${project.totalMonths}-month term starts once paid in full',
           style: const TextStyle(color: ArlColors.muted, fontSize: 10),
         ),
-        _InvestedSince(projectId: project.id),
+        _TermNote(project: project),
         if (isPending) ...[
           const SizedBox(height: 8),
           Container(
@@ -365,13 +368,15 @@ class _MiniProgress extends StatelessWidget {
         Text(
           isPending
               ? 'Awaiting payment clearance · Pending'
-              : 'Farm: month ${project.monthOfContract} of ${project.totalMonths} · Operational',
+              : project.termStarted
+                  ? 'Month ${project.monthOfContract} of ${project.totalMonths} · Operational'
+                  : 'Term starts once paid in full',
           style: TextStyle(
             color: isPending ? ArlColors.earth : ArlColors.muted,
             fontSize: 10,
           ),
         ),
-        _InvestedSince(projectId: project.id),
+        _TermNote(project: project),
       ],
     );
   }
@@ -412,34 +417,32 @@ Color _hexToColor(String hex) {
 }
 
 
-/// "You invested on 26 Sep 2026" — the investor's own start date in this
-/// project (earliest investment_date across their allotments). The month
-/// counter above is the farm's age, which starts at the project launch,
-/// so without this line an investor can't tell when *their* money went in.
-class _InvestedSince extends ConsumerWidget {
-  final String projectId;
-  const _InvestedSince({required this.projectId});
+/// One quiet line under the term bar:
+/// * term running  → "Started 26 Sep 2026"
+/// * money still due → "₹15.00 L left to complete your investment"
+///   (muted earth tone, no icon, no alert styling — a nudge, not a warning).
+class _TermNote extends StatelessWidget {
+  final Project project;
+  const _TermNote({required this.project});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final units = ref.watch(investorUnitsListProvider).valueOrNull ?? const [];
-    DateTime? first;
-    for (final u in units) {
-      if (u.projectId != projectId || u.investmentDate == null) continue;
-      if (first == null || u.investmentDate!.isBefore(first)) {
-        first = u.investmentDate;
-      }
+  Widget build(BuildContext context) {
+    if (project.isDemo) return const SizedBox.shrink();
+    if (!project.termStarted && project.amountToComplete > 0) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 3),
+        child: Text(
+          '${Money.inr(project.amountToComplete)} left to complete your investment',
+          style: const TextStyle(color: ArlColors.earth, fontSize: 10),
+        ),
+      );
     }
-    if (first == null) return const SizedBox.shrink();
+    if (!project.termStarted) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 2),
       child: Text(
-        'You invested on ${DateFormat('d MMM yyyy').format(first)}',
-        style: const TextStyle(
-          color: ArlColors.charcoal,
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
-        ),
+        'Started ${DateFormat('d MMM yyyy').format(project.startDate)}',
+        style: const TextStyle(color: ArlColors.muted, fontSize: 10),
       ),
     );
   }

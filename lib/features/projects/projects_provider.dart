@@ -55,7 +55,15 @@ final projectsProvider = FutureProvider<List<Project>>((ref) async {
       // from the "Month X of Y" label and (b) forced 0% for every project
       // that has no `project_phases` rows yet — which is why the bar showed
       // empty while the label still read e.g. "Month 9 of 60".
-      return projects;
+      // Personalise the term: each investor's timeline runs from the day
+      // they paid in full, so "Month X of 60", the bar and start/end
+      // dates differ per investor. Unit fetch failure → farm timeline.
+      List<InvestorUnit> units = const [];
+      try {
+        final rows = await repo.myAllUnits();
+        units = rows.map(InvestorUnit.fromJson).toList();
+      } catch (_) {}
+      return projects.map((p) => personaliseTerm(p, units)).toList();
     } catch (_) {
       // Timeout / network hang on the project list itself → empty
       // (header still renders).
@@ -182,3 +190,61 @@ final marketplaceProjectsProvider =
     return const <MarketplaceProject>[];
   }
 });
+
+
+/// Rewrites a project's timeline to the signed-in investor's own term.
+///
+/// * Paid in full (nothing outstanding): term starts on the earliest
+///   `investment_date` of their allotments in this project and runs
+///   `totalMonths`. Month counter, bar and start/end follow that.
+/// * Money still due: term not started — month 0, empty bar, and
+///   [Project.amountToComplete] carries what is left, for a gentle nudge.
+///
+/// Projects the investor holds no units in are returned unchanged.
+Project personaliseTerm(Project p, List<InvestorUnit> allUnits) {
+  final units = allUnits.where((u) => u.projectId == p.id && !u.isDemo);
+  if (units.isEmpty) return p;
+
+  double due = 0;
+  DateTime? start;
+  for (final u in units) {
+    var left = u.capitalOutstanding > u.totalAmountReceivable
+        ? u.capitalOutstanding
+        : u.totalAmountReceivable;
+    // Some rows carry only invested vs received. Treat a row with no
+    // payment figures at all as settled, so missing data never nags.
+    if (left <= 0 &&
+        u.totalAmountReceived > 0 &&
+        u.capitalInvested > u.totalAmountReceived) {
+      left = u.capitalInvested - u.totalAmountReceived;
+    }
+    due += left > 0 ? left : 0;
+    final d = u.investmentDate;
+    if (d != null && (start == null || d.isBefore(start))) start = d;
+  }
+
+  if (due > 0) {
+    return p.copyWith(
+      termStarted: false,
+      amountToComplete: due,
+      monthOfContract: 0,
+      progressPercent: 0,
+    );
+  }
+  if (start == null) return p;
+
+  final total = p.totalMonths > 0 ? p.totalMonths : 60;
+  final end = DateTime(start.year, start.month + total, start.day);
+  final now = DateTime.now();
+  var elapsed = (now.year - start.year) * 12 + (now.month - start.month);
+  if (now.day < start.day) elapsed -= 1;
+  elapsed = elapsed.clamp(0, total);
+  return p.copyWith(
+    startDate: start,
+    endDate: end,
+    monthOfContract: elapsed < total ? elapsed + 1 : total,
+    progressPercent: elapsed / total * 100,
+    termStarted: true,
+    amountToComplete: 0,
+  );
+}
