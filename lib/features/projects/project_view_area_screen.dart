@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/supabase/supabase_client.dart';
@@ -185,8 +186,9 @@ class ProjectViewAreaScreen extends ConsumerWidget {
   }
 }
 
-String _trimAcres(double a) =>
-    a == a.roundToDouble() ? a.toStringAsFixed(0) : a.toStringAsFixed(2).replaceAll(RegExp(r'0$'), '');
+String _trimAcres(double a) => a == a.roundToDouble()
+    ? a.toStringAsFixed(0)
+    : a.toStringAsFixed(2).replaceAll(RegExp(r'0$'), '');
 
 /// Approximate-area map: OpenStreetMap raster tiles centred on the
 /// reference point, with a translucent 5 km radius circle. No API key.
@@ -204,6 +206,14 @@ class _MapPreview extends StatelessWidget {
   });
 
   static const _radiusMeters = 5000.0;
+
+  /// Opens Google Maps on the area (not a pin): centred on the reference
+  /// point at a zoom that shows roughly the same 5 km neighbourhood.
+  Future<void> _openMaps() async {
+    final uri = Uri.parse(
+        'https://www.google.com/maps/@?api=1&map_action=map&center=$lat,$lng&zoom=12&basemap=satellite');
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -223,147 +233,155 @@ class _MapPreview extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-            child: AspectRatio(
-              aspectRatio: 4 / 3,
-              child: LayoutBuilder(builder: (context, box) {
-                final w = box.maxWidth, h = box.maxHeight;
-                // Pick the closest zoom where the 5 km circle fills most
-                // of the shorter side without spilling out.
-                final latRad = lat * math.pi / 180;
-                int z = 13;
-                double mpp(int z) =>
-                    156543.03392 * math.cos(latRad) / math.pow(2, z);
-                while (z > 8 && _radiusMeters / mpp(z) > math.min(w, h) * 0.42) {
-                  z--;
-                }
-                final radiusPx = _radiusMeters / mpp(z);
-                final n = math.pow(2, z).toDouble();
-                final cx = (lng + 180) / 360 * n * 256;
-                final cy = (1 -
-                        math.log(math.tan(latRad) + 1 / math.cos(latRad)) /
-                            math.pi) /
-                    2 *
-                    n *
-                    256;
-                final left = cx - w / 2, top = cy - h / 2;
-                final tiles = <Widget>[];
-                for (int tx = (left / 256).floor();
-                    tx <= ((left + w) / 256).floor();
-                    tx++) {
-                  for (int ty = (top / 256).floor();
-                      ty <= ((top + h) / 256).floor();
-                      ty++) {
-                    if (ty < 0 || ty >= n) continue;
-                    final wx = ((tx % n) + n) % n;
-                    tiles.add(Positioned(
-                      left: tx * 256 - left,
-                      top: ty * 256 - top,
-                      width: 256,
-                      height: 256,
-                      child: Image.network(
-                        'https://tile.openstreetmap.org/$z/${wx.toInt()}/$ty.png',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            Container(color: const Color(0xFFE8ECD9)),
-                      ),
-                    ));
-                  }
-                }
-                return Stack(
-                  clipBehavior: Clip.hardEdge,
-                  children: [
-                    Positioned.fill(
-                        child: Container(color: const Color(0xFFE8ECD9))),
-                    ...tiles,
-                    // 5 km radius circle
-                    Positioned(
-                      left: w / 2 - radiusPx,
-                      top: h / 2 - radiusPx,
-                      width: radiusPx * 2,
-                      height: radiusPx * 2,
-                      child: IgnorePointer(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: ArlColors.accent.withOpacity(0.16),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: ArlColors.accent.withOpacity(0.9),
-                              width: 2,
+          GestureDetector(
+            onTap: _openMaps,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(15)),
+                child: AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: LayoutBuilder(builder: (context, box) {
+                    final w = box.maxWidth, h = box.maxHeight;
+                    // Pick the closest zoom where the 5 km circle fills most
+                    // of the shorter side without spilling out.
+                    final latRad = lat * math.pi / 180;
+                    int z = 13;
+                    double mpp(int z) =>
+                        156543.03392 * math.cos(latRad) / math.pow(2, z);
+                    while (z > 8 &&
+                        _radiusMeters / mpp(z) > math.min(w, h) * 0.42) {
+                      z--;
+                    }
+                    final radiusPx = _radiusMeters / mpp(z);
+                    final n = math.pow(2, z).toDouble();
+                    final cx = (lng + 180) / 360 * n * 256;
+                    final cy = (1 -
+                            math.log(math.tan(latRad) + 1 / math.cos(latRad)) /
+                                math.pi) /
+                        2 *
+                        n *
+                        256;
+                    final left = cx - w / 2, top = cy - h / 2;
+                    final tiles = <Widget>[];
+                    for (int tx = (left / 256).floor();
+                        tx <= ((left + w) / 256).floor();
+                        tx++) {
+                      for (int ty = (top / 256).floor();
+                          ty <= ((top + h) / 256).floor();
+                          ty++) {
+                        if (ty < 0 || ty >= n) continue;
+                        final wx = ((tx % n) + n) % n;
+                        tiles.add(Positioned(
+                          left: tx * 256 - left,
+                          top: ty * 256 - top,
+                          width: 256,
+                          height: 256,
+                          child: Image.network(
+                            'https://tile.openstreetmap.org/$z/${wx.toInt()}/$ty.png',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                Container(color: const Color(0xFFE8ECD9)),
+                          ),
+                        ));
+                      }
+                    }
+                    return Stack(
+                      clipBehavior: Clip.hardEdge,
+                      children: [
+                        Positioned.fill(
+                            child: Container(color: const Color(0xFFE8ECD9))),
+                        ...tiles,
+                        // 5 km radius circle
+                        Positioned(
+                          left: w / 2 - radiusPx,
+                          top: h / 2 - radiusPx,
+                          width: radiusPx * 2,
+                          height: radiusPx * 2,
+                          child: IgnorePointer(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: ArlColors.accent.withOpacity(0.16),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: ArlColors.accent.withOpacity(0.9),
+                                  width: 2,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                    // Radius chip — top-right
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.92),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          '5 km radius',
-                          style: TextStyle(
-                            color: ArlColors.charcoal,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Town tag — bottom-left
-                    Positioned(
-                      bottom: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: ArlColors.accent.withOpacity(0.95),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.location_on_outlined,
-                                color: Colors.white, size: 12),
-                            const SizedBox(width: 4),
-                            Text(
-                              townTag,
-                              style: const TextStyle(
-                                color: Colors.white,
+                        // Radius chip — top-right
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.92),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              '5 km radius · Open in Maps ↗',
+                              style: TextStyle(
+                                color: ArlColors.charcoal,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                    // Attribution — required by the OSM tile policy
-                    Positioned(
-                      bottom: 6,
-                      right: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 1),
-                        color: Colors.white.withOpacity(0.8),
-                        child: const Text(
-                          '© OpenStreetMap contributors',
-                          style: TextStyle(
-                              fontSize: 8, color: ArlColors.charcoal),
+                        // Town tag — bottom-left
+                        Positioned(
+                          bottom: 8,
+                          left: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: ArlColors.accent.withOpacity(0.95),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.location_on_outlined,
+                                    color: Colors.white, size: 12),
+                                const SizedBox(width: 4),
+                                Text(
+                                  townTag,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
-                );
-              }),
+                        // Attribution — required by the OSM tile policy
+                        Positioned(
+                          bottom: 6,
+                          right: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 1),
+                            color: Colors.white.withOpacity(0.8),
+                            child: const Text(
+                              '© OpenStreetMap contributors',
+                              style: TextStyle(
+                                  fontSize: 8, color: ArlColors.charcoal),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ),
+              ),
             ),
           ),
           Padding(
@@ -434,9 +452,7 @@ class _PropTile extends StatelessWidget {
             : ArlColors.sand.withOpacity(0.4),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: emphasize
-              ? ArlColors.accent.withOpacity(0.3)
-              : ArlColors.sand,
+          color: emphasize ? ArlColors.accent.withOpacity(0.3) : ArlColors.sand,
         ),
       ),
       child: Column(
@@ -538,8 +554,7 @@ class _Caption extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.shield_outlined,
-              size: 16, color: ArlColors.primary),
+          const Icon(Icons.shield_outlined, size: 16, color: ArlColors.primary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -618,9 +633,7 @@ class _ViewAreaProfile {
     // Generic fallback — shown for any project we don't have a profile for.
     return _ViewAreaProfile(
       nearestTown: 'the project town',
-      region: fallbackLocation.isNotEmpty
-          ? fallbackLocation
-          : 'Project Region',
+      region: fallbackLocation.isNotEmpty ? fallbackLocation : 'Project Region',
       crops: const [_CropEntry(emoji: '', name: 'TBD', primary: true)],
       totalAcres: 'TBD',
     );

@@ -7,15 +7,12 @@ import 'package:arl_app/core/auth/session_manager.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/providers/repositories.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
+import 'package:arl_app/core/utils/money.dart';
 import 'package:arl_app/core/widgets/async_value_widget.dart';
 import 'package:arl_app/features/activity/activity_provider.dart';
 import 'package:arl_app/features/activity/models/notification.dart';
 
-// Mocks are used for the Activity History (timeline) tab only when the
-// user is NOT signed in (design-preview / demo flow). Once signed in,
-// the timeline shows an empty state until a real backend feed exists.
-import 'package:arl_app/core/mock/mock_data.dart'
-    show MockTimelineEvent, mockTimelineEvents;
+import 'package:arl_app/features/activity/activity_timeline.dart';
 
 class ActivityScreen extends ConsumerStatefulWidget {
   const ActivityScreen({super.key});
@@ -42,7 +39,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
     final unread = notifs.where((n) => !n.isRead).length;
     final title = _showHistory ? 'Activity History' : 'Notifications';
     final subtitle = _showHistory
-        ? 'Payouts & operational events'
+        ? 'Investments, payouts & farm updates'
         : '$unread unread alert${unread == 1 ? '' : 's'}';
 
     return Scaffold(
@@ -365,8 +362,7 @@ class _NotifCard extends StatelessWidget {
                 if (ctaLabel != null && target != null) ...[
                   const SizedBox(height: 6),
                   TextButton(
-                    onPressed:
-                        () => context.push(target),
+                    onPressed: () => context.push(target),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
@@ -417,106 +413,112 @@ class _NotifCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Timeline / History view — backed by mocks for the unauthenticated
-// design-preview flow only. Signed-in users see an empty state until a
-// real activity feed is wired up; we never render demo events on top
-// of a live session.
+// History view — the investor's own timeline from real records:
+// investments, payouts credited and farm updates. Demo mocks only in the
+// signed-out design preview.
 // ─────────────────────────────────────────────────────────────────────────────
-class _TimelineView extends StatelessWidget {
+class _TimelineView extends ConsumerWidget {
   final String filter;
   final ValueChanged<String> onFilter;
   const _TimelineView({required this.filter, required this.onFilter});
 
-  @override
-  Widget build(BuildContext context) {
-    final isLoggedIn = SessionManager.isLoggedIn;
+  static const _filters = [
+    ['all', 'All'],
+    ['farm', 'Farm updates'],
+    ['payout', 'Payouts'],
+    ['investment', 'Investments'],
+  ];
 
-    final items = isLoggedIn
-        ? const <MockTimelineEvent>[]
-        : (mockTimelineEvents
-            .where((e) => filter == 'all' || e.type == filter)
-            .toList()
-          ..sort((a, b) => b.date.compareTo(a.date)));
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isLoggedIn = SessionManager.isLoggedIn;
+    final async = isLoggedIn
+        ? ref.watch(activityTimelineProvider)
+        : AsyncValue.data(demoTimeline());
+
+    if (async.isLoading && !async.hasValue) {
+      return const Center(
+          child: CircularProgressIndicator(color: ArlColors.primary));
+    }
+    final items = (async.valueOrNull ?? const <TimelineEvent>[])
+        .where((e) => filter == 'all' || e.type == filter)
+        .toList();
 
     final monthFmt = DateFormat('MMMM yyyy');
-    final groups = <String, List<MockTimelineEvent>>{};
+    final groups = <String, List<TimelineEvent>>{};
     for (final ev in items) {
       groups.putIfAbsent(monthFmt.format(ev.date), () => []).add(ev);
     }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final f in const [
-                ['all', 'All'],
-                ['operational', 'Operational'],
-                ['payout', 'Payouts'],
-              ])
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: _Chip(
-                    label: f[1],
-                    selected: filter == f[0],
-                    onTap: () => onFilter(f[0]),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (items.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-            child: Column(
+    return RefreshIndicator(
+      onRefresh: () async => ref.invalidate(activityTimelineProvider),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
               children: [
-                Icon(
-                  Icons.history,
-                  size: 36,
-                  color: ArlColors.muted.withOpacity(0.6),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'No activity yet',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: ArlColors.charcoal,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                for (final f in _filters)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _Chip(
+                      label: f[1],
+                      selected: filter == f[0],
+                      onTap: () => onFilter(f[0]),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Payouts and operational events will appear here once they sync.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: ArlColors.muted, fontSize: 12),
-                ),
               ],
             ),
           ),
-        for (final entry in groups.entries) ...[
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 10, top: 4),
-            child: Text(
-              entry.key.toUpperCase(),
-              style: const TextStyle(
-                color: ArlColors.muted,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.7,
+          const SizedBox(height: 16),
+          if (items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+              child: Column(
+                children: [
+                  Icon(Icons.history,
+                      size: 36, color: ArlColors.muted.withOpacity(0.6)),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Nothing here yet',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: ArlColors.charcoal,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Your investments, payouts and farm updates build up here over time.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: ArlColors.muted, fontSize: 12),
+                  ),
+                ],
               ),
             ),
-          ),
-          for (final ev in entry.value) ...[
-            _TimelineItem(event: ev),
-            const SizedBox(height: 10),
+          for (final entry in groups.entries) ...[
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 10, top: 4),
+              child: Text(
+                entry.key.toUpperCase(),
+                style: const TextStyle(
+                  color: ArlColors.muted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.7,
+                ),
+              ),
+            ),
+            for (final ev in entry.value) ...[
+              _TimelineItem(event: ev),
+              const SizedBox(height: 10),
+            ],
+            const SizedBox(height: 6),
           ],
-          const SizedBox(height: 6),
         ],
-      ],
+      ),
     );
   }
 }
@@ -553,12 +555,16 @@ class _Chip extends StatelessWidget {
 }
 
 class _TimelineItem extends StatelessWidget {
-  final MockTimelineEvent event;
+  final TimelineEvent event;
   const _TimelineItem({required this.event});
 
   @override
   Widget build(BuildContext context) {
-    final dotColor = event.type == 'payout' ? ArlColors.gold : ArlColors.accent;
+    final dotColor = switch (event.type) {
+      'payout' => ArlColors.gold,
+      'investment' => ArlColors.primary,
+      _ => ArlColors.accent,
+    };
     final dateFmt = DateFormat('MMM dd, yyyy');
 
     return Row(
@@ -583,60 +589,67 @@ class _TimelineItem extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: ArlColors.sand),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 6,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        event.title,
-                        style: const TextStyle(
-                          color: ArlColors.charcoal,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(15),
+            onTap:
+                event.route == null ? null : () => context.push(event.route!),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: ArlColors.sand),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 6,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          event.title,
+                          style: const TextStyle(
+                            color: ArlColors.charcoal,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                    if (event.amount != null)
-                      Text(
-                        '+₹${event.amount!.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          color: ArlColors.gold,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
+                      if (event.amount != null)
+                        Text(
+                          '+${Money.inr(event.amount!, inline: true)}',
+                          style: const TextStyle(
+                            color: ArlColors.gold,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  event.subtitle,
-                  style: const TextStyle(color: ArlColors.muted, fontSize: 11),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  event.utr != null
-                      ? '${dateFmt.format(event.date)} · UTR: ${event.utr}'
-                      : dateFmt.format(event.date),
-                  style: const TextStyle(color: ArlColors.muted, fontSize: 10),
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    event.subtitle,
+                    style:
+                        const TextStyle(color: ArlColors.muted, fontSize: 11),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    event.utr != null
+                        ? '${dateFmt.format(event.date)} · UTR: ${event.utr}'
+                        : dateFmt.format(event.date),
+                    style:
+                        const TextStyle(color: ArlColors.muted, fontSize: 10),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
