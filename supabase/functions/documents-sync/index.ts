@@ -1,5 +1,8 @@
 // documents-sync — cron-triggered (00:45 UTC / 06:15 IST daily).
 //
+// v15 (2026-09-27): files removed from Zoho are removed from the app
+// (catalog rows only; storage objects kept). Skipped on any fetch error.
+//
 // Mirrors Zoho CRM attachments into the private `arl-documents` bucket
 // and the catalog tables the app reads, so "upload a file in Zoho ->
 // it shows up in the app" works without any manual Studio step.
@@ -99,7 +102,12 @@ function timingSafeEqual(a: string, b: string): boolean {
   return r === 0;
 }
 
-async function getZohoAccessToken(): Promise<string> {
+interface TokenResult {
+  access_token: string;
+  scope?: string;
+}
+
+async function getZohoAccessToken(): Promise<TokenResult> {
   const response = await fetch("https://accounts.zoho.in/oauth/v2/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -114,7 +122,7 @@ async function getZohoAccessToken(): Promise<string> {
   if (!tokenData.access_token) {
     throw new Error(`Zoho token refresh failed: ${JSON.stringify(tokenData)}`);
   }
-  return tokenData.access_token as string;
+  return { access_token: tokenData.access_token as string, scope: tokenData.scope as string | undefined };
 }
 
 interface ZohoAttachment {
@@ -122,22 +130,47 @@ interface ZohoAttachment {
   File_Name: string;
 }
 
-// deno-lint-ignore no-explicit-any
+interface FetchResult {
+  attachments: ZohoAttachment[];
+  error?: string;
+}
+
 async function fetchAttachments(
   accessToken: string,
   module: string,
   recordId: string,
-): Promise<ZohoAttachment[]> {
-  const url = `https://www.zohoapis.in/crm/v3/${module}/${recordId}/Attachments`;
+): Promise<FetchResult> {
+  const url = `https://www.zohoapis.in/crm/v3/${module}/${recordId}/Attachments?fields=id,File_Name,Size,Created_Time`;
   const resp = await fetch(url, {
     headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
   });
+  const text = await resp.text().catch(() => "");
   if (!resp.ok) {
-    console.warn(`Attachments fetch failed (${module}/${recordId}): ${resp.status}`);
-    return [];
+    const errMsg = `${module}/${recordId} status=${resp.status} body=${text.slice(0, 200)}`;
+    console.error(`[documents-sync] fetchAttachments FAILED: ${errMsg}`);
+    return { attachments: [], error: errMsg };
   }
-  const json = await resp.json();
-  return (json.data ?? []) as ZohoAttachment[];
+  // 204 No Content = no attachments on this record.
+  if (!text) {
+    console.log(`[documents-sync] fetchAttachments ${module}/${recordId}: 0 attachment(s) (empty body)`);
+    return { attachments: [] };
+  }
+  let json: { data?: ZohoAttachment[]; code?: string };
+  try {
+    json = JSON.parse(text);
+  } catch {
+    const errMsg = `${module}/${recordId} JSON parse error: ${text.slice(0, 200)}`;
+    console.error(`[documents-sync] fetchAttachments FAILED: ${errMsg}`);
+    return { attachments: [], error: errMsg };
+  }
+  // Zoho returns {"code":"NO_CONTENT",...} with 2xx when there are no attachments.
+  if (json.code === "NO_CONTENT" || !json.data) {
+    console.log(`[documents-sync] fetchAttachments ${module}/${recordId}: 0 attachment(s)`);
+    return { attachments: [] };
+  }
+  const attachments = json.data as ZohoAttachment[];
+  console.log(`[documents-sync] fetchAttachments ${module}/${recordId}: ${attachments.length} attachment(s)`);
+  return { attachments };
 }
 
 async function downloadAttachment(
@@ -145,16 +178,17 @@ async function downloadAttachment(
   module: string,
   recordId: string,
   attachmentId: string,
-): Promise<ArrayBuffer | null> {
+): Promise<{ buf: ArrayBuffer | null; errMsg?: string }> {
   const url = `https://www.zohoapis.in/crm/v3/${module}/${recordId}/Attachments/${attachmentId}`;
   const resp = await fetch(url, {
     headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
   });
   if (!resp.ok) {
-    console.warn(`Download failed for ${attachmentId}: ${resp.status}`);
-    return null;
+    const body = await resp.text().catch(() => "");
+    return { buf: null, errMsg: `${module}/${attachmentId} download status=${resp.status} body=${body.slice(0, 200)}` };
   }
-  return await resp.arrayBuffer();
+  const buf = await resp.arrayBuffer();
+  return { buf };
 }
 
 Deno.serve(async (req: Request) => {
@@ -182,12 +216,15 @@ Deno.serve(async (req: Request) => {
   const startedAt = new Date().toISOString();
 
   try {
-    const accessToken = await getZohoAccessToken();
+    const { access_token: accessToken, scope: tokenScope } = await getZohoAccessToken();
+    console.log(`[documents-sync] token refreshed OK (scope: ${tokenScope ?? "unknown"})`);
 
     let newProjectDocs = 0;
     let newInvestorDocs = 0;
     const affectedProjectIds: string[] = [];
     const notifyInvestorOfDoc: Array<{ investorId: string; name: string }> = [];
+    let removedDocs = 0;
+    const fetchErrors: string[] = [];
 
     // ── PART A: project documents (LLP_Creation_Module attachments) ───
     // NOTE: llp_status lives on `llps`, not `projects` (migration 009
@@ -215,14 +252,27 @@ Deno.serve(async (req: Request) => {
         .not("zoho_file_id", "is", null);
       const seen = new Set((existing ?? []).map((r: { zoho_file_id: string }) => r.zoho_file_id));
 
-      const attachments = await fetchAttachments(accessToken, "LLP_Creation_Module", zohoLlpId);
+      const { attachments, error: attErr } = await fetchAttachments(accessToken, "LLP_Creation_Module", zohoLlpId);
+      if (attErr) fetchErrors.push(attErr);
+      // v15: mirror removals. A file deleted in Zoho disappears from the app.
+      // Only when Zoho answered cleanly (never on a fetch error, so an outage
+      // can't wipe the list). Catalog rows only; storage objects are kept.
+      if (!attErr) {
+        const live = new Set(attachments.map((a) => a.id));
+        const gone = [...seen].filter((id) => !live.has(id as string)) as string[];
+        if (gone.length) {
+          const { error: rmErr } = await supabase.from("project_documents").delete().eq("project_id", project.id).in("zoho_file_id", gone);
+          if (rmErr) fetchErrors.push(`remove project docs ${project.id}: ${rmErr.message}`);
+          else removedDocs += gone.length;
+        }
+      }
       const fresh = attachments.filter((a) => DOC_EXT.test(a.File_Name) && !seen.has(a.id));
 
       let order = 0;
       for (const att of fresh) {
         try {
-          const buf = await downloadAttachment(accessToken, "LLP_Creation_Module", zohoLlpId, att.id);
-          if (!buf) continue;
+          const { buf, errMsg: dlErr } = await downloadAttachment(accessToken, "LLP_Creation_Module", zohoLlpId, att.id);
+          if (!buf) { if (dlErr) fetchErrors.push(dlErr); continue; }
           const ext = att.File_Name.split(".").pop()?.toLowerCase() ?? "pdf";
           const storagePath = `project/${project.id}/${att.id}.${ext}`;
 
@@ -274,13 +324,29 @@ Deno.serve(async (req: Request) => {
         .not("zoho_file_id", "is", null);
       const seen = new Set((existing ?? []).map((r: { zoho_file_id: string }) => r.zoho_file_id));
 
-      const attachments = await fetchAttachments(accessToken, "Contacts", contactId);
+      const { attachments, error: attErr } = await fetchAttachments(accessToken, "Contacts", contactId);
+      if (attErr) fetchErrors.push(attErr);
+      // v15: mirror removals. A file deleted in Zoho disappears from the app.
+      // Only when Zoho answered cleanly (never on a fetch error, so an outage
+      // can't wipe the list). Catalog rows only; storage objects are kept.
+      if (!attErr) {
+        const live = new Set(attachments.map((a) => a.id));
+        const gone = [...seen].filter((id) => !live.has(id as string)) as string[];
+        if (gone.length) {
+          const { error: rmErr } = await supabase.from("documents").delete().eq("investor_id", inv.id).in("zoho_file_id", gone);
+          if (rmErr) fetchErrors.push(`remove investor docs ${inv.id}: ${rmErr.message}`);
+          else removedDocs += gone.length;
+        }
+      }
       const fresh = attachments.filter((a) => DOC_EXT.test(a.File_Name) && !seen.has(a.id));
 
       for (const att of fresh) {
         try {
-          const buf = await downloadAttachment(accessToken, "Contacts", contactId, att.id);
-          if (!buf) continue;
+          const { buf, errMsg: dlErr } = await downloadAttachment(accessToken, "Contacts", contactId, att.id);
+          if (!buf) {
+            fetchErrors.push(dlErr ?? `download null: Contacts/${contactId}/${att.id}`);
+            continue;
+          }
           const ext = att.File_Name.split(".").pop()?.toLowerCase() ?? "pdf";
           const storagePath = `investor/${inv.id}/${att.id}.${ext}`;
 
@@ -288,7 +354,7 @@ Deno.serve(async (req: Request) => {
             .from(BUCKET)
             .upload(storagePath, buf, { contentType: contentTypeFor(ext), upsert: false });
           if (upErr && !upErr.message.includes("already exists")) {
-            console.warn(`Upload failed (${att.id}): ${upErr.message}`);
+            fetchErrors.push(`storage upload failed (${att.id}): ${upErr.message}`);
             continue;
           }
 
@@ -305,13 +371,13 @@ Deno.serve(async (req: Request) => {
           });
           // 23505 = unique_violation: a concurrent run already inserted it.
           if (insErr && insErr.code !== "23505") {
-            console.warn(`Doc insert failed (${att.id}): ${insErr.message}`);
+            fetchErrors.push(`insert failed (${att.id}): code=${insErr.code} msg=${insErr.message}`);
             continue;
           }
           newInvestorDocs++;
           notifyInvestorOfDoc.push({ investorId: inv.id as string, name: att.File_Name });
         } catch (e) {
-          console.warn(`Personal doc error ${att.id}:`, e);
+          fetchErrors.push(`personal doc exception ${att.id}: ${e instanceof Error ? e.message : String(e)}`);
         }
       }
     }
@@ -359,6 +425,8 @@ Deno.serve(async (req: Request) => {
         investors_scanned: (investors ?? []).length,
         new_project_docs: newProjectDocs,
         new_investor_docs: newInvestorDocs,
+        removed_docs: removedDocs,
+        fetch_errors: fetchErrors,
       },
       status: "processed",
       received_at: startedAt,
@@ -368,9 +436,12 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         status: "ok",
+        token_scope: tokenScope ?? "unknown",
         new_project_docs: newProjectDocs,
         new_investor_docs: newInvestorDocs,
         affected_projects: affectedProjectIds.length,
+        removed_docs: removedDocs,
+        fetch_errors: fetchErrors,
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
