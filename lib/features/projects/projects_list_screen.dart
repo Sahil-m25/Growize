@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:arl_app/core/theme/arl_colors.dart';
+import 'package:arl_app/features/projects/project_cover.dart';
 import 'package:arl_app/core/utils/money.dart';
 import 'package:arl_app/core/widgets/skel_box.dart';
 import 'package:arl_app/core/widgets/async_value_widget.dart';
@@ -163,7 +164,7 @@ class ProjectsListScreen extends ConsumerWidget {
 
 /// A single project tile — hero photo + status + tier overlays, body with
 /// crop chip, units, invested, progress bar, next-payout footer.
-class _ProjectTile extends StatelessWidget {
+class _ProjectTile extends ConsumerWidget {
   final Project project;
   final InvestorUnit? investorUnit;
 
@@ -207,8 +208,11 @@ class _ProjectTile extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final hero = project.id.isNotEmpty ? _heroUrl : null;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hero = project.id.isNotEmpty
+        ? (ref.watch(projectCoverUrlProvider(project.id)).valueOrNull ??
+            _heroUrl)
+        : null;
     final units = investorUnit?.issuedUnits.toString() ?? '—';
     final invested = investorUnit == null
         ? null

@@ -56,7 +56,7 @@ class ProjectPhotosScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Photos',
+              'Gallery',
               style: TextStyle(
                 color: ArlColors.charcoal,
                 fontSize: 16,

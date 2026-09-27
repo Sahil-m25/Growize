@@ -60,8 +60,8 @@ class ProjectActionTiles extends StatelessWidget {
             child: _Tile(
               icon: Icons.photo_library_outlined,
               tint: photosLocked ? ArlColors.muted : ArlColors.primary,
-              label: 'Photos',
-              caption: photosLocked ? 'After setup' : 'Daily 9 AM IST',
+              label: 'Gallery',
+              caption: photosLocked ? 'After setup' : 'Farm photos',
               disabled: photosLocked,
               onTap: photosLocked
                   ? null

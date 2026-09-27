@@ -47,7 +47,7 @@ class GalleryScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Photos',
+              'Gallery',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -55,7 +55,7 @@ class GalleryScreen extends ConsumerWidget {
               ),
             ),
             Text(
-              'Daily 9:00 AM IST · Last 30 days',
+              'Farm photos',
               style: TextStyle(
                 color: Colors.white.withOpacity(0.6),
                 fontSize: 11,
@@ -77,22 +77,6 @@ class GalleryScreen extends ConsumerWidget {
 
           return Column(
             children: [
-              Container(
-                color: Colors.black.withOpacity(0.15),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    Icon(Icons.camera_alt_outlined,
-                        color: Colors.white.withOpacity(0.6), size: 14),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Photos captured daily at 9:00 AM IST',
-                      style: TextStyle(
-                          color: Colors.white.withOpacity(0.6), fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.symmetric(vertical: 8),

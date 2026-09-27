@@ -20,6 +20,7 @@ import 'package:arl_app/features/projects/models/project_update.dart';
 import 'package:arl_app/features/projects/widgets/phase_timeline_6.dart';
 import 'package:arl_app/features/projects/widgets/project_action_tiles.dart';
 import 'package:arl_app/features/projects/widgets/project_hero_banner.dart';
+import 'package:arl_app/features/projects/project_cover.dart';
 import 'package:arl_app/features/projects/widgets/project_stats_grid.dart';
 import 'projects_provider.dart';
 
@@ -267,7 +268,8 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
                 ProjectHeroBanner(
                   name: project.name,
                   location: project.location,
-                  imageUrl: _heroImageFor(project),
+                  imageUrl: ref.watch(projectCoverUrlProvider(project.id)).valueOrNull ??
+                      _heroImageFor(project),
                   initials: project.initials,
                   fallbackTint: brand.withOpacity(0.35),
                   onBack: () {
