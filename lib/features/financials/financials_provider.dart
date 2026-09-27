@@ -92,8 +92,8 @@ final scopedPortfolioProvider = FutureProvider<PortfolioSummary>((ref) async {
       avgAnnualYieldPct: iu.annualYieldPct,
       nextPayoutAmount: 0,
       nextPayoutDate: iu.nextPayoutDate ?? base.nextPayoutDate,
-      roiPercent:
-          invested > 0 ? (projectPayoutsTotal / invested) * 100 : 0,
+      // Expected annual return agreed for this allotment.
+      roiPercent: iu.annualYieldPct,
       annualReturns: 0,
     );
   } catch (_) {

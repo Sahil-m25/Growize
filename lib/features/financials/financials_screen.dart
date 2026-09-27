@@ -98,40 +98,6 @@ class FinancialsScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Tax-free banner
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: ArlColors.accent.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: ArlColors.accent.withOpacity(0.3),
-                          ),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.verified_user,
-                              color: ArlColors.accent,
-                              size: 18,
-                            ),
-                            SizedBox(width: 10),
-                            Text(
-                              'Tax-Free under Sec 10(2A)',
-                              style: TextStyle(
-                                color: ArlColors.primary,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
                     // 2-col summary cards
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -214,7 +180,7 @@ class FinancialsScreen extends ConsumerWidget {
                                           ),
                                           const SizedBox(height: 6),
                                           Text(
-                                            Money.inr(p.totalReceived),
+                                            p.totalReceived > 0 ? Money.inr(p.totalReceived) : 'YTD',
                                             style: const TextStyle(
                                               color: Colors.white,
                                               fontSize: 16,
@@ -258,7 +224,7 @@ class FinancialsScreen extends ConsumerWidget {
                                           ),
                                           const SizedBox(height: 6),
                                           Text(
-                                            Money.inr(thisFy),
+                                            thisFy > 0 ? Money.inr(thisFy) : 'YTD',
                                             style: const TextStyle(
                                               color: ArlColors.charcoal,
                                               fontSize: 16,

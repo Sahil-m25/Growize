@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
 import 'package:arl_app/core/utils/money.dart';
 import 'package:arl_app/features/home/models/portfolio_summary.dart';
+import 'package:arl_app/features/home/investor_terms.dart';
 
 /// Quick Stats row under the Portfolio hero card.
 ///
@@ -127,14 +129,18 @@ class _ActiveUnitsCard extends StatelessWidget {
 ///
 /// When no payout is scheduled, the card still renders so the row
 /// doesn't collapse — body shows a calm "No payout scheduled" state.
-class _NextPayoutCard extends StatelessWidget {
+class _NextPayoutCard extends ConsumerWidget {
   final PortfolioSummary portfolio;
   final bool hasPayout;
   const _NextPayoutCard({required this.portfolio, required this.hasPayout});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final dateFormatter = DateFormat('MMM dd, yyyy');
+    // No ledger payout yet: derive the first payout from the investor's
+    // own term (10th day of the 7th month from full payment).
+    final derived =
+        hasPayout ? null : ref.watch(nextPayoutInfoProvider).valueOrNull;
 
     return GestureDetector(
       onTap: () => context.go(RouteNames.financials),
@@ -166,7 +172,11 @@ class _NextPayoutCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              hasPayout ? Money.inr(portfolio.nextPayoutAmount) : '—',
+              hasPayout
+                  ? Money.inr(portfolio.nextPayoutAmount)
+                  : derived != null
+                      ? DateFormat('d MMM yyyy').format(derived.date)
+                      : '—',
               style: const TextStyle(
                 color: ArlColors.charcoal,
                 fontSize: 16,
@@ -180,6 +190,11 @@ class _NextPayoutCard extends StatelessWidget {
                     ? dateFormatter.format(portfolio.nextPayoutDate!)
                     : 'Date to be confirmed',
                 projectName: portfolio.nextPayoutProjectName,
+              )
+            else if (derived != null)
+              _PayoutSubLine(
+                date: 'First payout',
+                projectName: derived.projectName,
               )
             else
               const Text(

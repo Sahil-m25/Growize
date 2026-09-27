@@ -11,6 +11,7 @@ abstract final class RouteNames {
   static const String gallery = '/gallery';
   static const String documents = '/documents';
   static const String activity = '/activity';
+  static const String updates = '/updates';
   static const String profile = '/profile';
   static const String support = '/support';
   static const String exit = '/exit';

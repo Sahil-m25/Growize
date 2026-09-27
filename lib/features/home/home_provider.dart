@@ -6,6 +6,8 @@ import 'package:arl_app/core/providers/repositories.dart';
 import 'package:arl_app/core/supabase/supabase_client.dart';
 import 'package:arl_app/features/auth/auth_provider.dart';
 import 'package:arl_app/features/home/models/portfolio_summary.dart';
+import 'package:arl_app/features/home/investor_terms.dart';
+import 'package:arl_app/features/projects/projects_provider.dart';
 
 /// Portfolio summary shown on the dashboard.
 ///
@@ -27,14 +29,10 @@ final portfolioSummaryProvider = FutureProvider<PortfolioSummary>((ref) async {
       final real = await trackedFetch(
           ref, () => financials.portfolioSummary(investorName: name));
       if (real == null) return PortfolioSummary.empty(investorName: name);
-      // Override roi_pct with the fixed value from the investor record
-      // so it reflects what was set manually, not the payouts calculation.
-      final raw = investor?['roi_pct'];
-      final fixedRoi = raw == null
-          ? 0.0
-          : raw is num
-              ? raw.toDouble()
-              : double.tryParse(raw.toString()) ?? 0.0;
+      // Annual return = the investor's agreed (expected) yield, capital-
+      // weighted across their allotments (Zoho "Annual Rental Yield").
+      final units = await ref.watch(investorUnitsListProvider.future);
+      final fixedRoi = expectedAnnualRoi(units) ?? 0.0;
       return real.copyWith(roiPercent: fixedRoi);
     } catch (_) {
       return PortfolioSummary.empty(investorName: name);

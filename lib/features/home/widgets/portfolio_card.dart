@@ -7,6 +7,7 @@ import 'package:arl_app/core/connectivity/sync_state.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/core/utils/money.dart';
 import 'package:arl_app/features/home/models/portfolio_summary.dart';
+import 'package:arl_app/features/home/investor_terms.dart';
 
 class PortfolioCard extends ConsumerStatefulWidget {
   final PortfolioSummary portfolio;
@@ -191,7 +192,9 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                           const SizedBox(height: 8),
                           Text(
                             _showValues
-                                ? '+${Money.inr(widget.portfolio.totalReceived, inline: true)}'
+                                ? (widget.portfolio.totalReceived > 0
+                                    ? '+${Money.inr(widget.portfolio.totalReceived, inline: true)}'
+                                    : 'YTD')
                                 : '••••••',
                             style: const TextStyle(
                               color: ArlColors.goldLight,
@@ -221,7 +224,9 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${widget.portfolio.roiPercent}%',
+                          widget.portfolio.roiPercent > 0
+                              ? formatPct(widget.portfolio.roiPercent.toDouble())
+                              : '—',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -229,49 +234,12 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                           ),
                         ),
                         Text(
-                          'Annual ROI',
+                          'Expected annual return',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.6),
                             fontSize: 10,
                           ),
                         ),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        // Only claim "Outperforming" (and surface the 12%
-                        // Nifty benchmark) when the ROI actually exceeds 12%.
-                        // Below that we say nothing rather than imply a
-                        // comparison we can't stand behind.
-                        if (widget.portfolio.roiPercent > 12) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: ArlColors.gold.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'Outperforming',
-                              style: TextStyle(
-                                color: ArlColors.goldLight,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'vs 12% Nifty',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.6),
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ],

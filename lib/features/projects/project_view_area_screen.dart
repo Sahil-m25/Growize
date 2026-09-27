@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:arl_app/core/navigation/route_names.dart';
+import 'package:arl_app/core/supabase/supabase_client.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/features/projects/projects_provider.dart';
 // GrowingTechSection widget removed from this screen but the
@@ -10,22 +13,55 @@ import 'package:arl_app/features/projects/projects_provider.dart';
 // keying consistent — that's why the import stays.
 import 'package:arl_app/features/projects/widgets/growing_tech_section.dart';
 
-/// "View Area" — the rich geography + property sub-screen pushed from
-/// the project detail page. Mirrors `#page-location` in the HTML mockup
-/// with the v3 R3 ordering:
+/// "View Area" — approximate farm location and property basics, pushed
+/// from the project detail page:
 ///
-///   1. AppBar (back + project name)
-///   2. Map preview (SVG-styled container with circular overlay)
-///   3. "Within 5 km of <town>" tag
-///   4. GrowingTechSection (moved out of detail)
-///   5. Crops Grown bullets
-///   6. Climate Control summary (year-round, temp, humidity)
-///   7. Acreage / Property (total + cultivated + infra line)
-///   8. Caption — exact address shared post-allocation
+///   1. Map: OpenStreetMap tiles centred on the project's reference
+///      point (projects.latitude/longitude) with a 5 km radius circle.
+///   2. Property: total area from projects.acreage_acres.
+///   3. Caption — exact address shared post-allocation.
 ///
-/// All location-specific values are mocked for v1 — the columns are
-/// documented in `docs/ops/data_sources_guide.md` and will switch to
-/// Supabase reads once the migration lands.
+/// Falls back to the mock profile for demo projects without coordinates.
+class _ProjectGeo {
+  final double? lat;
+  final double? lng;
+  final double? acres;
+  final String? town;
+  final String? state;
+  const _ProjectGeo({this.lat, this.lng, this.acres, this.town, this.state});
+}
+
+double? _num(dynamic v) =>
+    v == null ? null : (v is num ? v.toDouble() : double.tryParse('$v'));
+
+final _projectGeoProvider =
+    FutureProvider.family<_ProjectGeo?, String>((ref, id) async {
+  final client = ArlSupabase.client;
+  if (client == null || id.startsWith('demo:')) return null;
+  try {
+    final row = await client
+        .from('projects')
+        .select('latitude, longitude, acreage_acres, city, state')
+        .eq('id', id)
+        .maybeSingle();
+    if (row == null) return null;
+    return _ProjectGeo(
+      lat: _num(row['latitude']),
+      lng: _num(row['longitude']),
+      acres: _num(row['acreage_acres']),
+      town: row['city'] as String?,
+      state: row['state'] as String?,
+    );
+  } catch (_) {
+    return null;
+  }
+});
+
+/// Reference point used until a project has its own coordinates
+/// (Talakad, Karnataka).
+const _defaultLat = 12.1810843;
+const _defaultLng = 77.0391754;
+
 class ProjectViewAreaScreen extends ConsumerWidget {
   final String projectId;
 
@@ -52,6 +88,7 @@ class ProjectViewAreaScreen extends ConsumerWidget {
           );
         }
 
+        final geo = ref.watch(_projectGeoProvider(project.id)).valueOrNull;
         final profile = _ViewAreaProfile.forProject(
           projectId: project.id,
           fallbackLocation: project.location,
@@ -114,25 +151,26 @@ class ProjectViewAreaScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _MapPreview(
-                    townTag: 'Within 5 km of ${profile.nearestTown}',
-                    areaLabel: profile.region,
+                    lat: geo?.lat ?? _defaultLat,
+                    lng: geo?.lng ?? _defaultLng,
+                    townTag:
+                        'Within 5 km of ${geo?.town ?? profile.nearestTown}',
+                    areaLabel: geo?.town != null
+                        ? [geo!.town, geo.state]
+                            .whereType<String>()
+                            .where((e) => e.isNotEmpty)
+                            .join(', ')
+                        : profile.region,
                   ),
                   const SizedBox(height: 16),
-                  // Growing Technology section removed per UX call — the
-                  // tech specs are covered during the onboarding call.
-                  // Crops card removed — basic info only (no crops shown).
-                  _ClimateCard(
-                    cycle: profile.climateCycle,
-                    temp: profile.climateTemp,
-                    humidity: profile.climateHumidity,
-                  ),
-                  const SizedBox(height: 16),
-                  _AcreageCard(
-                    totalAcres: profile.totalAcres,
-                    cultivatedAcres: profile.cultivatedAcres,
-                    infrastructure: profile.infrastructure,
-                  ),
-                  const SizedBox(height: 16),
+                  if (geo?.acres != null || profile.totalAcres != 'TBD') ...[
+                    _AcreageCard(
+                      totalAcres: geo?.acres != null
+                          ? '${_trimAcres(geo!.acres!)} acres'
+                          : profile.totalAcres,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   const _Caption(
                     text:
                         'Approximate location — exact address shared post-allocation.',
@@ -147,14 +185,25 @@ class ProjectViewAreaScreen extends ConsumerWidget {
   }
 }
 
-/// Map preview — SVG-styled placeholder with a translucent radius
-/// circle, "1 km" scale chip, and a region tag overlay. No Google
-/// Maps key required.
+String _trimAcres(double a) =>
+    a == a.roundToDouble() ? a.toStringAsFixed(0) : a.toStringAsFixed(2).replaceAll(RegExp(r'0$'), '');
+
+/// Approximate-area map: OpenStreetMap raster tiles centred on the
+/// reference point, with a translucent 5 km radius circle. No API key.
 class _MapPreview extends StatelessWidget {
+  final double lat;
+  final double lng;
   final String townTag;
   final String areaLabel;
 
-  const _MapPreview({required this.townTag, required this.areaLabel});
+  const _MapPreview({
+    required this.lat,
+    required this.lng,
+    required this.townTag,
+    required this.areaLabel,
+  });
+
+  static const _radiusMeters = 5000.0;
 
   @override
   Widget build(BuildContext context) {
@@ -177,109 +226,146 @@ class _MapPreview extends StatelessWidget {
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
             child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Terrain-style gradient
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: RadialGradient(
-                        center: Alignment.center,
-                        radius: 0.9,
-                        colors: [
-                          Color(0xFFE8ECD9),
-                          Color(0xFFCDD6C7),
-                        ],
+              aspectRatio: 4 / 3,
+              child: LayoutBuilder(builder: (context, box) {
+                final w = box.maxWidth, h = box.maxHeight;
+                // Pick the closest zoom where the 5 km circle fills most
+                // of the shorter side without spilling out.
+                final latRad = lat * math.pi / 180;
+                int z = 13;
+                double mpp(int z) =>
+                    156543.03392 * math.cos(latRad) / math.pow(2, z);
+                while (z > 8 && _radiusMeters / mpp(z) > math.min(w, h) * 0.42) {
+                  z--;
+                }
+                final radiusPx = _radiusMeters / mpp(z);
+                final n = math.pow(2, z).toDouble();
+                final cx = (lng + 180) / 360 * n * 256;
+                final cy = (1 -
+                        math.log(math.tan(latRad) + 1 / math.cos(latRad)) /
+                            math.pi) /
+                    2 *
+                    n *
+                    256;
+                final left = cx - w / 2, top = cy - h / 2;
+                final tiles = <Widget>[];
+                for (int tx = (left / 256).floor();
+                    tx <= ((left + w) / 256).floor();
+                    tx++) {
+                  for (int ty = (top / 256).floor();
+                      ty <= ((top + h) / 256).floor();
+                      ty++) {
+                    if (ty < 0 || ty >= n) continue;
+                    final wx = ((tx % n) + n) % n;
+                    tiles.add(Positioned(
+                      left: tx * 256 - left,
+                      top: ty * 256 - top,
+                      width: 256,
+                      height: 256,
+                      child: Image.network(
+                        'https://tile.openstreetmap.org/$z/${wx.toInt()}/$ty.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            Container(color: const Color(0xFFE8ECD9)),
                       ),
-                    ),
-                  ),
-                  // Faint grid overlay to mimic the SVG map look.
-                  const _GridOverlay(),
-                  // Translucent circle marking approximate area (5 km).
-                  Center(
-                    child: Container(
-                      width: 180,
-                      height: 180,
-                      decoration: BoxDecoration(
-                        color: ArlColors.accent.withOpacity(0.18),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: ArlColors.accent.withOpacity(0.9),
-                          width: 2,
+                    ));
+                  }
+                }
+                return Stack(
+                  clipBehavior: Clip.hardEdge,
+                  children: [
+                    Positioned.fill(
+                        child: Container(color: const Color(0xFFE8ECD9))),
+                    ...tiles,
+                    // 5 km radius circle
+                    Positioned(
+                      left: w / 2 - radiusPx,
+                      top: h / 2 - radiusPx,
+                      width: radiusPx * 2,
+                      height: radiusPx * 2,
+                      child: IgnorePointer(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: ArlColors.accent.withOpacity(0.16),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: ArlColors.accent.withOpacity(0.9),
+                              width: 2,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  // 5 km scale chip — top-right
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            width: 18,
-                            child: Divider(
-                              color: ArlColors.charcoal,
-                              thickness: 2,
-                              height: 2,
-                            ),
+                    // Radius chip — top-right
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.92),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          '5 km radius',
+                          style: TextStyle(
+                            color: ArlColors.charcoal,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
                           ),
-                          SizedBox(width: 4),
-                          Text(
-                            '5 km',
-                            style: TextStyle(
-                              color: ArlColors.charcoal,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                  // Town tag — bottom-left
-                  Positioned(
-                    bottom: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: ArlColors.accent.withOpacity(0.95),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.location_on_outlined,
-                              color: Colors.white, size: 12),
-                          const SizedBox(width: 4),
-                          Text(
-                            townTag,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
+                    // Town tag — bottom-left
+                    Positioned(
+                      bottom: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: ArlColors.accent.withOpacity(0.95),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.location_on_outlined,
+                                color: Colors.white, size: 12),
+                            const SizedBox(width: 4),
+                            Text(
+                              townTag,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                    // Attribution — required by the OSM tile policy
+                    Positioned(
+                      bottom: 6,
+                      right: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 1),
+                        color: Colors.white.withOpacity(0.8),
+                        child: const Text(
+                          '© OpenStreetMap contributors',
+                          style: TextStyle(
+                              fontSize: 8, color: ArlColors.charcoal),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }),
             ),
           ),
-          // Caption strip under the map
           Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -307,119 +393,10 @@ class _MapPreview extends StatelessWidget {
   }
 }
 
-/// Faint cross-hatch grid drawn over the terrain gradient — keeps the
-/// map placeholder from looking flat without pulling in a tile-server.
-class _GridOverlay extends StatelessWidget {
-  const _GridOverlay();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(painter: _GridPainter(), size: Size.infinite);
-  }
-}
-
-class _GridPainter extends CustomPainter {
-  static final _paint = Paint()
-    ..color = const Color(0xFFCDD6C7).withOpacity(0.55)
-    ..strokeWidth = 0.5;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const step = 28.0;
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), _paint);
-    }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), _paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _ClimateCard extends StatelessWidget {
-  final String cycle;
-  final String temp;
-  final String humidity;
-
-  const _ClimateCard({
-    required this.cycle,
-    required this.temp,
-    required this.humidity,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return _SectionCard(
-      icon: Icons.thermostat,
-      iconColor: ArlColors.primary,
-      title: 'Climate Control',
-      child: Row(
-        children: [
-          Expanded(child: _ClimateTile(label: 'Growing', value: cycle)),
-          const SizedBox(width: 8),
-          Expanded(child: _ClimateTile(label: 'Temp', value: temp)),
-          const SizedBox(width: 8),
-          Expanded(child: _ClimateTile(label: 'Humidity', value: humidity)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ClimateTile extends StatelessWidget {
-  final String label;
-  final String value;
-  const _ClimateTile({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-      decoration: BoxDecoration(
-        color: ArlColors.sand.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: ArlColors.sand),
-      ),
-      child: Column(
-        children: [
-          Text(
-            label.toUpperCase(),
-            style: const TextStyle(
-              color: ArlColors.muted,
-              fontSize: 9,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.4,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: ArlColors.charcoal,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              height: 1.1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _AcreageCard extends StatelessWidget {
   final String totalAcres;
-  final String cultivatedAcres;
-  final String infrastructure;
 
-  const _AcreageCard({
-    required this.totalAcres,
-    required this.cultivatedAcres,
-    required this.infrastructure,
-  });
+  const _AcreageCard({required this.totalAcres});
 
   @override
   Widget build(BuildContext context) {
@@ -427,54 +404,10 @@ class _AcreageCard extends StatelessWidget {
       icon: Icons.layers_outlined,
       iconColor: ArlColors.primary,
       title: 'Property',
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _PropTile(
-                  label: 'Total Area',
-                  value: totalAcres,
-                  emphasize: false,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _PropTile(
-                  label: 'Under Cultivation',
-                  value: cultivatedAcres,
-                  emphasize: true,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: ArlColors.primary.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.warehouse_outlined,
-                    size: 14, color: ArlColors.primary),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    infrastructure,
-                    style: const TextStyle(
-                      color: ArlColors.charcoal,
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+      child: _PropTile(
+        label: 'Total Area',
+        value: totalAcres,
+        emphasize: true,
       ),
     );
   }
@@ -627,28 +560,18 @@ class _Caption extends StatelessWidget {
 /// Lightweight bag of mock copy used to populate the View Area page.
 /// Real values come from new `projects.*` columns documented in
 /// `docs/ops/data_sources_guide.md` (growing_method, crops_grown,
-/// climate_summary, acreage_acres, cultivated_acres, infra_summary...).
+/// acreage_acres, latitude, longitude, city, state).
 class _ViewAreaProfile {
   final String nearestTown;
   final String region;
   final List<_CropEntry> crops;
-  final String climateCycle;
-  final String climateTemp;
-  final String climateHumidity;
   final String totalAcres;
-  final String cultivatedAcres;
-  final String infrastructure;
 
   const _ViewAreaProfile({
     required this.nearestTown,
     required this.region,
     required this.crops,
-    required this.climateCycle,
-    required this.climateTemp,
-    required this.climateHumidity,
     required this.totalAcres,
-    required this.cultivatedAcres,
-    required this.infrastructure,
   });
 
   static _ViewAreaProfile forProject({
@@ -666,13 +589,7 @@ class _ViewAreaProfile {
             ? fallbackLocation
             : 'Pune Region, Maharashtra',
         crops: const [_CropEntry(emoji: '', name: 'TBD', primary: true)],
-        climateCycle: 'N/A',
-        climateTemp: 'N/A',
-        climateHumidity: 'N/A',
         totalAcres: '8.2 acres',
-        cultivatedAcres: '5.4 acres',
-        infrastructure:
-            'Polyhouse infrastructure with shade nets & vertical racking',
       );
     }
 
@@ -683,13 +600,7 @@ class _ViewAreaProfile {
             ? fallbackLocation
             : 'Nashik Region, Maharashtra',
         crops: const [_CropEntry(emoji: '', name: 'TBD', primary: true)],
-        climateCycle: 'N/A',
-        climateTemp: 'N/A',
-        climateHumidity: 'N/A',
         totalAcres: '12.4 acres',
-        cultivatedAcres: '9.1 acres',
-        infrastructure:
-            'Hydroponic NFT + DWC channels with trellised vine rows',
       );
     }
 
@@ -700,13 +611,7 @@ class _ViewAreaProfile {
             ? fallbackLocation
             : 'Lonavala Region, Maharashtra',
         crops: const [_CropEntry(emoji: '', name: 'TBD', primary: true)],
-        climateCycle: 'N/A',
-        climateTemp: 'N/A',
-        climateHumidity: 'N/A',
         totalAcres: '6.0 acres',
-        cultivatedAcres: '3.2 acres',
-        infrastructure:
-            'Vertical aeroponic towers in climate-controlled polyhouse',
       );
     }
 
@@ -717,13 +622,7 @@ class _ViewAreaProfile {
           ? fallbackLocation
           : 'Project Region',
       crops: const [_CropEntry(emoji: '', name: 'TBD', primary: true)],
-      climateCycle: 'N/A',
-      climateTemp: 'N/A',
-      climateHumidity: 'N/A',
       totalAcres: 'TBD',
-      cultivatedAcres: 'TBD',
-      infrastructure:
-          'Controlled environment agriculture with smart irrigation',
     );
   }
 }

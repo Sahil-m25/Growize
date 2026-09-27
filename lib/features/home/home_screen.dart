@@ -5,6 +5,7 @@ import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/core/widgets/skel_box.dart';
 import 'package:arl_app/core/widgets/async_value_widget.dart';
 import 'package:arl_app/features/celebration/celebration_trigger.dart';
+import 'package:arl_app/features/updates/updates.dart';
 import 'package:arl_app/features/financials/financials_provider.dart';
 import 'package:arl_app/features/home/home_provider.dart';
 import 'package:arl_app/features/home/models/portfolio_summary.dart';
@@ -153,6 +154,9 @@ class HomeScreen extends ConsumerWidget {
           ProjectProgressCard(key: TourKeys.projectProgressCard),
           const SizedBox(height: 12),
           QuickStatsRow(key: TourKeys.quickStatsRow, portfolio: cached),
+          const SizedBox(height: 12),
+          // Farm updates moved here from each project page.
+          const HomeUpdatesCard(),
           const SizedBox(height: 24),
         ],
       );

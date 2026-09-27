@@ -275,7 +275,7 @@ class _NotifCard extends StatelessWidget {
         return 'View Details';
       case 'milestone':
       case 'phase_update':
-        return 'View Project';
+        return 'View update';
       default:
         return null;
     }
@@ -289,7 +289,12 @@ class _NotifCard extends StatelessWidget {
     final ctaRoute = _ctaRouteFromMetadata(notif.metadata);
     final imageUrl = _imageFromMetadata(notif.metadata);
 
-    return Container(
+    // Whole card is tappable. Stage/update notifications open the farm
+    // updates; everything else follows its own link.
+    final target = (notif.type == 'phase_update' || notif.type == 'milestone')
+        ? RouteNames.updates
+        : ctaRoute;
+    final card = Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: tint.withOpacity(0.08),
@@ -357,11 +362,11 @@ class _NotifCard extends StatelessWidget {
                   ),
                 ],
                 // No route -> no button (was a dead, disabled CTA).
-                if (ctaLabel != null && ctaRoute != null) ...[
+                if (ctaLabel != null && target != null) ...[
                   const SizedBox(height: 6),
                   TextButton(
                     onPressed:
-                        () => context.push(ctaRoute),
+                        () => context.push(target),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
@@ -397,6 +402,15 @@ class _NotifCard extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+    if (target == null) return card;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(15),
+        onTap: () => context.push(target),
+        child: card,
       ),
     );
   }

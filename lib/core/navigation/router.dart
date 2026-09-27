@@ -37,6 +37,7 @@ import 'package:arl_app/features/auth/setup_biometric_screen.dart';
 import 'package:arl_app/features/auth/setup_screen.dart';
 import 'package:arl_app/features/legal/legal_document_screen.dart';
 import 'package:arl_app/features/celebration/celebration_screen.dart';
+import 'package:arl_app/features/updates/updates.dart';
 
 /// Routes that don't require auth — visible to anonymous users.
 const _publicRoutes = <String>{
@@ -277,6 +278,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: RouteNames.activity,
             builder: (context, state) => const ActivityScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.updates,
+            builder: (context, state) => const UpdatesScreen(),
+          ),
+          GoRoute(
+            path: '${RouteNames.updates}/:id',
+            builder: (context, state) =>
+                UpdateDetailScreen(updateId: state.pathParameters['id'] ?? ''),
           ),
           GoRoute(
             path: RouteNames.profile,

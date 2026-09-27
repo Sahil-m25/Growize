@@ -252,7 +252,6 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
         final phases = phasesAsync.valueOrNull ?? const <ProjectPhase>[];
         final stageIdx = _stageIndexFor(project, phases);
         final phaseDates = _phaseDatesFor(project, phases, stageIdx);
-        final updatesAsync = ref.watch(projectUpdatesProvider(project.id));
         final allocationAsync =
             ref.watch(investorAllocationProvider(project.id));
         final allocation = allocationAsync.valueOrNull;
@@ -344,11 +343,7 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
                     ),
                   ),
 
-                // 5) Monthly Updates — narrative posts from Supabase.
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: _MonthlyUpdatesCard(updatesAsync: updatesAsync),
-                ),
+                // Monthly Updates moved to Home + the Updates page.
 
                 // 6) Recent Payouts mini-list — moved BELOW Monthly Updates
                 // per UX call. Top 3 + "View all" → financials.
