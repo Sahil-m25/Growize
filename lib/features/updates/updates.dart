@@ -27,7 +27,7 @@ final allUpdatesProvider = FutureProvider<List<ProjectUpdate>>((ref) async {
         .select()
         .order('update_date', ascending: false)
         .order('created_at', ascending: false)
-        .limit(50);
+        .limit(200);
     return (rows as List)
         .map((r) => ProjectUpdate.fromJson(Map<String, dynamic>.from(r as Map)))
         .toList();
@@ -236,24 +236,68 @@ AppBar _appBar(BuildContext context, String title) => AppBar(
     );
 
 /// Every farm update, newest first. Each card opens its detail page.
-class UpdatesScreen extends ConsumerWidget {
-  const UpdatesScreen({super.key});
+/// Full history of farm updates. A row of chips filters by project;
+/// opening it from a project page (`/updates?project=<id>`) starts on
+/// that project.
+class UpdatesScreen extends ConsumerStatefulWidget {
+  final String? initialProjectId;
+  const UpdatesScreen({this.initialProjectId, super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(allUpdatesProvider);
+  ConsumerState<UpdatesScreen> createState() => _UpdatesScreenState();
+}
+
+class _UpdatesScreenState extends ConsumerState<UpdatesScreen> {
+  late String? _projectId = widget.initialProjectId;
+
+  @override
+  Widget build(BuildContext context) {
+    final async = ref.watch(allUpdatesProvider).whenData((all) => _projectId ==
+            null
+        ? all
+        : all.where((u) => u.projectId == _projectId).toList());
     final names = ref.watch(_projectNamesProvider);
+    final projectIds = {
+      ...?ref.watch(allUpdatesProvider).valueOrNull?.map((u) => u.projectId),
+      if (_projectId != null) _projectId!,
+    }.where((id) => names.containsKey(id)).toList()
+      ..sort((a, b) => names[a]!.compareTo(names[b]!));
     return Scaffold(
       backgroundColor: ArlColors.cream,
-      appBar: _appBar(context, 'Farm updates'),
-      body: async.when(
+      appBar: _appBar(context,
+          _projectId != null && names[_projectId] != null
+              ? '${names[_projectId]} updates'
+              : 'Farm updates'),
+      body: Column(children: [
+        if (projectIds.isNotEmpty)
+          SizedBox(
+            height: 48,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              children: [
+                _FilterChip(
+                  label: 'All farms',
+                  selected: _projectId == null,
+                  onTap: () => setState(() => _projectId = null),
+                ),
+                for (final id in projectIds)
+                  _FilterChip(
+                    label: names[id]!,
+                    selected: _projectId == id,
+                    onTap: () => setState(() => _projectId = id),
+                  ),
+              ],
+            ),
+          ),
+        Expanded(child: async.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: ArlColors.primary),
         ),
         error: (_, __) => const _Empty(text: 'Could not load updates.'),
         data: (updates) {
           if (updates.isEmpty) {
-            return const _Empty(text: 'No updates yet. Check back soon.');
+            return const _Empty(text: 'No updates yet for this farm. Check back soon.');
           }
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(allUpdatesProvider),
@@ -325,6 +369,37 @@ class UpdatesScreen extends ConsumerWidget {
             ),
           );
         },
+      )),
+      ]),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _FilterChip(
+      {required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        onSelected: (_) => onTap(),
+        showCheckmark: false,
+        selectedColor: ArlColors.primary,
+        backgroundColor: Colors.white,
+        side: BorderSide(
+            color: selected ? ArlColors.primary : ArlColors.sand),
+        labelStyle: TextStyle(
+          color: selected ? Colors.white : ArlColors.charcoal,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

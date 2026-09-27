@@ -281,7 +281,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.updates,
-            builder: (context, state) => const UpdatesScreen(),
+            builder: (context, state) => UpdatesScreen(
+                initialProjectId: state.uri.queryParameters['project']),
           ),
           GoRoute(
             path: '${RouteNames.updates}/:id',

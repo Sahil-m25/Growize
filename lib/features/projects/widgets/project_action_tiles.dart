@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/arl_colors.dart';
 
-/// Two big CTA tiles in a row — `View Area` / `Photos`.
+/// Three CTA tiles in a row — `View Area` / `Updates` / `Gallery`.
 ///
 /// Mirrors the v3 R5 "2 CTA tiles" block in the HTML — the Documents
 /// tile was explicitly removed because Documents is a top-level tab,
@@ -53,6 +53,16 @@ class ProjectActionTiles extends StatelessWidget {
               label: 'View Area',
               caption: 'Map · location',
               onTap: () => context.push('/projects/$projectId/view-area'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _Tile(
+              icon: Icons.campaign_outlined,
+              tint: ArlColors.gold,
+              label: 'Updates',
+              caption: 'Farm history',
+              onTap: () => context.push('/updates?project=$projectId'),
             ),
           ),
           const SizedBox(width: 8),
