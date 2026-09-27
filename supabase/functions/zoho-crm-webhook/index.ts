@@ -71,7 +71,7 @@ const ZOHO_TOKEN_URL = "https://accounts.zoho.in/oauth/v2/token";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "Growize <noreply@agresearchlabs.com>";
 const APP_WEB_URL = Deno.env.get("APP_WEB_URL") ?? "https://growizefarm.com";
-const SUPPORT_EMAIL = Deno.env.get("SUPPORT_EMAIL") ?? "hello@agresearchlabs.com";
+const SUPPORT_EMAIL = Deno.env.get("SUPPORT_EMAIL") ?? "tech@agresearchlabs.com";
 const SUSPENDED = "876000h"; // ~100 years; lifted on Invite
 // E.T2: Initialize Sentry if DSN is configured.
 const SENTRY_EDGE_DSN = Deno.env.get("SENTRY_EDGE_DSN");
