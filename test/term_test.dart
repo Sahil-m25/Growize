@@ -22,7 +22,8 @@ void main() {
     expect(p.monthOfContract, 4);          // 3 full months elapsed -> month 4
     expect(p.startDate, start);
     expect(p.endDate, DateTime(start.year, start.month + 60, start.day));
-    expect(p.progressPercent, closeTo(5, 0.01));
+    expect(p.progressPercent, closeTo(5, 0.2)); // day-precise: ~92 of 1826 days
+    expect(p.progressPercent.round(), 5);
   });
   test('invested today -> month 1, 0%', () {
     final p = personaliseTerm(proj(), [unit(d: DateTime(now.year, now.month, now.day))]);

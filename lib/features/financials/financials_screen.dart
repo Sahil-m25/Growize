@@ -180,7 +180,7 @@ class FinancialsScreen extends ConsumerWidget {
                                           ),
                                           const SizedBox(height: 6),
                                           Text(
-                                            p.totalReceived > 0 ? Money.inr(p.totalReceived) : 'YTD',
+                                            p.totalReceived > 0 ? Money.inr(p.totalReceived) : 'Yet to begin',
                                             style: const TextStyle(
                                               color: Colors.white,
                                               fontSize: 16,
@@ -224,7 +224,7 @@ class FinancialsScreen extends ConsumerWidget {
                                           ),
                                           const SizedBox(height: 6),
                                           Text(
-                                            thisFy > 0 ? Money.inr(thisFy) : 'YTD',
+                                            thisFy > 0 ? Money.inr(thisFy) : 'Yet to begin',
                                             style: const TextStyle(
                                               color: ArlColors.charcoal,
                                               fontSize: 16,

@@ -39,6 +39,22 @@ class ProjectUpdate {
     );
   }
 
+  ProjectUpdate copyWith({String? imageUrl}) => ProjectUpdate(
+        id: id,
+        projectId: projectId,
+        updateDate: updateDate,
+        title: title,
+        body: body,
+        imageUrl: imageUrl ?? this.imageUrl,
+      );
+
+  /// True when [imageUrl] is a storage path in the private gallery bucket
+  /// (e.g. set from the dashboard) rather than a ready-to-load URL.
+  static bool isStoragePath(String? v) {
+    final t = (v ?? '').trim();
+    return t.isNotEmpty && !t.startsWith('http');
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'project_id': projectId,

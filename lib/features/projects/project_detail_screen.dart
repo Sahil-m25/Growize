@@ -451,7 +451,7 @@ class _ContractProgressCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '${pct.toStringAsFixed(0)}%',
+                '${pct.round()}%',
                 style: const TextStyle(
                   color: ArlColors.primary,
                   fontSize: 12,

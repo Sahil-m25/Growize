@@ -243,7 +243,11 @@ Project personaliseTerm(Project p, List<InvestorUnit> allUnits) {
     startDate: start,
     endDate: end,
     monthOfContract: elapsed < total ? elapsed + 1 : total,
-    progressPercent: elapsed / total * 100,
+    // Day-precise so Home and the project page agree on the same number.
+    progressPercent: (now.difference(start).inDays /
+            end.difference(start).inDays *
+            100)
+        .clamp(0.0, 100.0),
     termStarted: true,
     amountToComplete: 0,
   );

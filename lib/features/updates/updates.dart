@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 
 import 'package:arl_app/core/auth/session_manager.dart';
 import 'package:arl_app/core/navigation/route_names.dart';
+import 'package:arl_app/core/constants/supabase_constants.dart';
+import 'package:arl_app/core/supabase/storage_helper.dart';
 import 'package:arl_app/core/supabase/supabase_client.dart';
 import 'package:arl_app/core/theme/arl_colors.dart';
 import 'package:arl_app/features/auth/auth_provider.dart';
@@ -28,12 +30,36 @@ final allUpdatesProvider = FutureProvider<List<ProjectUpdate>>((ref) async {
         .order('update_date', ascending: false)
         .order('created_at', ascending: false)
         .limit(200);
-    return (rows as List)
+    final list = (rows as List)
         .map((r) => ProjectUpdate.fromJson(Map<String, dynamic>.from(r as Map)))
         .toList();
+    // Photos kept in the private gallery bucket are stored as a path;
+    // turn them into short-lived signed URLs in one batch.
+    final paths = list
+        .where((u) => ProjectUpdate.isStoragePath(u.imageUrl))
+        .map((u) => u.imageUrl!.trim())
+        .toSet()
+        .toList();
+    if (paths.isEmpty) return list;
+    final signed = await StorageHelper.signedUrlsForBucket(
+        SupabaseConstants.galleryBucket, paths);
+    return [
+      for (final u in list)
+        ProjectUpdate.isStoragePath(u.imageUrl)
+            ? u.copyWith(imageUrl: signed[u.imageUrl!.trim()] ?? '')
+            : u,
+    ];
   } catch (_) {
     return const [];
   }
+});
+
+/// A ready URL for an image reference: http(s) URLs pass through; a bare
+/// path in the private gallery bucket becomes a signed URL.
+final galleryImageUrlProvider =
+    FutureProvider.family<String?, String>((ref, ref0) async {
+  if (!ProjectUpdate.isStoragePath(ref0)) return ref0;
+  return StorageHelper.signedUrlForGalleryPhoto(ref0.trim());
 });
 
 /// project id -> project name, for the small label on each update.

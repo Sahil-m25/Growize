@@ -181,7 +181,7 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'RETURNS',
+                            'RETURNS (CUMULATIVE)',
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.6),
                               fontSize: 10,
@@ -194,7 +194,7 @@ class _PortfolioCardState extends ConsumerState<PortfolioCard> {
                             _showValues
                                 ? (widget.portfolio.totalReceived > 0
                                     ? '+${Money.inr(widget.portfolio.totalReceived, inline: true)}'
-                                    : 'YTD')
+                                    : 'Yet to begin')
                                 : '••••••',
                             style: const TextStyle(
                               color: ArlColors.goldLight,

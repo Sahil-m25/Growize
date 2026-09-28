@@ -175,7 +175,7 @@ class _SingleProjectView extends StatelessWidget {
               style: TextStyle(color: ArlColors.muted, fontSize: 11),
             ),
             Text(
-              '${project.progressPercent.toInt()}%',
+              '${project.progressPercent.round()}%',
               style: const TextStyle(
                 color: ArlColors.primary,
                 fontSize: 11,
@@ -353,7 +353,7 @@ class _MiniProgress extends StatelessWidget {
               ),
             ),
             Text(
-              '${project.progressPercent.toInt()}%',
+              '${project.progressPercent.round()}%',
               style: const TextStyle(
                 color: ArlColors.primary,
                 fontSize: 11,

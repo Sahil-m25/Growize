@@ -13,6 +13,8 @@ import 'package:arl_app/features/activity/activity_provider.dart';
 import 'package:arl_app/features/activity/models/notification.dart';
 
 import 'package:arl_app/features/activity/activity_timeline.dart';
+import 'package:arl_app/features/updates/updates.dart'
+    show galleryImageUrlProvider;
 
 class ActivityScreen extends ConsumerStatefulWidget {
   const ActivityScreen({super.key});
@@ -344,17 +346,25 @@ class _NotifCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     child: AspectRatio(
                       aspectRatio: 16 / 9,
-                      child: CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        fit: BoxFit.cover,
-                        // A milestone card must still read correctly when
-                        // the photo is slow or gone — never leave a broken
-                        // box or a stretched placeholder in the feed.
-                        placeholder: (_, __) => Container(
-                          color: tint.withOpacity(0.12),
-                        ),
-                        errorWidget: (_, __, ___) => const SizedBox.shrink(),
-                      ),
+                      child: Consumer(builder: (context, ref, _) {
+                        final url = ref
+                            .watch(galleryImageUrlProvider(imageUrl))
+                            .valueOrNull;
+                        if (url == null || url.isEmpty) {
+                          return Container(color: tint.withOpacity(0.12));
+                        }
+                        return CachedNetworkImage(
+                          imageUrl: url,
+                          fit: BoxFit.cover,
+                          // A milestone card must still read correctly when
+                          // the photo is slow or gone — never leave a broken
+                          // box or a stretched placeholder in the feed.
+                          placeholder: (_, __) => Container(
+                            color: tint.withOpacity(0.12),
+                          ),
+                          errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                        );
+                      }),
                     ),
                   ),
                 ],

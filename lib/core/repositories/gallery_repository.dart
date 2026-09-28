@@ -57,7 +57,9 @@ class GalleryRepository {
       }
       final rows = await query.order('update_date', ascending: false);
       return rows
-          .where((r) => ((r['image_url'] ?? '') as String).isNotEmpty)
+          // A bare storage path is a gallery photo that already has its
+          // own gallery_photos row, so skip it here to avoid a duplicate.
+          .where((r) => ((r['image_url'] ?? '') as String).startsWith('http'))
           .map((r) => GalleryPhoto(
                 id: 'update-${r['id']}',
                 projectId: (r['project_id'] ?? '') as String,
