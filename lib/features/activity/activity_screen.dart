@@ -265,6 +265,23 @@ class _NotifCard extends StatelessWidget {
     return (r is String && r.startsWith('/')) ? r : null;
   }
 
+  /// Where a notification opens when it carries no explicit route (older
+  /// document / KYC / payout notifications were written without one).
+  String? _fallbackRoute(String type) {
+    switch (type) {
+      case 'document':
+        return RouteNames.documents;
+      case 'kyc':
+        return RouteNames.kyc;
+      case 'payout':
+        return RouteNames.financials;
+      case 'photo':
+        return RouteNames.gallery;
+      default:
+        return null;
+    }
+  }
+
   String? _ctaLabelFromMetadata(Map<String, dynamic>? m, String type) {
     if (m != null && m['cta_label'] is String) return m['cta_label'] as String;
     switch (type) {
@@ -275,6 +292,10 @@ class _NotifCard extends StatelessWidget {
       case 'milestone':
       case 'phase_update':
         return 'View update';
+      case 'document':
+        return 'View documents';
+      case 'kyc':
+        return 'View KYC';
       default:
         return null;
     }
@@ -292,7 +313,7 @@ class _NotifCard extends StatelessWidget {
     // updates; everything else follows its own link.
     final target = (notif.type == 'phase_update' || notif.type == 'milestone')
         ? RouteNames.updates
-        : ctaRoute;
+        : ctaRoute ?? _fallbackRoute(notif.type);
     final card = Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(

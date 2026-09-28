@@ -283,10 +283,11 @@ class _UpdatesScreenState extends ConsumerState<UpdatesScreen> {
         ? all
         : all.where((u) => u.projectId == _projectId).toList());
     final names = ref.watch(_projectNamesProvider);
-    final projectIds = {
-      ...?ref.watch(allUpdatesProvider).valueOrNull?.map((u) => u.projectId),
-      if (_projectId != null) _projectId!,
-    }.where((id) => names.containsKey(id)).toList()
+    // One chip per farm the investor holds (demo projects excluded).
+    final projectIds = (ref.watch(projectsProvider).valueOrNull ?? const [])
+        .where((p) => !p.isDemo)
+        .map((p) => p.id)
+        .toList()
       ..sort((a, b) => names[a]!.compareTo(names[b]!));
     return Scaffold(
       backgroundColor: ArlColors.cream,
@@ -295,7 +296,8 @@ class _UpdatesScreenState extends ConsumerState<UpdatesScreen> {
               ? '${names[_projectId]} updates'
               : 'Farm updates'),
       body: Column(children: [
-        if (projectIds.isNotEmpty)
+        // Farm filter only when the investor holds more than one farm.
+        if (projectIds.length > 1)
           SizedBox(
             height: 48,
             child: ListView(
